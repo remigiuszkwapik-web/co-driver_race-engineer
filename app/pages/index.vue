@@ -1,7 +1,11 @@
 <script setup lang="ts">
-const { telemetry, debug, connected, hasReceivedFrame } = useTelemetry()
+const { telemetry, debug, connected, hasReceivedFrame, history, tracePaused } = useTelemetry()
 
-const paused = computed(() => hasReceivedFrame.value && telemetry.value && !telemetry.value.isRaceOn)
+const racePaused = computed(() => hasReceivedFrame.value && telemetry.value && !telemetry.value.isRaceOn)
+
+function toggleTracePause() {
+  tracePaused.value = !tracePaused.value
+}
 </script>
 
 <template>
@@ -101,7 +105,7 @@ const paused = computed(() => hasReceivedFrame.value && telemetry.value && !tele
 
       <!-- Paused overlay -->
       <div
-        v-if="paused"
+        v-if="racePaused"
         class="pointer-events-none absolute inset-0 flex items-center justify-center"
       >
         <div class="border-y border-zinc-700/60 bg-zinc-950/40 px-12 py-3 backdrop-blur-sm">
@@ -114,6 +118,17 @@ const paused = computed(() => hasReceivedFrame.value && telemetry.value && !tele
         </div>
       </div>
     </main>
+
+    <section
+      v-if="hasReceivedFrame"
+      class="mx-auto max-w-6xl px-6 pb-6"
+    >
+      <TraceStrip
+        :history="history"
+        :paused="tracePaused"
+        @toggle-pause="toggleTracePause"
+      />
+    </section>
 
     <DebugPanel
       :telemetry="telemetry"

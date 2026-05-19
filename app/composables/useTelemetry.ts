@@ -1,5 +1,6 @@
 import type { Telemetry } from '../../server/utils/decode'
 import type { DebugFrame } from '../../server/utils/forza-bus'
+import { pushSample, type TraceSample } from '../utils/trace'
 
 interface ServerMessage {
   type: 'hello' | 'telemetry' | 'debug'
@@ -16,6 +17,8 @@ const _state = {
   debug: ref<DebugFrame | null>(null),
   connected: ref(false),
   hasReceivedFrame: ref(false),
+  history: ref<TraceSample[]>([]),
+  tracePaused: ref(false),
   ws: null as WebSocket | null,
   refCount: 0
 }
@@ -48,8 +51,20 @@ function connect() {
       return
     }
     if (msg.type === 'telemetry' && msg.t) {
-      _state.telemetry.value = msg.t
+      const t = msg.t
+      _state.telemetry.value = t
       _state.hasReceivedFrame.value = true
+
+      // Accumulate trace history only when racing and not paused.
+      if (t.isRaceOn && !_state.tracePaused.value) {
+        pushSample(_state.history.value, {
+          t: t.timestampMs,
+          throttle: t.throttle,
+          brake: t.brake,
+          steer: t.steer,
+          yawRate: t.angularVelocity.y
+        })
+      }
     } else if (msg.type === 'debug' && msg.d) {
       _state.debug.value = msg.d
     }
@@ -73,6 +88,8 @@ export function useTelemetry() {
     telemetry: _state.telemetry,
     debug: _state.debug,
     connected: _state.connected,
-    hasReceivedFrame: _state.hasReceivedFrame
+    hasReceivedFrame: _state.hasReceivedFrame,
+    history: _state.history,
+    tracePaused: _state.tracePaused
   }
 }
