@@ -1,60 +1,102 @@
-# Nuxt Starter Template
+# forza-data
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+Self-hosted Forza Horizon tuning telemetry. UDP "Data Out" → Nitro WebSocket → SVG corner view. Local-first, no cloud, no accounts.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+See [`DESIGN.md`](./DESIGN.md) for the full packet schema, architecture, and roadmap.
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
+## What it does (v1)
 
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png" width="830" height="466">
-  </picture>
-</a>
+Listens for Forza Horizon's UDP **Car Dash** packets, decodes them, and renders a tuning-focused dashboard:
 
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t ui
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
+- Per-corner panel (FL/FR/RL/RR) with suspension travel, slip ratio + angle, tire temperature (°C), rumble indicator
+- Center panel with linear RPM bar (redline zone shaded), gear, km/h, throttle/brake/steer pills, boost
+- **Bottoming flash** when normalized suspension > 0.95 — easiest way to spot springs/bumpstops trouble
+- **Tire-temp heatmap** with cold/optimal/hot bands (80–95 °C optimal)
+- **Debug panel** (press <kbd>D</kbd>) showing every decoded field plus the raw packet length and last 8 bytes in hex
+- **PAUSED** overlay freezes the last live frame when you pause the game
 
 ## Setup
 
-Make sure to install the dependencies:
+This is a Nuxt 4 + Nuxt UI 4 project. **bun only** — don't use npm/yarn/pnpm.
 
 ```bash
-pnpm install
+bun install
+cp .env.example .env   # then edit if you want
+bun dev
 ```
 
-## Development Server
+Open <http://localhost:3000> and you'll get the "WAITING FOR TELEMETRY" screen until Forza starts sending.
 
-Start the development server on `http://localhost:3000`:
+## Configure Forza
+
+In the game:
+
+> Settings → HUD and Gameplay → Data Out
+
+| Setting | Value |
+|---|---|
+| Data Out | **On** |
+| Data Out IP | The LAN IP of the machine running this app (e.g. `192.168.1.42`) |
+| Data Out Port | `5300` (or whatever you set `FORZA_PORT` to) |
+| Data Out Packet Format | **Car Dash** |
+
+The "Sled" format is a subset — it lacks tire temps, inputs, and lap data. Use Car Dash.
+
+### Finding your server's LAN IP
 
 ```bash
-pnpm dev
+# Linux
+ip -4 addr show | awk '/inet / && !/127.0.0.1/ {print $2}'
+
+# macOS
+ipconfig getifaddr en0
 ```
 
-## Production
+If the app is running on the same PC as Forza, use `127.0.0.1`.
 
-Build the application for production:
+### Firewall
+
+The server binds UDP `5300` on `0.0.0.0` by default. If your firewall blocks it, allow inbound UDP on that port from your LAN. On Linux with `ufw`:
 
 ```bash
-pnpm build
+sudo ufw allow proto udp from 192.168.1.0/24 to any port 5300
 ```
 
-Locally preview production build:
+## Environment variables
 
-```bash
-pnpm preview
-```
+| Var | Default | Purpose |
+|---|---|---|
+| `FORZA_PORT` | `5300` | UDP port the server listens on |
+| `FORZA_BIND` | `0.0.0.0` | Bind address. `127.0.0.1` for same-machine only |
+| `NUXT_DEV_PORT` | `3000` | Web UI port |
+| `NUXT_DEV_HOST` | `0.0.0.0` | Web UI bind |
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Commands
+
+| | |
+|---|---|
+| `bun dev` | Dev server (HMR + UDP listener) |
+| `bun run build` / `bun run preview` | Production build |
+| `bun run typecheck` | Type-check |
+| `bun run lint` | Lint |
+| `bun test:unit` | Decoder unit tests |
+| `bun test:nuxt` | Component tests |
+| `bun test:e2e` | Playwright E2E |
+
+## Roadmap
+
+| | |
+|---|---|
+| **v1** (this build) | Corner + center panels, debug panel, PAUSED overlay |
+| **v2** | Input + chassis trace strip (throttle/brake/steer/yaw over time) |
+| **v3** | Lap recorder + live delta vs best, track map by position |
+| **v4** | Tuning workbench: overlay two laps, bottoming-events list, tire-temp histograms |
+| **v5** (optional) | Serial bridge to an RP2040/Arduino for a hardware shift light |
+
+## Why self-hosted?
+
+Forza's Data Out gives you the same telemetry that cloud services like the SimHub online stack consume — but it's a flat UDP broadcast. There's no reason for it to leave your network. Everything in this app runs on a box you own.
+
+## License
+
+See [`LICENSE`](./LICENSE).

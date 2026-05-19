@@ -1,76 +1,123 @@
+<script setup lang="ts">
+const { telemetry, debug, connected, hasReceivedFrame } = useTelemetry()
+
+const paused = computed(() => hasReceivedFrame.value && telemetry.value && !telemetry.value.isRaceOn)
+</script>
+
 <template>
-  <div>
-    <UPageHero
-      title="Nuxt Starter Template"
-      description="A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours."
-      :links="[{
-        label: 'Get started',
-        to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-        target: '_blank',
-        trailingIcon: 'i-lucide-arrow-right',
-        size: 'xl'
-      }, {
-        label: 'Use this template',
-        to: 'https://github.com/nuxt-ui-templates/starter',
-        target: '_blank',
-        icon: 'i-simple-icons-github',
-        size: 'xl',
-        color: 'neutral',
-        variant: 'subtle'
-      }]"
-    />
+  <div class="min-h-screen bg-zinc-950 text-zinc-100">
+    <!-- Header strip -->
+    <header class="flex items-center justify-between border-b border-zinc-800 px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+      <span>forza-data</span>
+      <span class="flex items-center gap-4">
+        <span class="flex items-center gap-2">
+          <span
+            class="inline-block h-2 w-2 rounded-full"
+            :class="connected ? 'bg-green-400' : 'bg-zinc-600'"
+          />
+          {{ connected ? 'WS LINKED' : 'WS OFFLINE' }}
+        </span>
+        <span
+          v-if="telemetry"
+          class="text-zinc-500"
+        >
+          T+{{ (telemetry.timestampMs / 1000).toFixed(1) }}s
+        </span>
+      </span>
+    </header>
 
-    <UPageSection
-      id="features"
-      title="Everything you need to build modern Nuxt apps"
-      description="Start with a solid foundation. This template includes all the essentials for building production-ready applications with Nuxt UI's powerful component system."
-      :features="[{
-        icon: 'i-lucide-rocket',
-        title: 'Production-ready from day one',
-        description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and all the best practices. Focus on building features, not setting up tooling.'
-      }, {
-        icon: 'i-lucide-palette',
-        title: 'Beautiful by default',
-        description: 'Leveraging Nuxt UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.'
-      }, {
-        icon: 'i-lucide-zap',
-        title: 'Lightning fast',
-        description: 'Optimized for performance with SSR/SSG support, automatic code splitting, and edge-ready deployment. Your users will love the speed.'
-      }, {
-        icon: 'i-lucide-blocks',
-        title: '100+ components included',
-        description: 'Access Nuxt UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.'
-      }, {
-        icon: 'i-lucide-code-2',
-        title: 'Developer experience first',
-        description: 'Auto-imports, hot module replacement, and TypeScript support. Write less boilerplate and ship more features.'
-      }, {
-        icon: 'i-lucide-shield-check',
-        title: 'Built for scale',
-        description: 'Enterprise-ready architecture with proper error handling, SEO optimization, and security best practices built-in.'
-      }]"
-    />
+    <!-- Waiting state — never received a frame yet -->
+    <div
+      v-if="!hasReceivedFrame"
+      class="flex flex-col items-center justify-center px-6 py-32 text-center font-mono"
+    >
+      <div class="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+        awaiting
+      </div>
+      <div class="mt-3 text-2xl text-zinc-100">
+        WAITING FOR TELEMETRY
+      </div>
+      <div class="mt-6 max-w-md text-xs text-zinc-400">
+        Start a race in Forza Horizon with Data Out enabled
+        (Settings → HUD and Gameplay → Data Out) and point it at this server's
+        LAN IP, port 5300, format <span class="text-zinc-200">Car Dash</span>.
+      </div>
+    </div>
 
-    <UPageSection>
-      <UPageCTA
-        title="Ready to build your next Nuxt app?"
-        description="Join thousands of developers building with Nuxt and Nuxt UI. Get this template and start shipping today."
-        variant="subtle"
-        :links="[{
-          label: 'Start building',
-          to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-          target: '_blank',
-          trailingIcon: 'i-lucide-arrow-right',
-          color: 'neutral'
-        }, {
-          label: 'View on GitHub',
-          to: 'https://github.com/nuxt-ui-templates/starter',
-          target: '_blank',
-          icon: 'i-simple-icons-github',
-          color: 'neutral',
-          variant: 'outline'
-        }]"
+    <!-- Live view -->
+    <main
+      v-else
+      class="relative mx-auto grid max-w-6xl gap-4 px-6 py-6"
+      style="grid-template-columns: 1fr 1.4fr 1fr; grid-template-rows: 1fr 1fr;"
+    >
+      <CornerPanel
+        label="FRONT LEFT"
+        side="left"
+        :suspension="telemetry?.suspension.fl ?? 0"
+        :slip-ratio="telemetry?.slipRatio.fl ?? 0"
+        :slip-angle="telemetry?.slipAngle.fl ?? 0"
+        :temp-c="telemetry?.tireTempC.fl ?? 0"
+        :rumble="telemetry?.rumble.fl ?? false"
       />
-    </UPageSection>
+      <CenterPanel
+        class="row-span-2"
+        :rpm="telemetry?.rpm ?? 0"
+        :rpm-max="telemetry?.rpmMax ?? 8000"
+        :rpm-idle="telemetry?.rpmIdle ?? 800"
+        :gear="telemetry?.gear ?? 1"
+        :speed-kmh="telemetry?.speedKmh ?? 0"
+        :throttle="telemetry?.throttle ?? 0"
+        :brake="telemetry?.brake ?? 0"
+        :steer="telemetry?.steer ?? 0"
+        :boost="telemetry?.boost ?? 0"
+      />
+      <CornerPanel
+        label="FRONT RIGHT"
+        side="right"
+        :suspension="telemetry?.suspension.fr ?? 0"
+        :slip-ratio="telemetry?.slipRatio.fr ?? 0"
+        :slip-angle="telemetry?.slipAngle.fr ?? 0"
+        :temp-c="telemetry?.tireTempC.fr ?? 0"
+        :rumble="telemetry?.rumble.fr ?? false"
+      />
+      <CornerPanel
+        label="REAR LEFT"
+        side="left"
+        :suspension="telemetry?.suspension.rl ?? 0"
+        :slip-ratio="telemetry?.slipRatio.rl ?? 0"
+        :slip-angle="telemetry?.slipAngle.rl ?? 0"
+        :temp-c="telemetry?.tireTempC.rl ?? 0"
+        :rumble="telemetry?.rumble.rl ?? false"
+      />
+      <CornerPanel
+        label="REAR RIGHT"
+        side="right"
+        :suspension="telemetry?.suspension.rr ?? 0"
+        :slip-ratio="telemetry?.slipRatio.rr ?? 0"
+        :slip-angle="telemetry?.slipAngle.rr ?? 0"
+        :temp-c="telemetry?.tireTempC.rr ?? 0"
+        :rumble="telemetry?.rumble.rr ?? false"
+      />
+
+      <!-- Paused overlay -->
+      <div
+        v-if="paused"
+        class="pointer-events-none absolute inset-0 flex items-center justify-center"
+      >
+        <div class="border-y border-zinc-700/60 bg-zinc-950/40 px-12 py-3 backdrop-blur-sm">
+          <div class="font-mono text-2xl uppercase tracking-[0.5em] text-zinc-100">
+            PAUSED
+          </div>
+          <div class="text-center font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+            no race active — last frame frozen
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <DebugPanel
+      :telemetry="telemetry"
+      :debug="debug"
+    />
   </div>
 </template>

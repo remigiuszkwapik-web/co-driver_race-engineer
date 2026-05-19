@@ -9,8 +9,15 @@ export default defineNuxtConfig({
     '@nuxthub/core'
   ],
 
-  hub: {
-    db: 'sqlite'
+  devtools: {
+    enabled: true
+  },
+
+  css: ['~/assets/css/main.css'],
+
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark'
   },
 
   devServer: {
@@ -18,17 +25,17 @@ export default defineNuxtConfig({
     host: process.env.NUXT_DEV_HOST || '0.0.0.0'
   },
 
-  devtools: {
-    enabled: true
-  },
-
-  css: ['~/assets/css/main.css'],
-
-  routeRules: {
-    '/': { prerender: true }
-  },
-
   compatibilityDate: '2025-01-15',
+
+  nitro: {
+    experimental: {
+      websocket: true
+    }
+  },
+
+  hub: {
+    db: 'sqlite'
+  },
 
   vite: {
     optimizeDeps: {
