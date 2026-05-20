@@ -24,7 +24,6 @@ export default defineNitroPlugin(() => {
   const bind = process.env.FORZA_BIND ?? '0.0.0.0'
 
   const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true })
-  let frame = 0
   let warnedShort = false
 
   sock.on('message', (buf) => {
@@ -41,8 +40,7 @@ export default defineNitroPlugin(() => {
       }
       return
     }
-    // Throttle 60 Hz -> 30 Hz for browser fan-out.
-    if ((frame++ & 1) === 0) forzaBus.emit('telemetry', t)
+    forzaBus.emit('telemetry', t)
   })
 
   sock.on('error', (err) => {
@@ -51,6 +49,6 @@ export default defineNitroPlugin(() => {
 
   sock.bind(port, bind, () => {
     const addr = sock.address()
-    console.log(`[forza] listening udp://${addr.address}:${addr.port} (Car Dash @ ~30 Hz)`)
+    console.log(`[forza] listening udp://${addr.address}:${addr.port} (Car Dash @ ~60 Hz)`)
   })
 })

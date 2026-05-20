@@ -13,13 +13,13 @@ export interface TraceSample {
   yawRate: number
 }
 
-/** 10 seconds @ 30 Hz of server fan-out. */
-export const TRACE_BUFFER_SIZE = 300
+/** 10 seconds @ 60 Hz of server fan-out. */
+export const TRACE_BUFFER_SIZE = 600
 
 /**
  * Push a sample into a fixed-size history. Mutates the array in place — the
  * caller's reactive ref then triggers re-renders. O(n) on overflow because of
- * shift(), but n=300 and we run at 30 Hz — negligible.
+ * shift(), but n=600 and we run at 60 Hz — negligible.
  */
 export function pushSample(history: TraceSample[], sample: TraceSample, max = TRACE_BUFFER_SIZE): TraceSample[] {
   history.push(sample)

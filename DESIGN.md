@@ -141,14 +141,11 @@ The packet is a contiguous binary struct, little-endian. The Horizon variant has
 - **`pages/index.vue`** — the corner view.
 - **`composables/useTelemetry.ts`** — opens the WebSocket, exposes a reactive `telemetry` ref + `connected` boolean.
 
-### Throttling
+### Render cadence
 
-The game blasts at 60 Hz. The browser doesn't need that. Two-stage:
+The game emits at ~60 Hz. The server emits every decoded packet straight onto the bus — no throttling at ingest. The client uses `requestAnimationFrame` to render, which decouples paint cadence from network jitter and lets the browser drop renders if the tab is hidden.
 
-1. Server throttles to ~30 Hz (every other packet) for the WS feed — halves bandwidth.
-2. Client renders on `requestAnimationFrame`, reading the latest telemetry — decouples render from network jitter.
-
-Even so, keep the option to **record** at full 60 Hz to a per-lap buffer (v2). Display Hz ≠ capture Hz.
+Capture and display share the same ~60 Hz rate. The earlier 30 Hz throttle was removed — bandwidth on LAN is free, and the temporal resolution matters for transient analysis and replay smoothness. See §8.9 decision 14 for the rationale.
 
 ---
 
@@ -604,11 +601,11 @@ New outbound:
 
 ### 8.6 Frame storage — per-lap blob
 
-A 2-minute lap at the 30 Hz WS rate is ~3600 frames. Storing them as rows would explode row counts across many sessions without buying any query power — frames are only ever read back as a whole for replay.
+A 2-minute lap at 60 Hz is ~7200 frames (~720 KB gzipped per lap). Storing them as rows would explode row counts across many sessions without buying any query power — frames are only ever read back as a whole for replay.
 
 So: **one gzipped blob per `laps` row**. Encoded as a JSON array of decoded `Telemetry` objects, gzipped at lap finalization, written once. Replay decompresses and streams the array at the original timestamps. v4 analytics (bottoming events, slip histograms) decode the blob on demand.
 
-The recorder captures frames at the same 30 Hz the WS feed uses — display Hz and capture Hz are the same in v3. If we ever want 60 Hz capture (v4+), the UDP listener can fork a higher-rate path into the recorder without touching the WS rate.
+Display and capture share the same ~60 Hz cadence — see §8.9 decision 14.
 
 ### 8.7 Lap timing — trust the in-game signal
 
@@ -638,6 +635,7 @@ Continuing the §6 list:
 11. **Tune tracking**: PI-shift auto-prompt with manual override at any time. Free signal, catches forgotten labels, never blocks.
 12. **Frame storage**: one gzipped blob per `laps` row, not per-frame rows.
 13. **`/live` stays**: the existing corner view + trace strip remains the primary "while driving" view; v3 only adds a small REC badge. No new components on `/live`.
+14. **Sample rate — full 60 Hz, no throttle**: capture and display both run at the native Forza Data Out rate. The previous 30 Hz throttle was a WAN-era bandwidth defence that's irrelevant on LAN; the temporal resolution gain matters for replay smoothness and transient analytics (brake-lockup onset, wheelspin spikes, bottoming events span 50–200 ms, where 30 Hz aliases the shape). Storage delta is trivial (~720 KB per 2-min lap gzipped). User's stated principle: gather everything, decide later whether to use it.
 
 ---
 
