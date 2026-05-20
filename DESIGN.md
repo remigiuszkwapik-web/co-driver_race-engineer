@@ -636,6 +636,8 @@ When `LapNumber` advances, the new packet's `LastLap` field holds the just-compl
 
 **Confirmed empirically (2026-05-20):** FH6 doesn't tick `LapNumber` for `touge / rally / drag / cross_country / freeroam`. The fallback: when `stop()` is called and `lapsCompleted === 0` AND the event type is one of those five, the buffered frames are flushed as a single lap with `time_ms = last.timestampMs - first.timestampMs` (game time, not walltime, so paused frames don't bloat it). For `race` and `street_race` the original "partial laps are discarded" rule still holds — those events tick `LapNumber` reliably and a partial there is a real partial.
 
+**Race-state gating (2026-05-20):** the recorder ignores any frame where `isRaceOn === false`, so loading screens / countdowns / menu pauses never end up in the buffer (previously inflated touge runs by ~20 seconds of zero-data frames). Additionally, for the point-to-point event types above, `isRaceOn` going false also CLEARS the buffer — meaning if you press Record in freeroam and then drive into a touge entrance, the freeroam frames captured before the loading screen get discarded the moment the game shows the loading screen, and the buffer starts fresh from the actual race start. For multi-lap circuit types the buffer is preserved across an in-race pause, since `lap.last` is still authoritative for the timing of the eventually-completed lap.
+
 ### 8.8 Tune-label flow — **[done]**
 
 `CarPerformanceIndex` is in the packet; the tune label is not. So:

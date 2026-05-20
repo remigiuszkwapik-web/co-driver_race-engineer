@@ -5,6 +5,14 @@
  * Lives in the server so recording survives browser refresh and the UDP
  * stream + DB are both adjacent.
  *
+ * Race-state gating: frames where `isRaceOn === false` are never buffered.
+ * That filters loading screens, countdowns, post-finish UI, and any in-game
+ * menu pause. For point-to-point event types (touge / rally / drag /
+ * cross-country / freeroam) the buffer is additionally CLEARED when isRaceOn
+ * goes false — so any frames captured before the actual event starts
+ * (driving in freeroam to the event entrance, sitting in the lobby) are
+ * tossed the moment the game shows a loading screen.
+ *
  * Lap-flushing rule: the first LapNumber transition after start() is a
  * mid-lap join (the lap started before recording began) — discard. Every
  * later transition is a fully-captured lap; gzip the frame buffer and
@@ -117,7 +125,10 @@ class Recorder {
       startedAt,
       lastLapNumber: frame.lap.number,
       lapInProgressFromStart: false,
-      buffer: [frame],
+      // Buffer starts empty — the first isRaceOn=true frame seeds it via
+      // onTelemetry. Pre-event frames (driving to the event in freeroam,
+      // lobby, countdown) never make it in.
+      buffer: [],
       lapsCompleted: 0
     }
 
@@ -173,6 +184,21 @@ class Recorder {
     this.latestFrame = t
     const ctx = this.ctx
     if (!ctx) return
+
+    // Skip frames while the race isn't on — these are loading screens,
+    // countdowns, menus, post-finish UI, etc. They'd otherwise pollute the
+    // buffer with zero-data frames and inflate the elapsed time.
+    if (!t.isRaceOn) {
+      // For point-to-point events the buffer == the run, and any frames
+      // queued before the race actually starts are pre-event garbage
+      // (driving from freeroam to the event, sitting in the lobby).
+      // Clear them so the moment the race goes on we start fresh.
+      if (POINT_TO_POINT_TYPES.has(ctx.eventType) && ctx.buffer.length > 0) {
+        ctx.buffer = []
+        ctx.lapInProgressFromStart = false
+      }
+      return
+    }
 
     if (t.lap.number !== ctx.lastLapNumber) {
       if (ctx.lapInProgressFromStart && ctx.buffer.length > 0) {
