@@ -3,6 +3,7 @@ import type { Telemetry } from '../../server/utils/decode'
 import { TRACE_BUFFER_SIZE } from '~/utils/trace'
 import { INPUT_TRACE_LINES, motorTraceLines } from '~/utils/trace-lines'
 import { binFrames } from '~/utils/dyno'
+import { pointsFromFrames } from '~/utils/track-map'
 
 const props = defineProps<{
   frames: Telemetry[]
@@ -120,6 +121,22 @@ const dynoCurve = computed(() => {
   const end = currentIndex.value + 1
   return binFrames(props.frames.slice(0, end))
 })
+
+// Track-map: compute once from the full lap (route doesn't change as you
+// scrub). The moving dot comes from currentFrame.position — no need to
+// index back into the downsampled points array.
+const trackPoints = computed(() => pointsFromFrames(props.frames))
+
+const trackCursor = computed(() => {
+  const f = currentFrame.value
+  if (!f || !f.position) return null
+  return {
+    x: f.position.x,
+    z: f.position.z,
+    y: f.position.y,
+    distance: f.lap?.distance ?? 0
+  }
+})
 </script>
 
 <template>
@@ -164,6 +181,11 @@ const dynoCurve = computed(() => {
       <DynoCurve
         :curve="dynoCurve"
         title="dyno · this lap so far"
+      />
+      <TrackMap
+        :points="trackPoints"
+        :current-point="trackCursor"
+        title="track · this lap"
       />
     </section>
 

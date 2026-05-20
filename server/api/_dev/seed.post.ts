@@ -272,6 +272,8 @@ function makeFrame(i: FrameInputs): Telemetry {
     clutch: 0,
     handBrake: 0,
     steer: i.steer,
+    drivingLine: 0,
+    aiBrakeDifference: 0,
     suspension: { fl: susFront, fr: susFront, rl: susRear, rr: susRear },
     suspensionMeters: { fl: susFront * 0.06, fr: susFront * 0.06, rl: susRear * 0.06, rr: susRear * 0.06 },
     slipRatio: { fl: 0, fr: 0, rl: i.throttle * 0.12, rr: i.throttle * 0.12 },

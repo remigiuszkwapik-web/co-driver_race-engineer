@@ -2,6 +2,7 @@
 import { EVENT_TYPE_LABELS, isEventType, type EventType } from '~/utils/event-types'
 import { formatLap } from '~/utils/format'
 import type { Telemetry } from '../../../../../server/utils/decode'
+import type { TrackPoint } from '~/utils/track-map'
 
 const route = useRoute()
 const typeParam = String(route.params.type ?? '')
@@ -47,6 +48,34 @@ const { data, error } = await useFetch<SessionDetail>(`/api/sessions/${sessionId
 if (error.value || !data.value) {
   throw createError({ statusCode: 404, statusMessage: 'session not found' })
 }
+
+interface PathLap {
+  lapNumber: number
+  timeMs: number
+  points: TrackPoint[]
+}
+interface PathResponse {
+  sessionId: number
+  eventId: number
+  tuneLabel: string | null
+  piAtStart: number
+  car: { ordinal: number, class: number, displayName: string | null }
+  laps: PathLap[]
+}
+
+const { data: pathData } = await useFetch<PathResponse>(`/api/sessions/${sessionId}/path`)
+
+// Build traces for TrackMap — best (fastest) lap marked as `best`, others backdrop.
+const trackTraces = computed(() => {
+  const laps = pathData.value?.laps ?? []
+  if (laps.length === 0) return []
+  const fastest = laps.reduce((acc, l) => (l.timeMs < acc.timeMs ? l : acc), laps[0]!)
+  return laps.map(l => ({
+    points: l.points,
+    label: `lap ${l.lapNumber}`,
+    best: l === fastest
+  }))
+})
 
 // Replay state
 const selectedLapId = ref<number | null>(null)
@@ -287,6 +316,17 @@ async function confirmDelete() {
           {{ formatDuration(data?.session.startedAt ?? '', data?.session.endedAt ?? null) }}
         </div>
       </div>
+    </section>
+
+    <section
+      v-if="trackTraces.length"
+      class="mb-8"
+    >
+      <TrackMap
+        :traces="trackTraces"
+        title="track · session"
+        :subtitle="`${pathData?.car.displayName ?? ('#' + pathData?.car.ordinal)} · ${pathData?.tuneLabel ?? 'untuned'}`"
+      />
     </section>
 
     <section v-if="data?.laps?.length">

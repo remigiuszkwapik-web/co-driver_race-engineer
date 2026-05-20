@@ -35,6 +35,13 @@ export interface Telemetry {
   clutch: number
   handBrake: number
   steer: number
+  /** Forza's per-frame measure of how far off the ideal racing line the car is
+   *  (offset 321, s8 -128..127). Available since FH5; null on older blobs that
+   *  predate the decoder reading this field. */
+  drivingLine: number | null
+  /** Difference between the player's braking and the AI's optimal braking at
+   *  this frame (offset 322, s8). Decoded for completeness; not rendered yet. */
+  aiBrakeDifference: number | null
 
   suspension: Quad
   suspensionMeters: Quad
@@ -171,6 +178,8 @@ export function decodeCarDash(buf: Buffer): Telemetry | null {
     handBrake: u8(318) / 255,
     gear: u8(319),
     steer: s8(320) / 127,
+    drivingLine: s8(321),
+    aiBrakeDifference: s8(322),
 
     rawLength: buf.length
   }
