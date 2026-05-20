@@ -1,51 +1,46 @@
 <script setup lang="ts">
 import { TRACE_BUFFER_SIZE, type TraceSample } from '~/utils/trace'
+import type { LineDef } from '~/utils/trace-lines'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   history: TraceSample[]
+  /** Line configuration — see app/utils/trace-lines.ts for the canonical defs. */
+  lines: LineDef[]
+  /** Header label, e.g. "traces · last 10 s" or "motor · last 10 s". */
+  label: string
   paused: boolean
-}>()
+  /** when true, pointer events on the strip emit `scrub` events */
+  scrubbable?: boolean
+  /** when false, only the initial pointerdown emits a scrub — drags don't.
+   * Replay should set this false because seeking re-anchors the strip's
+   * window, which makes continuous drag feed back on itself. */
+  dragScrub?: boolean
+  /** parent-controlled scrub position; renders a vertical playhead line */
+  scrubIndex?: number | null
+  /** sample count actually in the buffer (≤ TRACE_BUFFER_SIZE); needed for
+   * scrub→index mapping when the strip is still filling */
+  bufferLength?: number
+  /** Render the pause toggle in the header. Stacked second strips suppress it
+   * so a single button controls both. */
+  showPauseButton?: boolean
+}>(), {
+  scrubbable: false,
+  dragScrub: true,
+  scrubIndex: null,
+  bufferLength: 0,
+  showPauseButton: true
+})
 
-const emit = defineEmits<{ togglePause: [] }>()
+const emit = defineEmits<{
+  togglePause: []
+  scrub: [index: number | null]
+}>()
 
 const VIEW_W = 1000
 const VIEW_H = 160
 const PAD_T = 12
 const PAD_B = 18
 const TRACE_H = VIEW_H - PAD_T - PAD_B
-
-const YAW_RATE_RANGE = 3 // rad/s — clamps the line height
-
-const colors = {
-  throttle: '#22c55e',
-  brake: '#ef4444',
-  steer: '#f59e0b',
-  yawRate: '#3b82f6'
-}
-
-interface LineDef {
-  key: keyof Pick<TraceSample, 'throttle' | 'brake' | 'steer' | 'yawRate'>
-  label: string
-  /** normalize sample value to 0..1 (1 = top of strip) */
-  norm: (v: number) => number
-  /** how to format the current-value pill text */
-  fmt: (v: number) => string
-  color: string
-}
-
-const lines: LineDef[] = [
-  { key: 'throttle', label: 'THROTL', color: colors.throttle, norm: v => 1 - clamp01(v), fmt: v => Math.round(v * 100) + '%' },
-  { key: 'brake', label: 'BRAKE', color: colors.brake, norm: v => 1 - clamp01(v), fmt: v => Math.round(v * 100) + '%' },
-  { key: 'steer', label: 'STEER', color: colors.steer, norm: v => 0.5 - clamp(v, -1, 1) / 2, fmt: v => (v >= 0 ? '+' : '') + Math.round(v * 100) + '%' },
-  { key: 'yawRate', label: 'YAW/s', color: colors.yawRate, norm: v => 0.5 - clamp(v, -YAW_RATE_RANGE, YAW_RATE_RANGE) / (YAW_RATE_RANGE * 2), fmt: v => v.toFixed(2) }
-]
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v))
-}
-function clamp01(v: number): number {
-  return clamp(v, 0, 1)
-}
 
 /**
  * Plot the buffer as an SVG polyline points string. The buffer's logical
@@ -61,7 +56,9 @@ function pathFor(line: LineDef): string {
   for (let i = 0; i < h.length; i++) {
     const sample = h[i]!
     const x = (offset + i) * xStep
-    const y = PAD_T + line.norm(sample[line.key]) * TRACE_H
+    const raw = sample[line.key]
+    const v = typeof raw === 'number' ? raw : 0
+    const y = PAD_T + line.norm(v) * TRACE_H
     out += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' '
   }
   return out.trim()
@@ -71,40 +68,85 @@ const latest = computed<TraceSample | null>(() => {
   return props.history.length > 0 ? props.history[props.history.length - 1] ?? null : null
 })
 
+function latestValue(line: LineDef): number {
+  const s = latest.value
+  if (!s) return 0
+  const raw = s[line.key]
+  return typeof raw === 'number' ? raw : 0
+}
+
 // 0.5 represents the zero-line for centered signals (steer, yawRate).
 const midY = PAD_T + 0.5 * TRACE_H
+
+// --- Scrub interaction -----------------------------------------------------
+
+const playheadX = computed<number | null>(() => {
+  if (props.scrubIndex === null || props.scrubIndex === undefined) return null
+  const len = props.bufferLength
+  if (len <= 1) return null
+  const offset = TRACE_BUFFER_SIZE - len
+  const xStep = VIEW_W / (TRACE_BUFFER_SIZE - 1)
+  return (offset + props.scrubIndex) * xStep
+})
+
+let dragging = false
+
+function updateScrub(e: PointerEvent): void {
+  const len = props.bufferLength
+  if (len <= 1) return
+  const target = e.currentTarget as SVGSVGElement | null
+  if (!target) return
+  const rect = target.getBoundingClientRect()
+  if (rect.width <= 0) return
+  const fx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+  const slot = fx * (TRACE_BUFFER_SIZE - 1)
+  const offset = TRACE_BUFFER_SIZE - len
+  const idx = Math.round(slot - offset)
+  if (idx < 0) return
+  if (idx >= len) return
+  // Snap to "live"/"current" when within ~5 slots of the right edge.
+  emit('scrub', idx >= len - 5 ? null : idx)
+}
+
+function onPointerDown(e: PointerEvent): void {
+  if (!props.scrubbable) return
+  updateScrub(e)
+  if (!props.dragScrub) return
+  const target = e.currentTarget as SVGSVGElement
+  target.setPointerCapture(e.pointerId)
+  dragging = true
+}
+
+function onPointerMove(e: PointerEvent): void {
+  if (!props.scrubbable || !props.dragScrub || !dragging) return
+  updateScrub(e)
+}
+
+function onPointerEnd(e: PointerEvent): void {
+  if (!dragging) return
+  dragging = false
+  const target = e.currentTarget as SVGSVGElement
+  if (target.hasPointerCapture(e.pointerId)) target.releasePointerCapture(e.pointerId)
+}
 </script>
 
 <template>
   <section class="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 font-mono text-zinc-100 backdrop-blur">
     <header class="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-zinc-400">
-      <span>traces · last 10 s</span>
+      <span>{{ label }}</span>
       <span class="flex items-center gap-3">
-        <span class="flex items-center gap-1.5">
+        <span
+          v-for="line in lines"
+          :key="line.key"
+          class="flex items-center gap-1.5"
+        >
           <span
             class="inline-block h-1.5 w-3"
-            :style="{ background: colors.throttle }"
-          />throttle
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span
-            class="inline-block h-1.5 w-3"
-            :style="{ background: colors.brake }"
-          />brake
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span
-            class="inline-block h-1.5 w-3"
-            :style="{ background: colors.steer }"
-          />steer
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span
-            class="inline-block h-1.5 w-3"
-            :style="{ background: colors.yawRate }"
-          />yaw/s
+            :style="{ background: line.color }"
+          />{{ line.label.toLowerCase() }}
         </span>
         <button
+          v-if="showPauseButton"
           type="button"
           class="rounded border border-zinc-700 px-2 py-0.5 text-zinc-200 hover:bg-zinc-800"
           :class="paused ? 'bg-amber-500/10 text-amber-300 border-amber-700/50' : ''"
@@ -119,7 +161,12 @@ const midY = PAD_T + 0.5 * TRACE_H
       <svg
         :viewBox="`0 0 ${VIEW_W} ${VIEW_H}`"
         class="w-full"
+        :class="scrubbable ? 'cursor-ew-resize' : ''"
         preserveAspectRatio="none"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerEnd"
+        @pointercancel="onPointerEnd"
       >
         <!-- Grid: horizontal midline (zero for centered signals) and 25/75 references -->
         <line
@@ -189,6 +236,18 @@ const midY = PAD_T + 0.5 * TRACE_H
         >
           {{ -10 + (i - 1) * 2.5 === 0 ? 'now' : (-10 + (i - 1) * 2.5).toFixed(1) + 's' }}
         </text>
+
+        <!-- Scrub playhead -->
+        <line
+          v-if="playheadX !== null"
+          :x1="playheadX"
+          :x2="playheadX"
+          :y1="PAD_T"
+          :y2="VIEW_H - PAD_B"
+          stroke="#fafafa"
+          stroke-width="1"
+          opacity="0.75"
+        />
       </svg>
 
       <!-- Current-value pills floating against the right edge -->
@@ -202,7 +261,7 @@ const midY = PAD_T + 0.5 * TRACE_H
           class="rounded px-1.5 py-0.5"
           :style="{ background: line.color + '20', color: line.color }"
         >
-          {{ line.label }} {{ line.fmt(latest[line.key]) }}
+          {{ line.label }} {{ line.fmt(latestValue(line)) }}
         </span>
       </div>
     </div>

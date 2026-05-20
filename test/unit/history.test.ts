@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { pushSample, type TraceSample } from '../../app/utils/trace'
 
 function sample(t: number): TraceSample {
-  return { t, throttle: 0, brake: 0, steer: 0, yawRate: 0 }
+  return { t, throttle: 0, brake: 0, steer: 0, yawRate: 0, rpm: 0, rpmMax: 8000, torqueNm: 0, powerKw: 0 }
 }
 
 describe('pushSample', () => {

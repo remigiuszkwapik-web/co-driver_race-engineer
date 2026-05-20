@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { Telemetry } from '../../server/utils/decode'
+import { TRACE_BUFFER_SIZE } from '~/utils/trace'
+import { INPUT_TRACE_LINES, motorTraceLines } from '~/utils/trace-lines'
+import { binFrames } from '~/utils/dyno'
 
 const props = defineProps<{
   frames: Telemetry[]
@@ -7,6 +10,7 @@ const props = defineProps<{
 
 const {
   currentFrame,
+  currentIndex,
   history,
   playing,
   playbackRate,
@@ -14,6 +18,7 @@ const {
   elapsedMs,
   toggle,
   pause,
+  seekToIndex,
   seekToFraction
 } = useReplay(props.frames)
 
@@ -38,6 +43,17 @@ function onScrub(e: Event) {
   const target = e.target as HTMLInputElement
   pause()
   seekToFraction(Number(target.value))
+}
+
+// TraceStrip click maps to a lap-frame index. The strip's history is a
+// sliding window ending at currentIndex; sample N in the window corresponds
+// to lap frame `start + N` where start is max(0, currentIndex+1 - BUFFER).
+function onTraceScrub(scrubBufferIdx: number | null) {
+  if (scrubBufferIdx === null) return // snap-to-right-edge is a no-op in replay
+  pause()
+  const end = currentIndex.value + 1
+  const start = Math.max(0, end - TRACE_BUFFER_SIZE)
+  seekToIndex(start + scrubBufferIdx)
 }
 
 const RATES = [0.25, 0.5, 1, 2, 4] as const
@@ -82,6 +98,28 @@ function tickStyle(percent: number): Record<string, string> {
   if (percent < 1 || percent > 99) return {}
   return { left: percent + '%' }
 }
+
+// Same window-max approach as /live so the motor strip auto-scales as you
+// scrub through the lap. The scales drift naturally with the visible window.
+const motorLines = computed(() => {
+  const h = history.value
+  let mTq = 0
+  let mPw = 0
+  for (let i = 0; i < h.length; i++) {
+    const s = h[i]!
+    if (s.torqueNm > mTq) mTq = s.torqueNm
+    if (s.powerKw > mPw) mPw = s.powerKw
+  }
+  return motorTraceLines({ maxTorqueNm: mTq, maxPowerKw: mPw })
+})
+
+// Dyno curve grows as the lap plays — bin the lap frames from start up to
+// the current playback index. props.frames is the full lap; we slice as the
+// scrub advances.
+const dynoCurve = computed(() => {
+  const end = currentIndex.value + 1
+  return binFrames(props.frames.slice(0, end))
+})
 </script>
 
 <template>
@@ -98,11 +136,34 @@ function tickStyle(percent: number): Record<string, string> {
       :paused="false"
     />
 
-    <section class="px-6 pb-2">
+    <section class="space-y-3 px-6 pb-2">
       <TraceStrip
         :history="history"
+        :lines="INPUT_TRACE_LINES"
+        label="traces · replay window"
         :paused="!playing"
+        :scrubbable="true"
+        :drag-scrub="false"
+        :scrub-index="null"
+        :buffer-length="history.length"
         @toggle-pause="toggle"
+        @scrub="onTraceScrub"
+      />
+      <TraceStrip
+        :history="history"
+        :lines="motorLines"
+        label="motor · replay window"
+        :paused="!playing"
+        :scrubbable="true"
+        :drag-scrub="false"
+        :scrub-index="null"
+        :buffer-length="history.length"
+        :show-pause-button="false"
+        @scrub="onTraceScrub"
+      />
+      <DynoCurve
+        :curve="dynoCurve"
+        title="dyno · this lap so far"
       />
     </section>
 

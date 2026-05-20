@@ -1,0 +1,122 @@
+<script setup lang="ts">
+import { emptyDynoState, ingestFrame, snapshot, type DynoState } from '~/utils/dyno'
+
+useHead({ title: 'Dyno · forza-data' })
+
+const { telemetry, hasReceivedFrame, connected } = useTelemetry()
+
+// Page-lifetime accumulator. Mutating a non-reactive object and bumping a
+// `version` ref is cheaper than wrapping the Map in a reactive proxy — Vue
+// would have to traverse every bucket on every change otherwise.
+let state: DynoState = emptyDynoState()
+const version = ref(0)
+const lastCarOrdinal = ref<number | null>(null)
+
+const curve = computed(() => {
+  // version is read so this recomputes when ingestFrame bumps it
+  void version.value
+  return snapshot(state)
+})
+
+const currentRpm = computed(() => telemetry.value?.rpm ?? 0)
+const carDisplay = computed(() => {
+  const t = telemetry.value
+  if (!t) return 'no telemetry'
+  const ord = t.car.ordinal
+  return ord > 0 ? `car #${ord} · PI ${t.car.pi}` : 'awaiting car data'
+})
+
+watch(telemetry, (t) => {
+  if (!t || !t.isRaceOn) return
+  // Reset if the car changed under us
+  if (lastCarOrdinal.value !== null && t.car.ordinal !== lastCarOrdinal.value) {
+    state = emptyDynoState()
+  }
+  lastCarOrdinal.value = t.car.ordinal
+  ingestFrame(state, t)
+  version.value++
+})
+
+function resetCurve() {
+  state = emptyDynoState()
+  lastCarOrdinal.value = telemetry.value?.car.ordinal ?? null
+  version.value++
+}
+</script>
+
+<template>
+  <main class="mx-auto max-w-6xl px-6 py-10">
+    <div class="mb-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+      <span>
+        Dyno
+        <span class="ml-3 normal-case tracking-normal text-zinc-600">{{ carDisplay }}</span>
+      </span>
+      <button
+        type="button"
+        class="rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1 text-zinc-200 transition-colors hover:border-amber-500/60 hover:text-amber-300"
+        @click="resetCurve"
+      >
+        Reset curve
+      </button>
+    </div>
+    <h1 class="mb-2 font-mono text-3xl text-zinc-100">
+      Gear-tuning workbench
+    </h1>
+    <p class="mb-8 max-w-2xl font-mono text-sm leading-relaxed text-zinc-400">
+      Drive a full-throttle pull through the rev range. The curve builds up as
+      you go. Use peak power for shift point, the shaded band as your
+      "stay-in-here" zone for gear spacing.
+    </p>
+
+    <div
+      v-if="!hasReceivedFrame"
+      class="mb-6 rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center font-mono text-sm text-zinc-500"
+    >
+      <div class="text-[10px] uppercase tracking-[0.3em]">
+        Awaiting
+      </div>
+      <div class="mt-2 text-zinc-300">
+        Waiting for telemetry
+      </div>
+      <div class="mt-4 text-xs">
+        Enable Data Out in Forza and start a race / free-roam.
+        <span
+          class="ml-2 inline-block h-2 w-2 rounded-full align-middle"
+          :class="connected ? 'bg-green-400' : 'bg-zinc-600'"
+        />
+        {{ connected ? 'WS linked' : 'WS offline' }}
+      </div>
+    </div>
+
+    <DynoCurve
+      v-else
+      :curve="curve"
+      title="dyno"
+      :subtitle="carDisplay"
+      mode="detailed"
+      :current-rpm="currentRpm"
+    />
+
+    <section class="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 font-mono text-sm leading-relaxed text-zinc-300">
+      <div class="mb-2 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+        Gear tuning · quick rules
+      </div>
+      <p>
+        Set the <span class="text-zinc-100">final drive</span> so 1st gear pulls
+        to redline just past your launch speed. Then space the upper gears so each
+        upshift drops the engine roughly 1000 RPM short of redline — that lands
+        you back inside the shaded powerband.
+      </p>
+      <p class="mt-2 text-zinc-400">
+        Avoid gaps that drop you below peak torque. Avoid stacks that have you
+        shifting twice through the same RPM band.
+      </p>
+      <NuxtLink
+        to="/tune/gearing"
+        class="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-green-400 transition-colors hover:text-green-300"
+      >
+        Full gearing reference →
+      </NuxtLink>
+    </section>
+  </main>
+</template>

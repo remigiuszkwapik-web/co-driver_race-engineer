@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { suspColor, tempColor, slipColor, combColor, SUSPENSION_BOTTOMING } from '~/utils/tuning'
+import { useSustained } from '~/composables/useSustained'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   label: string
   side: 'left' | 'right'
   suspension: number
@@ -12,7 +13,14 @@ const props = defineProps<{
   combinedSlip: number
   tempC: number
   rumble: boolean
-}>()
+  /** comparative chip: front-pair shows it when the car is pushing wide */
+  understeer?: boolean
+  /** comparative chip: rear-pair shows it when the rear is on a longer leash */
+  oversteer?: boolean
+}>(), {
+  understeer: false,
+  oversteer: false
+})
 
 const bottoming = computed(() => props.suspension > SUSPENSION_BOTTOMING)
 const susp = computed(() => suspColor(props.suspension))
@@ -21,6 +29,14 @@ const ratioColor = computed(() => slipColor(Math.abs(props.slipRatio)))
 const angleColor = computed(() => slipColor(Math.abs(props.slipAngle)))
 const combinedColor = computed(() => combColor(props.combinedSlip))
 const align = computed(() => props.side === 'left' ? 'text-left' : 'text-right')
+
+// --- Diagnostic chips ------------------------------------------------------
+// Each chip is a single threshold rule, sustained briefly to kill transients.
+// Conservative thresholds; calibrate by driving with them visible.
+const chipBottoming = useSustained(() => props.suspension > SUSPENSION_BOTTOMING, 150)
+const chipLockup = useSustained(() => props.slipRatio < -0.15, 150)
+const chipWheelspin = useSustained(() => props.slipRatio > 0.20, 150)
+const chipPastGrip = useSustained(() => props.combinedSlip > 1.1, 200)
 
 // --- friction-circle dot --------------------------------------------------
 // 100×100 viewBox, center at (50,50). Friction limit (combinedSlip = 1.0)
@@ -32,11 +48,12 @@ interface FrPoint { x: number, y: number }
 const trail = ref<FrPoint[]>([])
 
 function project(slipAngle: number, slipRatio: number): FrPoint {
-  // Convention: slipAngle on X (right = positive), slipRatio on Y (up = positive).
-  // SVG y grows downward, so invert.
+  // Convention matches the chassis G-G dot: forward drive force (positive
+  // slipRatio = wheelspin) plots DOWN, lockup (negative slipRatio) plots UP.
+  // slipAngle on X with positive to the right.
   return {
     x: 50 + slipAngle * LIMIT_R,
-    y: 50 - slipRatio * LIMIT_R
+    y: 50 + slipRatio * LIMIT_R
   }
 }
 
@@ -66,6 +83,60 @@ const trailPath = computed(() => {
         v-if="rumble"
         class="rounded-sm bg-amber-400/20 px-1.5 py-0.5 text-amber-300"
       >RUMBLE</span>
+    </div>
+
+    <!-- Diagnostic chips — one threshold per chip, links to the matching /tune doc.
+         Row is always rendered with a reserved height so chips appearing/
+         disappearing doesn't shift the panel below them. -->
+    <div class="mt-2 flex min-h-[1.5rem] flex-wrap gap-1">
+      <NuxtLink
+        v-if="chipBottoming"
+        to="/tune/springs"
+        class="rounded-sm border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-red-300 transition-colors hover:bg-red-500/20"
+        title="Suspension hitting the bump stops — softer/longer springs or higher ride height"
+      >
+        Bottoming
+      </NuxtLink>
+      <NuxtLink
+        v-if="chipPastGrip"
+        to="/tune/alignment"
+        class="rounded-sm border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-red-300 transition-colors hover:bg-red-500/20"
+        title="Combined slip past the friction circle — this tire has lost grip"
+      >
+        Past grip
+      </NuxtLink>
+      <NuxtLink
+        v-if="chipLockup"
+        to="/tune/brakes"
+        class="rounded-sm border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300 transition-colors hover:bg-amber-500/20"
+        title="Wheel locked under brake — shift brake bias or modulate pedal"
+      >
+        Lockup
+      </NuxtLink>
+      <NuxtLink
+        v-if="chipWheelspin"
+        to="/tune/differential"
+        class="rounded-sm border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300 transition-colors hover:bg-amber-500/20"
+        title="Wheelspin under power — diff or throttle application"
+      >
+        Wheelspin
+      </NuxtLink>
+      <NuxtLink
+        v-if="understeer"
+        to="/tune/anti-roll-bars"
+        class="rounded-sm border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300 transition-colors hover:bg-amber-500/20"
+        title="Front pair more loaded than rear — soften front ARB"
+      >
+        Understeer
+      </NuxtLink>
+      <NuxtLink
+        v-if="oversteer"
+        to="/tune/anti-roll-bars"
+        class="rounded-sm border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300 transition-colors hover:bg-amber-500/20"
+        title="Rear pair more loaded than front — soften rear ARB"
+      >
+        Oversteer
+      </NuxtLink>
     </div>
 
     <!-- Suspension bar -->

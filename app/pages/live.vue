@@ -1,11 +1,51 @@
 <script setup lang="ts">
-const { telemetry, debug, hasReceivedFrame, history, tracePaused } = useTelemetry()
+import { INPUT_TRACE_LINES, motorTraceLines } from '~/utils/trace-lines'
 
-const racePaused = computed(() => Boolean(hasReceivedFrame.value && telemetry.value && !telemetry.value.isRaceOn))
+const {
+  telemetry,
+  debug,
+  hasReceivedFrame,
+  history,
+  displayFrame,
+  scrubIndex,
+  paused,
+  pauseSource,
+  pauseManual,
+  resume,
+  setScrub
+} = useTelemetry()
 
-function toggleTracePause() {
-  tracePaused.value = !tracePaused.value
+function onTogglePause() {
+  if (paused.value) resume()
+  else pauseManual()
 }
+
+// How far back from "now" the current scrub target is, in seconds.
+const dvrSeconds = computed<number | null>(() => {
+  const idx = scrubIndex.value
+  if (idx === null) return null
+  const h = history.value
+  if (h.length === 0) return null
+  const last = h[h.length - 1]
+  const at = h[idx]
+  if (!last || !at) return null
+  return Math.max(0, (last.t - at.t) / 1000)
+})
+
+// Window-max for torque/power so the motor strip auto-scales to whatever the
+// current engine is putting out across the visible 10 s. Recomputing on every
+// reactive change is cheap (we already walk `history` for the path draw).
+const motorLines = computed(() => {
+  const h = history.value
+  let mTq = 0
+  let mPw = 0
+  for (let i = 0; i < h.length; i++) {
+    const s = h[i]!
+    if (s.torqueNm > mTq) mTq = s.torqueNm
+    if (s.powerKw > mPw) mPw = s.powerKw
+  }
+  return motorTraceLines({ maxTorqueNm: mTq, maxPowerKw: mPw })
+})
 </script>
 
 <template>
@@ -30,20 +70,48 @@ function toggleTracePause() {
 
     <CornerView
       v-else
-      :frame="telemetry"
-      :paused="racePaused"
+      :frame="displayFrame"
+      :paused="paused && scrubIndex === null"
     />
 
     <section
       v-if="hasReceivedFrame"
-      class="px-6 pb-6"
+      class="space-y-3 px-6 pb-6"
     >
       <TraceStrip
         :history="history"
-        :paused="tracePaused"
-        @toggle-pause="toggleTracePause"
+        :lines="INPUT_TRACE_LINES"
+        label="traces · last 10 s"
+        :paused="paused"
+        :scrubbable="true"
+        :scrub-index="scrubIndex"
+        :buffer-length="history.length"
+        @toggle-pause="onTogglePause"
+        @scrub="setScrub"
+      />
+      <TraceStrip
+        :history="history"
+        :lines="motorLines"
+        label="motor · last 10 s"
+        :paused="paused"
+        :scrubbable="true"
+        :scrub-index="scrubIndex"
+        :buffer-length="history.length"
+        :show-pause-button="false"
+        @scrub="setScrub"
       />
     </section>
+
+    <!-- DVR scrub badge: how far back of "now" we're showing -->
+    <div
+      v-if="dvrSeconds !== null"
+      class="pointer-events-none fixed bottom-32 left-1/2 z-30 -translate-x-1/2 border-y border-zinc-700/60 bg-zinc-950/60 px-6 py-2 font-mono text-sm uppercase tracking-[0.3em] text-zinc-100 backdrop-blur-sm"
+    >
+      DVR −{{ dvrSeconds.toFixed(1) }}s
+      <span class="ml-3 text-[10px] tracking-[0.2em] text-zinc-500">
+        {{ pauseSource === 'game' ? 'game paused' : 'manual pause' }}
+      </span>
+    </div>
 
     <DebugPanel
       :telemetry="telemetry"

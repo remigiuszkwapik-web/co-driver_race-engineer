@@ -44,8 +44,8 @@ const rpmBarColor = computed(() => {
 const steerPct = computed(() => (props.steer + 1) * 50)
 
 // --- G-G dot ---------------------------------------------------------------
-// 2g range on each axis. Convention: lateral on X, longitudinal on Y with
-// braking UP (negative accelLong = upper half).
+// 2g range on each axis. Matches Forza's in-game G meter: braking plots UP
+// (driver felt forward), accelerating plots DOWN (driver pushed back into seat).
 const G_RANGE_MPS2 = 20 // ≈ 2g
 const TRAIL_SAMPLES = 60 // ~1 second of 60 Hz history
 
@@ -54,8 +54,9 @@ const trail = ref<GPoint[]>([])
 
 function ggDot(): GPoint {
   const xs = 50 + clamp(props.accelLat / G_RANGE_MPS2, -1, 1) * 48
-  // Braking (negative accelLong) plots toward the top of the SVG.
-  const ys = 50 - clamp(props.accelLong / G_RANGE_MPS2, -1, 1) * 48
+  // Accelerating forward (positive accelLong) plots toward the bottom of the SVG,
+  // matching the in-game G meter's force-on-driver convention.
+  const ys = 50 + clamp(props.accelLong / G_RANGE_MPS2, -1, 1) * 48
   return { x: xs, y: ys }
 }
 

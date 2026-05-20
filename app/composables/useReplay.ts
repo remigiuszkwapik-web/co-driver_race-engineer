@@ -40,7 +40,11 @@ export function useReplay(initialFrames: Telemetry[]) {
         throttle: f.throttle,
         brake: f.brake,
         steer: f.steer,
-        yawRate: f.angularVelocity.y
+        yawRate: f.angularVelocity.y,
+        rpm: f.rpm,
+        rpmMax: f.rpmMax,
+        torqueNm: f.torque,
+        powerKw: f.power / 1000
       })
     }
     return out

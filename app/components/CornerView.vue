@@ -1,10 +1,38 @@
 <script setup lang="ts">
 import type { Telemetry } from '../../server/utils/decode'
+import { useSustained } from '~/composables/useSustained'
 
-defineProps<{
+const props = defineProps<{
   frame: Telemetry | null
   paused: boolean
 }>()
+
+// Comparative diagnostic chips: UNDERSTEER on the front pair when the front
+// tires are notably more loaded than the rear AND the driver is asking for
+// rotation; OVERSTEER mirrors. Floor at combinedSlip 0.7 so straight-line
+// noise doesn't trigger anything. 250 ms debounce so transient slip
+// asymmetries (mid-corner correction) don't flash chips on screen.
+const frontAvg = computed(() => {
+  const c = props.frame?.combinedSlip
+  if (!c) return 0
+  return (c.fl + c.fr) / 2
+})
+const rearAvg = computed(() => {
+  const c = props.frame?.combinedSlip
+  if (!c) return 0
+  return (c.rl + c.rr) / 2
+})
+const absSteer = computed(() => Math.abs(props.frame?.steer ?? 0))
+const anyEngaged = computed(() => Math.max(frontAvg.value, rearAvg.value) > 0.7)
+
+const understeer = useSustained(
+  () => anyEngaged.value && absSteer.value > 0.3 && (frontAvg.value - rearAvg.value) > 0.25,
+  250
+)
+const oversteer = useSustained(
+  () => anyEngaged.value && absSteer.value > 0.3 && (rearAvg.value - frontAvg.value) > 0.25,
+  250
+)
 </script>
 
 <template>
@@ -22,6 +50,7 @@ defineProps<{
       :combined-slip="frame?.combinedSlip.fl ?? 0"
       :temp-c="frame?.tireTempC.fl ?? 0"
       :rumble="frame?.rumble.fl ?? false"
+      :understeer="understeer"
     />
     <CenterPanel
       class="row-span-2"
@@ -34,8 +63,8 @@ defineProps<{
       :brake="frame?.brake ?? 0"
       :steer="frame?.steer ?? 0"
       :boost="frame?.boost ?? 0"
-      :accel-long="frame?.acceleration.x ?? 0"
-      :accel-lat="frame?.acceleration.z ?? 0"
+      :accel-long="frame?.acceleration.z ?? 0"
+      :accel-lat="frame?.acceleration.x ?? 0"
       :roll="frame?.roll ?? 0"
       :pitch="frame?.pitch ?? 0"
       :yaw-rate="frame?.angularVelocity.y ?? 0"
@@ -50,6 +79,7 @@ defineProps<{
       :combined-slip="frame?.combinedSlip.fr ?? 0"
       :temp-c="frame?.tireTempC.fr ?? 0"
       :rumble="frame?.rumble.fr ?? false"
+      :understeer="understeer"
     />
     <CornerPanel
       label="REAR LEFT"
@@ -61,6 +91,7 @@ defineProps<{
       :combined-slip="frame?.combinedSlip.rl ?? 0"
       :temp-c="frame?.tireTempC.rl ?? 0"
       :rumble="frame?.rumble.rl ?? false"
+      :oversteer="oversteer"
     />
     <CornerPanel
       label="REAR RIGHT"
@@ -72,6 +103,7 @@ defineProps<{
       :combined-slip="frame?.combinedSlip.rr ?? 0"
       :temp-c="frame?.tireTempC.rr ?? 0"
       :rumble="frame?.rumble.rr ?? false"
+      :oversteer="oversteer"
     />
 
     <div

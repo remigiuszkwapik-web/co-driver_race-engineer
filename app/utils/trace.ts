@@ -11,6 +11,14 @@ export interface TraceSample {
   steer: number
   /** rad/s, body yaw rate (positive = nose right) */
   yawRate: number
+  /** engine RPM at this frame */
+  rpm: number
+  /** redline RPM for this car — carried per-sample so normalization survives a car change inside the window */
+  rpmMax: number
+  /** engine torque in Nm */
+  torqueNm: number
+  /** engine power in kW (decoded from Watts ÷ 1000 for human-readable axis) */
+  powerKw: number
 }
 
 /** 10 seconds @ 60 Hz of server fan-out. */
