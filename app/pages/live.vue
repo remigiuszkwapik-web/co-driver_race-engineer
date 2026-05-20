@@ -36,7 +36,7 @@ function toggleTracePause() {
 
     <section
       v-if="hasReceivedFrame"
-      class="mx-auto max-w-6xl px-6 pb-6"
+      class="px-6 pb-6"
     >
       <TraceStrip
         :history="history"

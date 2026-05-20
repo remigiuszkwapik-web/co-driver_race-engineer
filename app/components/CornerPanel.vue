@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { suspColor, tempColor, slipColor, SUSPENSION_BOTTOMING } from '~/utils/tuning'
+import { suspColor, tempColor, slipColor, combColor, SUSPENSION_BOTTOMING } from '~/utils/tuning'
 
 const props = defineProps<{
   label: string
   side: 'left' | 'right'
   suspension: number
+  /** absolute travel in meters from the Dash packet */
+  suspensionMeters: number
   slipRatio: number
   slipAngle: number
+  combinedSlip: number
   tempC: number
   rumble: boolean
 }>()
@@ -16,6 +19,7 @@ const susp = computed(() => suspColor(props.suspension))
 const temp = computed(() => tempColor(props.tempC))
 const ratioColor = computed(() => slipColor(Math.abs(props.slipRatio)))
 const angleColor = computed(() => slipColor(Math.abs(props.slipAngle)))
+const combinedColor = computed(() => combColor(props.combinedSlip))
 const align = computed(() => props.side === 'left' ? 'text-left' : 'text-right')
 </script>
 
@@ -33,7 +37,10 @@ const align = computed(() => props.side === 'left' ? 'text-left' : 'text-right')
     <div class="mt-3">
       <div class="flex items-center justify-between text-[11px] text-zinc-400">
         <span>SUSP</span>
-        <span class="text-zinc-200">{{ suspension.toFixed(2) }}</span>
+        <span class="tabular-nums">
+          <span class="text-zinc-500">{{ (suspensionMeters * 1000).toFixed(0) }}<span class="text-[9px]">mm</span></span>
+          <span class="ml-2 text-zinc-200">{{ suspension.toFixed(2) }}</span>
+        </span>
       </div>
       <svg
         viewBox="0 0 100 6"
@@ -93,6 +100,50 @@ const align = computed(() => props.side === 'left' ? 'text-left' : 'text-right')
           {{ slipAngle >= 0 ? '+' : '' }}{{ slipAngle.toFixed(2) }}
         </div>
       </div>
+    </div>
+
+    <!-- Combined slip — friction-circle magnitude per wheel.
+         The little bar is the magnitude clamped to [0, 1.2]; >1 = past the limit. -->
+    <div class="mt-3">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="text-zinc-400">COMB</span>
+        <span
+          class="text-zinc-200 tabular-nums"
+          :style="{ color: combinedColor }"
+        >{{ combinedSlip.toFixed(2) }}</span>
+      </div>
+      <svg
+        viewBox="0 0 100 4"
+        class="mt-1 w-full"
+        preserveAspectRatio="none"
+      >
+        <rect
+          x="0"
+          y="0"
+          width="100"
+          height="4"
+          rx="1"
+          fill="#27272a"
+        />
+        <!-- 1.0 limit marker -->
+        <line
+          x1="83.3"
+          y1="0"
+          x2="83.3"
+          y2="4"
+          stroke="#52525b"
+          stroke-width="0.5"
+          stroke-dasharray="1,1"
+        />
+        <rect
+          x="0"
+          y="0"
+          :width="Math.min(combinedSlip / 1.2 * 100, 100)"
+          height="4"
+          rx="1"
+          :fill="combinedColor"
+        />
+      </svg>
     </div>
 
     <!-- Tire temp -->

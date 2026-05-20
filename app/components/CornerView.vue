@@ -9,15 +9,17 @@ defineProps<{
 
 <template>
   <main
-    class="relative mx-auto grid max-w-6xl gap-4 px-6 py-6"
+    class="relative grid gap-4 px-6 py-6"
     style="grid-template-columns: 1fr 1.4fr 1fr; grid-template-rows: 1fr 1fr;"
   >
     <CornerPanel
       label="FRONT LEFT"
       side="left"
       :suspension="frame?.suspension.fl ?? 0"
+      :suspension-meters="frame?.suspensionMeters.fl ?? 0"
       :slip-ratio="frame?.slipRatio.fl ?? 0"
       :slip-angle="frame?.slipAngle.fl ?? 0"
+      :combined-slip="frame?.combinedSlip.fl ?? 0"
       :temp-c="frame?.tireTempC.fl ?? 0"
       :rumble="frame?.rumble.fl ?? false"
     />
@@ -32,13 +34,20 @@ defineProps<{
       :brake="frame?.brake ?? 0"
       :steer="frame?.steer ?? 0"
       :boost="frame?.boost ?? 0"
+      :accel-long="frame?.acceleration.x ?? 0"
+      :accel-lat="frame?.acceleration.z ?? 0"
+      :roll="frame?.roll ?? 0"
+      :pitch="frame?.pitch ?? 0"
+      :yaw-rate="frame?.angularVelocity.y ?? 0"
     />
     <CornerPanel
       label="FRONT RIGHT"
       side="right"
       :suspension="frame?.suspension.fr ?? 0"
+      :suspension-meters="frame?.suspensionMeters.fr ?? 0"
       :slip-ratio="frame?.slipRatio.fr ?? 0"
       :slip-angle="frame?.slipAngle.fr ?? 0"
+      :combined-slip="frame?.combinedSlip.fr ?? 0"
       :temp-c="frame?.tireTempC.fr ?? 0"
       :rumble="frame?.rumble.fr ?? false"
     />
@@ -46,8 +55,10 @@ defineProps<{
       label="REAR LEFT"
       side="left"
       :suspension="frame?.suspension.rl ?? 0"
+      :suspension-meters="frame?.suspensionMeters.rl ?? 0"
       :slip-ratio="frame?.slipRatio.rl ?? 0"
       :slip-angle="frame?.slipAngle.rl ?? 0"
+      :combined-slip="frame?.combinedSlip.rl ?? 0"
       :temp-c="frame?.tireTempC.rl ?? 0"
       :rumble="frame?.rumble.rl ?? false"
     />
@@ -55,8 +66,10 @@ defineProps<{
       label="REAR RIGHT"
       side="right"
       :suspension="frame?.suspension.rr ?? 0"
+      :suspension-meters="frame?.suspensionMeters.rr ?? 0"
       :slip-ratio="frame?.slipRatio.rr ?? 0"
       :slip-angle="frame?.slipAngle.rr ?? 0"
+      :combined-slip="frame?.combinedSlip.rr ?? 0"
       :temp-c="frame?.tireTempC.rr ?? 0"
       :rumble="frame?.rumble.rr ?? false"
     />

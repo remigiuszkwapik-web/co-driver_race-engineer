@@ -11,6 +11,16 @@ const props = defineProps<{
   brake: number
   steer: number
   boost: number
+  /** body-frame longitudinal acceleration (m/s²) — +ve forward */
+  accelLong: number
+  /** body-frame lateral acceleration (m/s²) — +ve to one side */
+  accelLat: number
+  /** chassis roll in radians */
+  roll: number
+  /** chassis pitch in radians */
+  pitch: number
+  /** yaw rate, rad/s — sign matches steer direction */
+  yawRate: number
 }>()
 
 const rpmPct = computed(() => {
@@ -32,6 +42,51 @@ const rpmBarColor = computed(() => {
 })
 
 const steerPct = computed(() => (props.steer + 1) * 50)
+
+// --- G-G dot ---------------------------------------------------------------
+// 2g range on each axis. Convention: lateral on X, longitudinal on Y with
+// braking UP (negative accelLong = upper half).
+const G_RANGE_MPS2 = 20 // ≈ 2g
+const TRAIL_SAMPLES = 60 // ~1 second of 60 Hz history
+
+interface GPoint { x: number, y: number }
+const trail = ref<GPoint[]>([])
+
+function ggDot(): GPoint {
+  const xs = 50 + clamp(props.accelLat / G_RANGE_MPS2, -1, 1) * 48
+  // Braking (negative accelLong) plots toward the top of the SVG.
+  const ys = 50 - clamp(props.accelLong / G_RANGE_MPS2, -1, 1) * 48
+  return { x: xs, y: ys }
+}
+
+watch(() => [props.accelLat, props.accelLong] as const, () => {
+  trail.value.push(ggDot())
+  if (trail.value.length > TRAIL_SAMPLES) trail.value.shift()
+}, { immediate: true })
+
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v
+}
+
+const dotPos = computed<GPoint>(() => ggDot())
+
+const trailPath = computed(() => {
+  const pts = trail.value
+  if (pts.length < 2) return ''
+  let out = ''
+  for (let i = 0; i < pts.length; i++) {
+    out += (i === 0 ? 'M' : 'L') + pts[i]!.x.toFixed(1) + ',' + pts[i]!.y.toFixed(1) + ' '
+  }
+  return out.trim()
+})
+
+const lateralG = computed(() => props.accelLat / 9.81)
+const longG = computed(() => props.accelLong / 9.81)
+const radToDeg = (rad: number): number => rad * 57.2957795
+
+function signedFixed(v: number, digits: number): string {
+  return (v >= 0 ? '+' : '') + v.toFixed(digits)
+}
 </script>
 
 <template>
@@ -145,9 +200,95 @@ const steerPct = computed(() => (props.steer + 1) * 50)
       </div>
     </div>
 
-    <div class="mt-5 flex justify-between text-[10px] uppercase tracking-wider text-zinc-500">
-      <span>BOOST <span class="tabular-nums text-zinc-300">{{ boost.toFixed(2) }}</span></span>
-      <span>IDLE <span class="tabular-nums text-zinc-300">{{ Math.round(rpmIdle) }}</span></span>
+    <!-- Chassis strip: G-G dot + attitude/rotation readouts -->
+    <div class="mt-5 flex items-stretch gap-4">
+      <!-- G-G dot -->
+      <div class="relative shrink-0">
+        <svg
+          viewBox="0 0 100 100"
+          class="h-24 w-24"
+        >
+          <!-- backdrop -->
+          <circle
+            cx="50"
+            cy="50"
+            r="48"
+            fill="#18181b"
+            stroke="#27272a"
+            stroke-width="0.5"
+          />
+          <!-- crosshair -->
+          <line
+            x1="50"
+            y1="2"
+            x2="50"
+            y2="98"
+            stroke="#3f3f46"
+            stroke-width="0.4"
+          />
+          <line
+            x1="2"
+            y1="50"
+            x2="98"
+            y2="50"
+            stroke="#3f3f46"
+            stroke-width="0.4"
+          />
+          <!-- 1g ring -->
+          <circle
+            cx="50"
+            cy="50"
+            r="24"
+            fill="none"
+            stroke="#3f3f46"
+            stroke-width="0.4"
+            stroke-dasharray="2,2"
+          />
+          <!-- trail of the last ~1 s -->
+          <path
+            :d="trailPath"
+            fill="none"
+            stroke="#f59e0b"
+            stroke-width="0.8"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            opacity="0.55"
+          />
+          <!-- current point -->
+          <circle
+            :cx="dotPos.x"
+            :cy="dotPos.y"
+            r="2.4"
+            fill="#22c55e"
+          />
+        </svg>
+        <div class="absolute top-0.5 left-1 text-[8px] uppercase tracking-wider text-zinc-600">
+          G-G
+        </div>
+        <div class="absolute right-1 bottom-0.5 text-[8px] tabular-nums text-zinc-500">
+          {{ signedFixed(lateralG, 1) }}·{{ signedFixed(longG, 1) }}g
+        </div>
+      </div>
+
+      <!-- Attitude + rotation readouts -->
+      <div class="grid flex-1 grid-cols-2 gap-x-3 gap-y-1.5 self-center text-[10px]">
+        <div class="flex items-center justify-between text-zinc-400">
+          <span>ROLL</span>
+          <span class="tabular-nums text-zinc-200">{{ signedFixed(radToDeg(roll), 1) }}°</span>
+        </div>
+        <div class="flex items-center justify-between text-zinc-400">
+          <span>PITCH</span>
+          <span class="tabular-nums text-zinc-200">{{ signedFixed(radToDeg(pitch), 1) }}°</span>
+        </div>
+        <div class="flex items-center justify-between text-zinc-400">
+          <span>YAW/s</span>
+          <span class="tabular-nums text-zinc-200">{{ signedFixed(yawRate, 2) }}</span>
+        </div>
+        <div class="flex items-center justify-between text-zinc-400">
+          <span>BOOST</span>
+          <span class="tabular-nums text-zinc-200">{{ boost.toFixed(2) }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>

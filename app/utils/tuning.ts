@@ -11,6 +11,12 @@ export const SUSPENSION_BOTTOMING = 0.95
 
 export const SLIP_THRESHOLD = 0.10
 
+/** Combined-slip magnitude is sqrt(slipRatio² + slipAngle²). >1.0 = past the
+ * friction limit; ~0.8 is the working sweet-spot for a setup at the edge. */
+export const COMB_WORKING = 0.5
+export const COMB_NEAR_LIMIT = 0.8
+export const COMB_OVER_LIMIT = 1.0
+
 const GREEN = '#22c55e'
 const TEAL = '#14b8a6'
 const AMBER = '#f59e0b'
@@ -35,6 +41,13 @@ export function suspColor(normalized: number): string {
 export function slipColor(absSlip: number): string {
   if (absSlip > SLIP_THRESHOLD * 2) return RED
   if (absSlip > SLIP_THRESHOLD) return AMBER
+  return ZINC
+}
+
+export function combColor(magnitude: number): string {
+  if (magnitude > COMB_OVER_LIMIT) return RED
+  if (magnitude > COMB_NEAR_LIMIT) return AMBER
+  if (magnitude > COMB_WORKING) return TEAL
   return ZINC
 }
 

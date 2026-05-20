@@ -98,7 +98,7 @@ function tickStyle(percent: number): Record<string, string> {
       :paused="false"
     />
 
-    <section class="mx-auto max-w-6xl px-6 pb-2">
+    <section class="px-6 pb-2">
       <TraceStrip
         :history="history"
         :paused="!playing"
@@ -106,7 +106,7 @@ function tickStyle(percent: number): Record<string, string> {
       />
     </section>
 
-    <div class="mx-auto mt-2 flex max-w-6xl items-center gap-3 px-6">
+    <div class="mt-2 flex items-center gap-3 px-6">
       <button
         type="button"
         class="rounded-sm border border-zinc-700 bg-zinc-900 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-green-500/60 hover:text-green-300"
