@@ -69,7 +69,7 @@ const aAhead = computed(() => netDelta.value > 0)
 </script>
 
 <template>
-  <main class="mx-auto max-w-6xl px-6 py-10">
+  <main class="mx-auto max-w-[1600px] px-6 py-10">
     <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <NuxtLink
         to="/events"
