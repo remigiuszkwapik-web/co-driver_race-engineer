@@ -15,6 +15,8 @@ interface EventRow {
   name: string
   type: EventType
   createdAt: number | string
+  bestLapMs: number | null
+  lastDrivenAt: string | number | null
 }
 
 const { data: events, refresh } = await useFetch<EventRow[]>('/api/events', {
@@ -109,20 +111,12 @@ async function createEvent() {
       v-if="events && events.length"
       class="space-y-2"
     >
-      <li
+      <EventRowItem
         v-for="ev in events"
         :key="ev.id"
-      >
-        <NuxtLink
-          :to="`/events/${eventTypeKey}/${ev.id}`"
-          class="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
-        >
-          <span class="font-mono text-lg text-zinc-100">{{ ev.name }}</span>
-          <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-            #{{ ev.id }}
-          </span>
-        </NuxtLink>
-      </li>
+        :ev="ev"
+        :event-type-key="eventTypeKey"
+      />
     </ul>
     <div
       v-else

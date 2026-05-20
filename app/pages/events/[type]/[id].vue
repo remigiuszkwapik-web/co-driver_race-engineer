@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { EVENT_TYPE_LABELS, isEventType, type EventType } from '~/utils/event-types'
+import { formatLap } from '~/utils/format'
 
 const route = useRoute()
 const typeParam = String(route.params.type ?? '')
@@ -40,14 +41,6 @@ const isRecording = computed(() => recording.value.state === 'recording')
 const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'Y']
 function carClassLetter(c: number): string {
   return CLASS_LETTERS[c] ?? '?'
-}
-
-function formatLap(ms: number | null): string {
-  if (ms == null) return '—'
-  const totalSeconds = ms / 1000
-  const m = Math.floor(totalSeconds / 60)
-  const s = (totalSeconds - m * 60).toFixed(3).padStart(6, '0')
-  return `${m}:${s}`
 }
 
 function formatDate(d: number | string): string {

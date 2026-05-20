@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { EVENT_TYPE_LABELS, isEventType, type EventType } from '~/utils/event-types'
+import { formatLap } from '~/utils/format'
 import type { Telemetry } from '../../../../../server/utils/decode'
 
 const route = useRoute()
@@ -53,6 +54,46 @@ const replayFrames = ref<Telemetry[] | null>(null)
 const loadingFrames = ref(false)
 const framesError = ref<string | null>(null)
 
+// Inline tune-label editing
+const editingTune = ref(false)
+const tuneDraft = ref('')
+const savingTune = ref(false)
+const tuneError = ref<string | null>(null)
+
+function startEditTune() {
+  if (savingTune.value) return
+  tuneDraft.value = data.value?.session.tuneLabel ?? ''
+  tuneError.value = null
+  editingTune.value = true
+}
+
+function cancelEditTune() {
+  editingTune.value = false
+  tuneDraft.value = ''
+  tuneError.value = null
+}
+
+async function saveTune() {
+  if (savingTune.value || !data.value) return
+  savingTune.value = true
+  tuneError.value = null
+  const trimmed = tuneDraft.value.trim()
+  const next = trimmed.length > 0 ? trimmed : null
+  try {
+    const updated = await $fetch<{ tuneLabel: string | null }>(`/api/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: { tuneLabel: next }
+    })
+    data.value.session.tuneLabel = updated.tuneLabel
+    editingTune.value = false
+  } catch (err) {
+    const e = err as { data?: { statusMessage?: string }, message?: string }
+    tuneError.value = e.data?.statusMessage ?? e.message ?? 'save failed'
+  } finally {
+    savingTune.value = false
+  }
+}
+
 async function selectLap(lapId: number) {
   if (loadingFrames.value) return
   framesError.value = null
@@ -74,13 +115,6 @@ async function selectLap(lapId: number) {
 const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'Y']
 function carClassLetter(c: number): string {
   return CLASS_LETTERS[c] ?? '?'
-}
-
-function formatLap(ms: number): string {
-  const totalSeconds = ms / 1000
-  const m = Math.floor(totalSeconds / 60)
-  const s = (totalSeconds - m * 60).toFixed(3).padStart(6, '0')
-  return `${m}:${s}`
 }
 
 function formatDate(d: string | null): string {
@@ -156,10 +190,38 @@ const bestLapMs = computed(() => {
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           PI · Tune
         </div>
-        <div class="mt-1 text-zinc-100">
-          {{ data?.session.piAtStart }}
+        <div class="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-100">
+          <span>{{ data?.session.piAtStart }}</span>
           <span class="text-zinc-500">·</span>
-          {{ data?.session.tuneLabel ?? '—' }}
+          <template v-if="!editingTune">
+            <button
+              type="button"
+              class="rounded-sm text-left transition-colors hover:bg-zinc-800/60 hover:text-zinc-50"
+              :title="data?.session.tuneLabel ? 'Click to edit tune label' : 'Click to set a tune label'"
+              @click="startEditTune"
+            >
+              {{ data?.session.tuneLabel ?? '—' }}
+            </button>
+          </template>
+          <template v-else>
+            <input
+              v-model="tuneDraft"
+              type="text"
+              autofocus
+              :disabled="savingTune"
+              placeholder="tune name"
+              class="min-w-0 flex-1 rounded-sm border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
+              @keydown.enter.prevent="saveTune"
+              @keydown.esc.prevent="cancelEditTune"
+              @blur="saveTune"
+            >
+          </template>
+        </div>
+        <div
+          v-if="tuneError"
+          class="mt-1 text-[10px] text-red-400"
+        >
+          {{ tuneError }}
         </div>
       </div>
       <div class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">

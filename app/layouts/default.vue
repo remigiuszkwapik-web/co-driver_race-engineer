@@ -1,5 +1,10 @@
 <script setup lang="ts">
 const { telemetry, connected, hasReceivedFrame } = useTelemetry()
+const { recording } = useRecording()
+
+const quickRecordOpen = ref(false)
+
+const showQuickRecord = computed(() => recording.value.state !== 'recording')
 </script>
 
 <template>
@@ -31,6 +36,15 @@ const { telemetry, connected, hasReceivedFrame } = useTelemetry()
           </nav>
         </div>
         <div class="flex items-center gap-4">
+          <button
+            v-if="showQuickRecord"
+            type="button"
+            class="rounded-sm border border-green-500/40 bg-green-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-green-300 transition-colors hover:border-green-400/60 hover:bg-green-500/20"
+            @click="quickRecordOpen = true"
+          >
+            <span class="mr-1.5 inline-block h-1.5 w-1.5 align-middle rounded-full bg-green-400" />
+            Quick record
+          </button>
           <RecBadge with-stop-button />
           <span class="flex items-center gap-2">
             <span
@@ -49,5 +63,8 @@ const { telemetry, connected, hasReceivedFrame } = useTelemetry()
       </div>
     </header>
     <slot />
+
+    <TunePromptModal />
+    <QuickRecordModal v-model:open="quickRecordOpen" />
   </div>
 </template>

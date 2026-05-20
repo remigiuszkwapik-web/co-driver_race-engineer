@@ -216,13 +216,15 @@ Status markers (last reviewed 2026-05-20):
 - 10-second sliding window (600 samples @ 60 Hz)
 - Pause/scrub for post-corner analysis
 
-### v3 — Event-scoped session recorder — **[done with two follow-ups]** · commit `7002666`
+### v3 — Event-scoped session recorder — **[done]** · commits `7002666` (core) + slice-4 polish
 - User-defined events, scoped by FH5 event type (rally / race / street race / cross country / drag / freeroam)
 - Manual Start/Stop recording from the dashboard (no auto-detect on `IsRaceOn`)
 - Persistent storage in drizzle + libsql: `events`, `cars`, `sessions`, `laps` (gzipped frames blob per lap)
-- PI-shift tune-label *signal* over the wire — **[partial]**, the client-side modal that prompts the user to name the new tune (§8.8 step 3) and the session-detail tune-label edit (§8.8 step 4) are still **[todo]**.
-- Pages: `/events` → 6 type tiles → event detail with leaderboard + Start button; `/live` keeps the corner view. Global "Quick record" modal (§8.5) is **[todo]**.
-- Replay any captured lap by re-driving the corner view + trace strip from its frames blob
+- PI-shift tune-label flow end-to-end: server emits `tune_prompt`, layout-mounted modal collects the name with datalist autocomplete from prior tunes; inline editor on session-detail page lets you set/change the label any time via `PATCH /api/sessions/:id`.
+- Pages: `/events` → 6 type tiles → event detail with leaderboard + Start button; `/live` keeps the corner view. Global "Quick record" pill in the navbar opens a type → event → tune → Start modal from any page.
+- `/events/:type` rows show best-lap-of-event and last-driven (relative) per row.
+- Replay any captured lap by re-driving the corner view + trace strip from its frames blob.
+- Lap-timing fallback for non-multi-lap event types (§8.7) is **[todo]**, intentionally deferred until empirical observation in-game shows whether FH5 actually skips the `LapNumber` tick for drag / rally / cross-country / freeroam.
 - **Full spec in §8**
 
 ### Rate bump — full 60 Hz, no throttle — **[done]** · commit `ebe82f3`
@@ -590,29 +592,30 @@ New outbound:
 
 `recording_state` is broadcast on every transition so multiple tabs stay in sync. `tune_prompt` fires once when a session ends with a PI shift; any tab can answer it. `error` is sent back to the originating peer when a `start` fails (e.g. unknown event id, no telemetry yet).
 
-### 8.5 Navigation — **[mostly done]**
+### 8.5 Navigation — **[done]**
 
 ```
 /                     → 302 redirect to /live   (implementation diverges from the original spec, see note)
 /live                 → the v1+v2 corner view + trace strip (the "second screen")
                         Shows a small "● REC" badge when state=recording, plus a Stop button.
 /events               → six type tiles (rally / race / street race / cross country / drag / freeroam)
-                        with event counts.    Global "Quick record" shortcut is [todo].
+                        with event counts.
 /events/:type         → list of events of that type with inline "New event" entry.
-                        (Last-driven date and best-lap-of-event preview on each row are [todo].)
+                        Each row shows best-lap-of-event and a relative last-driven timestamp.
 /events/:type/:id     → event detail:
                           • leaderboard (best lap per session, joined with car + tune + PI)
                           • "Start Recording" button (event pre-selected; navigates to /live)
 /events/:type/:id/:sessionId
-                      → session detail: metadata header + lap table with per-lap "▶ Replay".
+                      → session detail: metadata header (with inline tune-label editor) +
+                        lap table with per-lap "▶ Replay".
                         Replay mounts ReplayPlayer driven by the lap's frames_blob.
 ```
 
 > Spec divergence: the original navigation block had `/` redirecting to `/events`. During slice-2 review the user pushed back — "the home screen redirects to /events so there is no active dash anymore" — so `/` now lands the user on the dashboard. The events browser remains at `/events`, reachable via the navbar.
 
-"Quick record" is a modal version of the same event picker, available from any page — for when the user is already on `/live` and doesn't want to navigate back. **[todo]**.
+"Quick record" is a modal version of the event picker, available from any page via a pill in the navbar — for when the user is already on `/live` and doesn't want to navigate back. The pill is hidden while a recording is active (the REC badge with Stop button is shown in its place).
 
-The default Nuxt layout owns the navbar across every page: brand → Live/Events nav (with active states), persistent REC badge with Stop, WS status indicator, live T+timestamp when telemetry is flowing.
+The default Nuxt layout owns the navbar across every page: brand → Live/Events nav (with active states), Quick-record pill (when idle), persistent REC badge with Stop (when recording), WS status indicator, live T+timestamp when telemetry is flowing.
 
 ### 8.6 Frame storage — per-lap blob — **[done]**
 
@@ -628,14 +631,14 @@ When `LapNumber` advances, the new packet's `LastLap` field holds the just-compl
 
 **Caveat to verify empirically:** FH5 may not tick `LapNumber` for drag / rally / cross-country / freeroam (point-to-point or unbounded events). If we observe that in-game, fall back per type: when the user clicks Stop and `LapNumber` never advanced, treat the entire Start→Stop window as one completed lap with `time_ms = endedAt - startedAt`. Add this fallback only after observing the missing tick — don't pre-build it. **Status:** fallback is **[todo]** until real-world data shows it's needed.
 
-### 8.8 Tune-label flow — **[partial]**
+### 8.8 Tune-label flow — **[done]**
 
 `CarPerformanceIndex` is in the packet; the tune label is not. So:
 
 1. At session start, snapshot `pi_at_start`. — **[done]** in `server/utils/recorder.ts`.
 2. On session end, compare to the most recent prior session for the same `car_id`. If different, emit `tune_prompt`. — **[done]** server-side; client receives and stores the prompt in `useRecording().tunePrompt`.
-3. UI shows a non-blocking modal: "PI went 745 → 758 — did you re-tune? Name this tune:" with a text input + autocomplete from prior tune labels for this car. — **[todo]**.
-4. `tune_label` is editable from any session detail page at any time. — **[todo]** (requires a `PATCH /api/sessions/:id` endpoint and an inline editor on the session-detail page).
+3. UI shows a non-blocking modal: "PI went 745 → 758 — did you re-tune? Name this tune:" with a text input + autocomplete from prior tune labels for this car. — **[done]** in `TunePromptModal.vue`, mounted in the default layout; autocomplete is sourced from `GET /api/cars/:ordinal/tunes`.
+4. `tune_label` is editable from any session detail page at any time. — **[done]** via the inline click-to-edit cell in `pages/events/[type]/[id]/[sessionId].vue`, which calls `PATCH /api/sessions/:id`.
 
 PI shift is a *signal*, not a guarantee — the user might tune without changing PI (within the same class) or change PI without considering it a new tune. Manual override is always available.
 
