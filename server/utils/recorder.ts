@@ -18,12 +18,28 @@
 import { gzipSync } from 'node:zlib'
 import { desc, eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
+import type { EventType } from './../db/schema'
 import type { Telemetry } from './decode'
 import { forzaBus, type RecordingState, type TunePrompt } from './forza-bus'
+
+/**
+ * Event types where FH6 doesn't tick `LapNumber` during the run (point-to-point
+ * or unbounded). For these, when the user clicks Stop without LapNumber ever
+ * advancing, the whole Start→Stop window is flushed as one "lap" so the
+ * session isn't empty. Documented in DESIGN.md §8.7.
+ */
+const POINT_TO_POINT_TYPES = new Set<EventType>([
+  'touge',
+  'rally',
+  'cross_country',
+  'drag',
+  'freeroam'
+])
 
 interface RecordingContext {
   sessionId: number
   eventId: number
+  eventType: EventType
   carId: number
   carOrdinal: number
   piAtStart: number
@@ -61,10 +77,11 @@ class Recorder {
       throw new Error('No telemetry frame received yet — start the race in-game first')
     }
 
-    const event = await db.select().from(schema.events).where(eq(schema.events.id, eventId)).limit(1)
-    if (event.length === 0) {
+    const event = (await db.select().from(schema.events).where(eq(schema.events.id, eventId)).limit(1))[0]
+    if (!event) {
       throw new Error(`Unknown event id ${eventId}`)
     }
+    const eventType = event.type as EventType
 
     const ordinal = frame.car.ordinal
     const existingCar = (await db.select().from(schema.cars).where(eq(schema.cars.ordinal, ordinal)).limit(1))[0]
@@ -92,6 +109,7 @@ class Recorder {
     this.ctx = {
       sessionId: session.id,
       eventId,
+      eventType,
       carId: car.id,
       carOrdinal: ordinal,
       piAtStart: frame.car.pi,
@@ -112,6 +130,23 @@ class Recorder {
     if (!this.ctx) return { state: 'idle' }
     const ctx = this.ctx
     this.ctx = null
+
+    // Point-to-point fallback (§8.7): FH6 doesn't tick LapNumber on touge /
+    // rally / drag / cross-country / freeroam runs, so a stop without any
+    // LapNumber advance means the whole window is the run. Flush the buffer
+    // as a single lap rather than discarding everything.
+    if (
+      ctx.lapsCompleted === 0
+      && ctx.buffer.length >= 2
+      && POINT_TO_POINT_TYPES.has(ctx.eventType)
+    ) {
+      const first = ctx.buffer[0]!
+      const last = ctx.buffer[ctx.buffer.length - 1]!
+      const timeMs = Math.max(1, last.timestampMs - first.timestampMs)
+      const frames = ctx.buffer.slice()
+      void this.flushLap(ctx.sessionId, 1, timeMs, frames)
+      ctx.lapsCompleted = 1
+    }
 
     const endedAt = new Date()
     await db.update(schema.sessions)

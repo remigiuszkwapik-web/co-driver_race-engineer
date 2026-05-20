@@ -224,7 +224,7 @@ Status markers (last reviewed 2026-05-20):
 - Pages: `/events` → 6 type tiles → event detail with leaderboard + Start button; `/live` keeps the corner view. Global "Quick record" pill in the navbar opens a type → event → tune → Start modal from any page.
 - `/events/:type` rows show best-lap-of-event and last-driven (relative) per row.
 - Replay any captured lap by re-driving the corner view + trace strip from its frames blob.
-- Lap-timing fallback for non-multi-lap event types (§8.7) is **[todo]**, intentionally deferred until empirical observation in-game shows whether FH5 actually skips the `LapNumber` tick for drag / rally / cross-country / freeroam.
+- Lap-timing fallback for non-multi-lap event types (§8.7) is **[done]** (2026-05-20). Observed empirically with a touge run that finished with 0 captured laps because FH6 never advances `LapNumber` for point-to-point routes. Fallback in `server/utils/recorder.ts` flushes the buffered frames as one lap (time = last.timestampMs − first.timestampMs) for `touge / rally / drag / cross_country / freeroam` event types only — race and street_race still discard partial laps per decision §8.9.9.
 - **Full spec in §8**
 
 ### Rate bump — full 60 Hz, no throttle — **[done]** · commit `ebe82f3`
@@ -630,11 +630,11 @@ So: **one gzipped blob per `laps` row**. Encoded as a JSON array of decoded `Tel
 
 Display and capture share the same ~60 Hz cadence — see §8.9 decision 14.
 
-### 8.7 Lap timing — trust the in-game signal — **[done; fallback deferred]**
+### 8.7 Lap timing — trust the in-game signal — **[done]**
 
 When `LapNumber` advances, the new packet's `LastLap` field holds the just-completed lap time in seconds. Convert to ms, store. Same code path for **all event types** — circuits, drags, rallies, free roam.
 
-**Caveat to verify empirically:** FH5 may not tick `LapNumber` for drag / rally / cross-country / freeroam (point-to-point or unbounded events). If we observe that in-game, fall back per type: when the user clicks Stop and `LapNumber` never advanced, treat the entire Start→Stop window as one completed lap with `time_ms = endedAt - startedAt`. Add this fallback only after observing the missing tick — don't pre-build it. **Status:** fallback is **[todo]** until real-world data shows it's needed.
+**Confirmed empirically (2026-05-20):** FH6 doesn't tick `LapNumber` for `touge / rally / drag / cross_country / freeroam`. The fallback: when `stop()` is called and `lapsCompleted === 0` AND the event type is one of those five, the buffered frames are flushed as a single lap with `time_ms = last.timestampMs - first.timestampMs` (game time, not walltime, so paused frames don't bloat it). For `race` and `street_race` the original "partial laps are discarded" rule still holds — those events tick `LapNumber` reliably and a partial there is a real partial.
 
 ### 8.8 Tune-label flow — **[done]**
 
