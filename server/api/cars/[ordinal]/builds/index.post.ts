@@ -9,7 +9,7 @@ interface PostBody {
 export default defineEventHandler(async (event) => {
   const ordinalParam = getRouterParam(event, 'ordinal')
   const ordinal = Number(ordinalParam)
-  if (!Number.isInteger(ordinal) || ordinal <= 0) {
+  if (!Number.isInteger(ordinal) || ordinal < 0) {
     throw createError({ statusCode: 400, statusMessage: 'invalid car ordinal' })
   }
 

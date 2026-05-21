@@ -6,7 +6,7 @@ const route = useRoute()
 
 const ordinalParam = Number(route.params.ordinal)
 const buildIdParam = Number(route.params.buildId)
-if (!Number.isInteger(ordinalParam) || ordinalParam <= 0
+if (!Number.isInteger(ordinalParam) || ordinalParam < 0
   || !Number.isInteger(buildIdParam) || buildIdParam <= 0) {
   throw createError({ statusCode: 404, statusMessage: 'not found' })
 }
@@ -124,15 +124,6 @@ async function onTuneSaved(saved: { id: number }) {
   // Invalidate cached detail so the next expand re-fetches.
   Reflect.deleteProperty(tuneDetailCache, saved.id)
   await refreshTunes()
-}
-
-function relativeDate(iso: string): string {
-  const days = Math.round((Date.now() - new Date(iso).getTime()) / 86400000)
-  if (days < 1) return 'today'
-  if (days === 1) return 'yesterday'
-  if (days < 30) return `${days}d ago`
-  if (days < 365) return `${Math.round(days / 30)}mo ago`
-  return `${Math.round(days / 365)}y ago`
 }
 </script>
 
