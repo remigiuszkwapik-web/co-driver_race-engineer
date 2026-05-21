@@ -54,6 +54,13 @@ const showQuickRecord = computed(() => recording.value.state !== 'recording')
             >
               Tune
             </NuxtLink>
+            <NuxtLink
+              to="/upgrade"
+              active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
+              class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
+            >
+              Upgrade
+            </NuxtLink>
           </nav>
         </div>
         <div class="flex items-center gap-4">
