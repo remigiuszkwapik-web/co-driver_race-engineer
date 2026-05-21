@@ -3,9 +3,7 @@ import { EVENT_TYPE_LABELS, isEventType, type EventType } from '~/utils/event-ty
 import { formatLap } from '~/utils/format'
 import type { Telemetry } from '../../../../../server/utils/decode'
 import type { TrackPoint } from '~/utils/track-map'
-import type { BuildSettings } from '~/utils/setup-fields'
-
-const CLASS_BY_INDEX = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'R'] as const
+import type { BuildSettings } from '~/utils/build-fields'
 
 const route = useRoute()
 const typeParam = String(route.params.type ?? '')
@@ -36,9 +34,12 @@ interface SessionRow {
   piAtStart: number
   startedAt: string
   endedAt: string | null
-  setupId: number | null
-  setupSnapshot: { build?: BuildSettings, tune?: unknown } | null
-  setupName: string | null
+  buildId: number | null
+  buildSnapshot: BuildSettings | null
+  buildName: string | null
+  tuneId: number | null
+  tuneSnapshot: unknown | null
+  tuneName: string | null
 }
 interface LapRow {
   id: number
@@ -102,35 +103,27 @@ function tbPctFor(lapNumber: number): string {
   return Math.round(entry.ratio * 100) + '%'
 }
 
-// --- Setup (build + tune) state ------------------------------------------
+// --- Build attachment ----------------------------------------------------
 
-// Dyno is fetched separately for auto-populating "Power" in SetupForm.
-interface DynoResp { curve: { peakPower: { value: number } | null } | null }
-const { data: dynoData } = await useFetch<DynoResp>(`/api/sessions/${sessionId}/dyno`)
+const attachingBuild = ref(false)
+const attachError = ref<string | null>(null)
 
-const autoPower = computed<number | null>(() => {
-  // Dyno returns kW; the build field is HP (1 kW = 1.341 HP).
-  const kw = dynoData.value?.curve?.peakPower?.value
-  return typeof kw === 'number' ? Math.round(kw * 1.341) : null
-})
-const autoPi = computed<number | null>(() => data.value?.session.piAtStart ?? null)
-const autoCarClass = computed<string | null>(() => {
-  const idx = data.value?.session.carClass
-  if (typeof idx !== 'number') return null
-  return CLASS_BY_INDEX[idx] ?? null
-})
-
-const setupBuild = computed<BuildSettings | null>(() => {
-  const snap = data.value?.session.setupSnapshot
-  return (snap && typeof snap === 'object' && snap.build) ? (snap.build as BuildSettings) : null
-})
-const setupName = computed<string | null>(() => data.value?.session.setupName ?? null)
-const setupId = computed<number | null>(() => data.value?.session.setupId ?? null)
-const showSetupForm = ref(false)
-
-function onSetupSaved() {
-  showSetupForm.value = false
-  refreshNuxtData()
+async function attachBuild(buildId: number) {
+  if (attachingBuild.value) return
+  attachingBuild.value = true
+  attachError.value = null
+  try {
+    await $fetch(`/api/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: { buildId }
+    })
+    await refreshNuxtData()
+  } catch (err) {
+    const e = err as { data?: { statusMessage?: string }, statusMessage?: string, message?: string }
+    attachError.value = e.data?.statusMessage ?? e.statusMessage ?? e.message ?? 'attach failed'
+  } finally {
+    attachingBuild.value = false
+  }
 }
 
 // Build traces for TrackMap — best (fastest) lap marked as `best`, others backdrop.
@@ -386,38 +379,28 @@ async function confirmDelete() {
       </div>
     </section>
 
-    <section class="mb-8">
-      <SetupForm
-        v-if="showSetupForm && data"
-        :session-id="sessionId"
-        :car-ordinal="data.session.carOrdinal"
-        :existing-setup-id="setupId"
-        :initial-build="setupBuild"
-        :initial-name="setupName ?? data.session.tuneLabel"
-        :auto-power="autoPower"
-        :auto-pi="autoPi"
-        :auto-car-class="autoCarClass"
-        @saved="onSetupSaved"
-        @cancel="showSetupForm = false"
+    <section
+      v-if="data"
+      class="mb-8"
+    >
+      <BuildDisplay
+        v-if="data.session.buildSnapshot"
+        :build="data.session.buildSnapshot"
+        :build-name="data.session.buildName"
+        @edit="$router.push(`/cars/${data.session.carOrdinal}/builds/${data.session.buildId}`)"
       />
-      <SetupDisplay
-        v-else-if="setupBuild"
-        :build="setupBuild"
-        :setup-name="setupName"
-        @edit="showSetupForm = true"
+      <BuildPicker
+        v-else
+        :car-ordinal="data.session.carOrdinal"
+        :current-build-id="data.session.buildId"
+        :disabled="attachingBuild"
+        @attach="attachBuild"
       />
       <div
-        v-else
-        class="flex items-center justify-between rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-4 font-mono text-sm text-zinc-400"
+        v-if="attachError"
+        class="mt-2 rounded-sm border border-red-500/40 bg-red-500/10 p-2 font-mono text-xs text-red-300"
       >
-        <span>No setup details captured for this session.</span>
-        <button
-          type="button"
-          class="rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-green-500/60 hover:text-green-300"
-          @click="showSetupForm = true"
-        >
-          Add setup details
-        </button>
+        {{ attachError }}
       </div>
     </section>
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { BUILD_FIELDS, formatFieldValue, type BuildSettings } from '~/utils/setup-fields'
+import { BUILD_FIELDS, formatFieldValue, type BuildSettings } from '~/utils/build-fields'
 
 const props = defineProps<{
   build: BuildSettings
-  setupName?: string | null
+  buildName?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -29,11 +29,11 @@ const rows = computed<Row[]>(() => {
   <section class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 font-mono">
     <header class="mb-3 flex items-baseline justify-between">
       <div class="flex items-baseline gap-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-        <span>Setup details</span>
+        <span>Build</span>
         <span
-          v-if="setupName"
+          v-if="buildName"
           class="normal-case tracking-normal text-zinc-300"
-        >{{ setupName }}</span>
+        >{{ buildName }}</span>
       </div>
       <button
         type="button"

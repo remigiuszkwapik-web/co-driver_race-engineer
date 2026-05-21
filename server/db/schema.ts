@@ -21,23 +21,35 @@ export const cars = sqliteTable('cars', {
 })
 
 /**
- * setups holds a named, per-car structured Setup = build (Phase 1) + tune (Phase 1b).
- * The build/tune JSON shapes are owned by app/utils/setup-fields.ts.
+ * builds = the upgrade-side configuration of a car (post-homologation specs).
+ * A car can have many named builds (e.g. "S2 race trim," "X-class monster").
+ * Each build can host many tunes (slider iterations).
  *
- * Sessions point at a setup via setupId and additionally carry an immutable
- * setupSnapshot of `{ build, tune }` captured at attachment time — so later
- * edits to the named setup don't retroactively rewrite historical session
- * measurements.
+ * Settings shape: see app/utils/build-fields.ts BUILD_FIELDS.
  */
-export const setups = sqliteTable('setups', {
+export const builds = sqliteTable('builds', {
   id: integer().primaryKey({ autoIncrement: true }),
   carId: integer().notNull().references(() => cars.id),
   name: text().notNull(),
-  build: text({ mode: 'json' }).notNull().default(sql`('{}')`),
-  tune: text({ mode: 'json' }),
+  settings: text({ mode: 'json' }).notNull().default(sql`('{}')`),
   createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 }, t => [
-  uniqueIndex('setups_car_name_unq').on(t.carId, t.name)
+  uniqueIndex('builds_car_name_unq').on(t.carId, t.name)
+])
+
+/**
+ * tunes = the slider-side configuration that lives on top of a specific build.
+ * Phase 1b populates this with form/display UI; the table is created now so
+ * sessions can reference (build, tune) pairs from day one.
+ */
+export const tunes = sqliteTable('tunes', {
+  id: integer().primaryKey({ autoIncrement: true }),
+  buildId: integer().notNull().references(() => builds.id),
+  name: text().notNull(),
+  settings: text({ mode: 'json' }).notNull().default(sql`('{}')`),
+  createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+}, t => [
+  uniqueIndex('tunes_build_name_unq').on(t.buildId, t.name)
 ])
 
 export const sessions = sqliteTable('sessions', {
@@ -48,8 +60,10 @@ export const sessions = sqliteTable('sessions', {
   piAtStart: integer().notNull(),
   startedAt: integer({ mode: 'timestamp' }).notNull(),
   endedAt: integer({ mode: 'timestamp' }),
-  setupId: integer().references(() => setups.id),
-  setupSnapshot: text({ mode: 'json' })
+  buildId: integer().references(() => builds.id),
+  buildSnapshot: text({ mode: 'json' }),
+  tuneId: integer().references(() => tunes.id),
+  tuneSnapshot: text({ mode: 'json' })
 })
 
 export const laps = sqliteTable('laps', {
@@ -64,9 +78,11 @@ export type Event = typeof events.$inferSelect
 export type NewEvent = typeof events.$inferInsert
 export type Car = typeof cars.$inferSelect
 export type NewCar = typeof cars.$inferInsert
+export type Build = typeof builds.$inferSelect
+export type NewBuild = typeof builds.$inferInsert
+export type Tune = typeof tunes.$inferSelect
+export type NewTune = typeof tunes.$inferInsert
 export type Session = typeof sessions.$inferSelect
 export type NewSession = typeof sessions.$inferInsert
 export type Lap = typeof laps.$inferSelect
 export type NewLap = typeof laps.$inferInsert
-export type Setup = typeof setups.$inferSelect
-export type NewSetup = typeof setups.$inferInsert

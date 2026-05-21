@@ -3,21 +3,24 @@ import { db, schema } from 'hub:db'
 
 interface PatchBody {
   tuneLabel?: unknown
-  setupId?: unknown
-  setupSnapshot?: unknown
+  buildId?: unknown
+  buildSnapshot?: unknown
+  tuneId?: unknown
+  tuneSnapshot?: unknown
 }
 
 /**
  * Edit a session. Supports updating:
- * - tuneLabel (back-compat string label)
- * - setupId (attach a named setup; if no explicit snapshot is provided,
- *   server copies the setup's current { build, tune } as the immutable
- *   snapshot for this session)
- * - setupSnapshot (override the snapshot directly — used when the
- *   client mutates a session's setup state without rewriting the named
- *   setup row)
+ * - tuneLabel — legacy free-text label (back-compat).
+ * - buildId — attach a named build. If no explicit buildSnapshot is provided,
+ *   server copies the build's current settings as the immutable snapshot.
+ * - buildSnapshot — override the snapshot directly.
+ * - tuneId — attach a named tune (Phase 1b — tunes table is currently
+ *   empty in v1, so this is wired but not yet used by the UI). Snapshot
+ *   auto-copies the tune's settings if not explicitly provided.
+ * - tuneSnapshot — override directly.
  *
- * setupId can be set to null to detach.
+ * Setting any *Id to null detaches it AND clears its snapshot.
  */
 export default defineEventHandler(async (event) => {
   const idParam = getRouterParam(event, 'id')
@@ -41,39 +44,68 @@ export default defineEventHandler(async (event) => {
     updates.tuneLabel = raw === null ? null : (raw.trim() || null)
   }
 
-  if ('setupId' in body) {
-    const raw = body.setupId
+  if ('buildId' in body) {
+    const raw = body.buildId
     if (raw !== null && (typeof raw !== 'number' || !Number.isInteger(raw))) {
-      throw createError({ statusCode: 400, statusMessage: 'setupId must be an integer or null' })
+      throw createError({ statusCode: 400, statusMessage: 'buildId must be an integer or null' })
     }
-    updates.setupId = raw as number | null
+    updates.buildId = raw as number | null
   }
 
-  if ('setupSnapshot' in body) {
-    const raw = body.setupSnapshot
+  if ('buildSnapshot' in body) {
+    const raw = body.buildSnapshot
     if (raw !== null && (typeof raw !== 'object' || Array.isArray(raw))) {
-      throw createError({ statusCode: 400, statusMessage: 'setupSnapshot must be an object or null' })
+      throw createError({ statusCode: 400, statusMessage: 'buildSnapshot must be an object or null' })
     }
-    updates.setupSnapshot = raw as Record<string, unknown> | null
+    updates.buildSnapshot = raw as Record<string, unknown> | null
   }
 
-  // If setupId was set without an explicit snapshot, auto-copy from the setup row.
-  if ('setupId' in body && !('setupSnapshot' in body) && typeof updates.setupId === 'number') {
-    const setup = (await db
-      .select({ build: schema.setups.build, tune: schema.setups.tune })
-      .from(schema.setups)
-      .where(eq(schema.setups.id, updates.setupId))
+  if ('tuneId' in body) {
+    const raw = body.tuneId
+    if (raw !== null && (typeof raw !== 'number' || !Number.isInteger(raw))) {
+      throw createError({ statusCode: 400, statusMessage: 'tuneId must be an integer or null' })
+    }
+    updates.tuneId = raw as number | null
+  }
+
+  if ('tuneSnapshot' in body) {
+    const raw = body.tuneSnapshot
+    if (raw !== null && (typeof raw !== 'object' || Array.isArray(raw))) {
+      throw createError({ statusCode: 400, statusMessage: 'tuneSnapshot must be an object or null' })
+    }
+    updates.tuneSnapshot = raw as Record<string, unknown> | null
+  }
+
+  // Auto-copy snapshots when the *Id is set without an explicit snapshot.
+  if ('buildId' in body && !('buildSnapshot' in body) && typeof updates.buildId === 'number') {
+    const build = (await db
+      .select({ settings: schema.builds.settings })
+      .from(schema.builds)
+      .where(eq(schema.builds.id, updates.buildId))
       .limit(1))[0]
-
-    if (!setup) {
-      throw createError({ statusCode: 404, statusMessage: 'setup not found' })
+    if (!build) {
+      throw createError({ statusCode: 404, statusMessage: 'build not found' })
     }
-    updates.setupSnapshot = { build: setup.build, tune: setup.tune }
+    updates.buildSnapshot = build.settings as Record<string, unknown>
+  }
+  if ('tuneId' in body && !('tuneSnapshot' in body) && typeof updates.tuneId === 'number') {
+    const tune = (await db
+      .select({ settings: schema.tunes.settings })
+      .from(schema.tunes)
+      .where(eq(schema.tunes.id, updates.tuneId))
+      .limit(1))[0]
+    if (!tune) {
+      throw createError({ statusCode: 404, statusMessage: 'tune not found' })
+    }
+    updates.tuneSnapshot = tune.settings as Record<string, unknown>
   }
 
-  // Detaching a setup clears its snapshot too.
-  if ('setupId' in body && updates.setupId === null && !('setupSnapshot' in body)) {
-    updates.setupSnapshot = null
+  // Detaching also clears the snapshot.
+  if ('buildId' in body && updates.buildId === null && !('buildSnapshot' in body)) {
+    updates.buildSnapshot = null
+  }
+  if ('tuneId' in body && updates.tuneId === null && !('tuneSnapshot' in body)) {
+    updates.tuneSnapshot = null
   }
 
   if (Object.keys(updates).length === 0) {

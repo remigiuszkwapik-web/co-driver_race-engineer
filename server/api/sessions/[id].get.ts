@@ -22,14 +22,18 @@ export default defineEventHandler(async (event) => {
       piAtStart: schema.sessions.piAtStart,
       startedAt: schema.sessions.startedAt,
       endedAt: schema.sessions.endedAt,
-      setupId: schema.sessions.setupId,
-      setupSnapshot: schema.sessions.setupSnapshot,
-      setupName: schema.setups.name
+      buildId: schema.sessions.buildId,
+      buildSnapshot: schema.sessions.buildSnapshot,
+      buildName: schema.builds.name,
+      tuneId: schema.sessions.tuneId,
+      tuneSnapshot: schema.sessions.tuneSnapshot,
+      tuneName: schema.tunes.name
     })
     .from(schema.sessions)
     .innerJoin(schema.events, eq(schema.events.id, schema.sessions.eventId))
     .innerJoin(schema.cars, eq(schema.cars.id, schema.sessions.carId))
-    .leftJoin(schema.setups, eq(schema.setups.id, schema.sessions.setupId))
+    .leftJoin(schema.builds, eq(schema.builds.id, schema.sessions.buildId))
+    .leftJoin(schema.tunes, eq(schema.tunes.id, schema.sessions.tuneId))
     .where(eq(schema.sessions.id, id))
     .limit(1))[0]
 

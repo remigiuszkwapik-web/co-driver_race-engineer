@@ -4,7 +4,7 @@ import {
   formatFieldValue,
   getBuildField,
   type SetupField
-} from '../../app/utils/setup-fields'
+} from '../../app/utils/build-fields'
 
 describe('BUILD_FIELDS metadata', () => {
   it('every field has id + label + section + kind', () => {

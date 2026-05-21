@@ -4,18 +4,16 @@ import {
   type AutoSource,
   type BuildSettings,
   type SetupField
-} from '~/utils/setup-fields'
+} from '~/utils/build-fields'
 
 const props = defineProps<{
-  /** The session this form is editing/attaching a setup to. */
-  sessionId: number
   /** Car ordinal — for the create/list endpoints. */
   carOrdinal: number
-  /** Existing setup id, if editing. */
-  existingSetupId?: number | null
-  /** Initial snapshot to pre-fill from (when editing). */
+  /** Existing build id, if editing an existing build. */
+  existingBuildId?: number | null
+  /** Initial settings to pre-fill from (when editing). */
   initialBuild?: BuildSettings | null
-  /** Initial name to pre-fill (e.g. existing tuneLabel). */
+  /** Initial name to pre-fill. */
   initialName?: string | null
   /** Auto-populate sources. */
   autoPower?: number | null
@@ -25,7 +23,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  saved: [session: { id: number, setupId: number | null }]
+  saved: [build: { id: number, name: string }]
   cancel: []
 }>()
 
@@ -51,7 +49,6 @@ function autoValueFor(source: AutoSource | undefined): string | number | null {
 const name = ref(props.initialName ?? '')
 const values = reactive<Record<string, string | number | null>>({})
 
-// Initialise from initialBuild OR auto-populated sources.
 for (const f of BUILD_FIELDS) {
   const seeded = props.initialBuild?.[f.id as keyof BuildSettings]
   if (seeded !== undefined && seeded !== null && seeded !== '') {
@@ -64,16 +61,16 @@ for (const f of BUILD_FIELDS) {
 const saving = ref(false)
 const error = ref<string | null>(null)
 
-// --- "Copy from previous setup" -------------------------------------------
+// --- "Copy from previous build" ------------------------------------------
 
-interface SetupListEntry {
+interface BuildListEntry {
   id: number
   name: string
   createdAt: string
 }
 
-const { data: previousSetups, refresh: refreshPrevious } = await useFetch<SetupListEntry[]>(
-  `/api/cars/${props.carOrdinal}/setups`,
+const { data: previousBuilds, refresh: refreshPrevious } = await useFetch<BuildListEntry[]>(
+  `/api/cars/${props.carOrdinal}/builds`,
   { default: () => [] }
 )
 
@@ -82,15 +79,15 @@ const copyFromId = ref<number | null>(null)
 async function copyFromPrevious() {
   if (!copyFromId.value) return
   try {
-    const setup = await $fetch<{ name: string, build: BuildSettings }>(`/api/setups/${copyFromId.value}`)
-    name.value = setup.name + ' (copy)'
+    const build = await $fetch<{ name: string, settings: BuildSettings }>(`/api/builds/${copyFromId.value}`)
+    name.value = build.name + ' (copy)'
     for (const f of BUILD_FIELDS) {
-      const v = setup.build?.[f.id as keyof BuildSettings]
+      const v = build.settings?.[f.id as keyof BuildSettings]
       if (v !== undefined) values[f.id] = v as string | number | null
     }
   } catch (err) {
     const e = err as { message?: string }
-    error.value = e.message ?? 'Failed to load setup'
+    error.value = e.message ?? 'Failed to load build'
   }
 }
 
@@ -107,49 +104,36 @@ async function save() {
   saving.value = true
   error.value = null
 
-  // Coerce numeric strings to numbers; trim text; keep nulls.
-  const build: BuildSettings = {}
+  const settings: BuildSettings = {}
   for (const f of BUILD_FIELDS) {
     const v = values[f.id]
     if (v === null || v === undefined || v === '') continue
     if (f.kind === 'number') {
       const n = Number(v)
-      if (Number.isFinite(n)) build[f.id as keyof BuildSettings] = n
+      if (Number.isFinite(n)) settings[f.id as keyof BuildSettings] = n
     } else if (f.kind === 'text') {
       const s = String(v).trim()
-      if (s) build[f.id as keyof BuildSettings] = s
+      if (s) settings[f.id as keyof BuildSettings] = s
     } else {
-      build[f.id as keyof BuildSettings] = v
+      settings[f.id as keyof BuildSettings] = v
     }
   }
 
   try {
-    let setupId: number
-    if (props.existingSetupId) {
-      const updated = await $fetch<{ id: number }>(`/api/setups/${props.existingSetupId}`, {
+    let build: { id: number, name: string }
+    if (props.existingBuildId) {
+      build = await $fetch<{ id: number, name: string }>(`/api/builds/${props.existingBuildId}`, {
         method: 'PATCH',
-        body: { name: trimmedName, build }
+        body: { name: trimmedName, settings }
       })
-      setupId = updated.id
     } else {
-      const created = await $fetch<{ id: number }>(`/api/cars/${props.carOrdinal}/setups`, {
+      build = await $fetch<{ id: number, name: string }>(`/api/cars/${props.carOrdinal}/builds`, {
         method: 'POST',
-        body: { name: trimmedName, build }
+        body: { name: trimmedName, settings }
       })
-      setupId = created.id
     }
-
-    // Attach to the session + snapshot the build into the session row.
-    const session = await $fetch<{ id: number, setupId: number | null }>(`/api/sessions/${props.sessionId}`, {
-      method: 'PATCH',
-      body: {
-        setupId,
-        setupSnapshot: { build, tune: null }
-      }
-    })
-
     await refreshPrevious()
-    emit('saved', session)
+    emit('saved', build)
   } catch (err) {
     const e = err as { data?: { statusMessage?: string }, statusMessage?: string, message?: string }
     error.value = e.data?.statusMessage ?? e.statusMessage ?? e.message ?? 'Save failed'
@@ -170,7 +154,7 @@ function autoHintFor(field: SetupField): string | null {
   <section class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 font-mono">
     <header class="mb-4 flex items-baseline justify-between">
       <div class="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-        {{ existingSetupId ? 'Edit setup details' : 'Add setup details' }}
+        {{ existingBuildId ? 'Edit build' : 'Add build' }}
       </div>
       <button
         type="button"
@@ -181,26 +165,22 @@ function autoHintFor(field: SetupField): string | null {
       </button>
     </header>
 
-    <!-- Name -->
     <label class="mb-4 flex flex-col gap-1 text-sm">
-      <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Setup name</span>
+      <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Build name</span>
       <input
         v-model="name"
         type="text"
-        placeholder="e.g. v1, race-trim, mellow"
+        placeholder="e.g. S2 race trim"
         :disabled="saving"
         class="rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
       >
     </label>
 
-    <!-- Copy from previous -->
     <div
-      v-if="previousSetups && previousSetups.length"
+      v-if="previousBuilds && previousBuilds.length"
       class="mb-4 flex items-center gap-2 text-sm"
     >
-      <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-        Copy from
-      </span>
+      <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Copy from</span>
       <select
         v-model="copyFromId"
         :disabled="saving"
@@ -210,11 +190,11 @@ function autoHintFor(field: SetupField): string | null {
           —
         </option>
         <option
-          v-for="s in previousSetups"
-          :key="s.id"
-          :value="s.id"
+          v-for="b in previousBuilds"
+          :key="b.id"
+          :value="b.id"
         >
-          {{ s.name }}
+          {{ b.name }}
         </option>
       </select>
       <button
@@ -227,7 +207,6 @@ function autoHintFor(field: SetupField): string | null {
       </button>
     </div>
 
-    <!-- Build fields -->
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <label
         v-for="field in BUILD_FIELDS"
