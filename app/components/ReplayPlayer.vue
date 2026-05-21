@@ -139,6 +139,32 @@ const trackCursor = computed(() => {
   }
 })
 
+// Click-to-seek on the map: find the frame whose world position is nearest the
+// clicked point and jump the replay there. Skips (0, 0) loading-screen frames.
+function onMapSeek(point: { x: number, z: number }) {
+  const frames = props.frames
+  if (frames.length === 0) return
+  let bestIdx = -1
+  let bestDist = Infinity
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i]!
+    const px = f.position?.x
+    const pz = f.position?.z
+    if (px === undefined || pz === undefined) continue
+    if (px === 0 && pz === 0) continue
+    const dx = px - point.x
+    const dz = pz - point.z
+    const d2 = dx * dx + dz * dz
+    if (d2 < bestDist) {
+      bestDist = d2
+      bestIdx = i
+    }
+  }
+  if (bestIdx < 0) return
+  pause()
+  seekToIndex(bestIdx)
+}
+
 // Trail-braking bands across the full lap. The replay-strip "history" is a
 // sliding window of the full lap; the bands need to be remapped from full-
 // lap indices into history-window indices each render.
@@ -201,7 +227,9 @@ const trailBrakingBandsReplay = computed(() => {
       <TrackMap
         :points="trackPoints"
         :current-point="trackCursor"
+        :seekable="true"
         title="track · this lap"
+        @seek-to-position="onMapSeek"
       />
     </section>
 

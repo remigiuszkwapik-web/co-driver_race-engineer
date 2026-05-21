@@ -122,25 +122,120 @@ const bandRects = computed<BandRect[]>(() => {
 
 let dragging = false
 
-function updateScrub(e: PointerEvent): void {
+/** Map a pointer event to a buffer index, or null if out of range. */
+function idxFromPointer(e: PointerEvent): number | null {
   const len = props.bufferLength
-  if (len <= 1) return
+  if (len <= 1) return null
   const target = e.currentTarget as SVGSVGElement | null
-  if (!target) return
+  if (!target) return null
   const rect = target.getBoundingClientRect()
-  if (rect.width <= 0) return
+  if (rect.width <= 0) return null
   const fx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
   const slot = fx * (TRACE_BUFFER_SIZE - 1)
   const offset = TRACE_BUFFER_SIZE - len
   const idx = Math.round(slot - offset)
-  if (idx < 0) return
-  if (idx >= len) return
+  if (idx < 0) return null
+  if (idx >= len) return null
+  return idx
+}
+
+function updateScrub(e: PointerEvent): void {
+  const idx = idxFromPointer(e)
+  if (idx === null) return
+  const len = props.bufferLength
   // Snap to "live"/"current" when within ~5 slots of the right edge.
   emit('scrub', idx >= len - 5 ? null : idx)
 }
 
+// --- Differential cursor (anchor) -----------------------------------------
+// Alt+click sets/moves an anchor cursor. Anchor is stored as a sample
+// timestamp (sample.t) so it sticks to the data, not the buffer index — when
+// the rolling buffer scrolls, the anchor scrolls with it and falls off the
+// left when the underlying sample drops out of the window.
+
+const anchorT = ref<number | null>(null)
+
+const anchorIdx = computed<number | null>(() => {
+  if (anchorT.value === null) return null
+  const h = props.history
+  if (h.length === 0) return null
+  // If the anchor predates the oldest sample, it's scrolled off the buffer.
+  if (h[0]!.t > anchorT.value) return null
+  let bestIdx = 0
+  let bestDiff = Infinity
+  for (let i = 0; i < h.length; i++) {
+    const diff = Math.abs(h[i]!.t - anchorT.value)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestIdx = i
+    }
+  }
+  return bestIdx
+})
+
+const anchorX = computed<number | null>(() => {
+  const idx = anchorIdx.value
+  return idx === null ? null : xForIdx(idx)
+})
+
+// Primary index used for delta math — either the parent's scrub position or
+// the latest sample when no scrub is active.
+const primaryIdx = computed<number | null>(() => {
+  if (props.scrubIndex !== null && props.scrubIndex !== undefined) return props.scrubIndex
+  if (props.history.length > 0) return props.history.length - 1
+  return null
+})
+
+function setAnchorFromPointer(e: PointerEvent): void {
+  const idx = idxFromPointer(e)
+  if (idx === null) return
+  const sample = props.history[idx]
+  if (!sample) return
+  anchorT.value = sample.t
+}
+
+function clearAnchor(): void {
+  anchorT.value = null
+}
+
+const deltaTms = computed<number | null>(() => {
+  const a = anchorIdx.value
+  const p = primaryIdx.value
+  if (a === null || p === null) return null
+  const sa = props.history[a]
+  const sp = props.history[p]
+  if (!sa || !sp) return null
+  return sp.t - sa.t
+})
+
+function deltaForLine(line: LineDef): string {
+  const a = anchorIdx.value
+  const p = primaryIdx.value
+  if (a === null || p === null) return ''
+  const sa = props.history[a]
+  const sp = props.history[p]
+  if (!sa || !sp) return ''
+  const av = typeof sa[line.key] === 'number' ? (sa[line.key] as number) : 0
+  const pv = typeof sp[line.key] === 'number' ? (sp[line.key] as number) : 0
+  const d = pv - av
+  const formatted = line.fmt(d)
+  // fmt may already prefix '+' for non-negative (steer); don't double it.
+  return d > 0 && !formatted.startsWith('+') ? '+' + formatted : formatted
+}
+
+function formatDeltaT(ms: number): string {
+  const abs = Math.abs(ms)
+  const sign = ms > 0 ? '+' : ms < 0 ? '−' : ''
+  if (abs < 1000) return sign + abs.toFixed(0) + 'ms'
+  return sign + (abs / 1000).toFixed(2) + 's'
+}
+
 function onPointerDown(e: PointerEvent): void {
   if (!props.scrubbable) return
+  if (e.altKey) {
+    setAnchorFromPointer(e)
+    return
+  }
   updateScrub(e)
   if (!props.dragScrub) return
   const target = e.currentTarget as SVGSVGElement
@@ -164,8 +259,26 @@ function onPointerEnd(e: PointerEvent): void {
 <template>
   <section class="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 font-mono text-zinc-100 backdrop-blur">
     <header class="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-zinc-400">
-      <span>{{ label }}</span>
       <span class="flex items-center gap-3">
+        <span>{{ label }}</span>
+        <span
+          v-if="scrubbable && anchorIdx === null"
+          class="text-zinc-600 normal-case tracking-normal"
+        >
+          alt+click to anchor
+        </span>
+      </span>
+      <span class="flex items-center gap-3">
+        <button
+          v-if="anchorIdx !== null && deltaTms !== null"
+          type="button"
+          class="flex items-center gap-1.5 rounded border border-cyan-700/50 bg-cyan-500/10 px-2 py-0.5 text-cyan-300 hover:bg-cyan-500/20"
+          :title="'Clear differential cursor'"
+          @click="clearAnchor"
+        >
+          <span class="tabular-nums">Δt {{ formatDeltaT(deltaTms) }}</span>
+          <span class="text-cyan-500/80">×</span>
+        </button>
         <span
           v-for="line in lines"
           :key="line.key"
@@ -280,6 +393,19 @@ function onPointerEnd(e: PointerEvent): void {
           {{ -10 + (i - 1) * 2.5 === 0 ? 'now' : (-10 + (i - 1) * 2.5).toFixed(1) + 's' }}
         </text>
 
+        <!-- Anchor cursor (differential — alt+click) -->
+        <line
+          v-if="anchorX !== null"
+          :x1="anchorX"
+          :x2="anchorX"
+          :y1="PAD_T"
+          :y2="VIEW_H - PAD_B"
+          stroke="#22d3ee"
+          stroke-width="1"
+          stroke-dasharray="3,2"
+          opacity="0.85"
+        />
+
         <!-- Scrub playhead -->
         <line
           v-if="playheadX !== null"
@@ -293,7 +419,7 @@ function onPointerEnd(e: PointerEvent): void {
         />
       </svg>
 
-      <!-- Current-value pills floating against the right edge -->
+      <!-- Current-value pills (default) or Δ-mode pills (anchor set) -->
       <div
         v-if="latest"
         class="pointer-events-none absolute top-0 right-0 flex h-full flex-col justify-around pr-1 text-[10px] tabular-nums"
@@ -304,7 +430,12 @@ function onPointerEnd(e: PointerEvent): void {
           class="rounded px-1.5 py-0.5"
           :style="{ background: line.color + '20', color: line.color }"
         >
-          {{ line.label }} {{ line.fmt(latestValue(line)) }}
+          <template v-if="anchorIdx !== null">
+            Δ {{ line.label }} {{ deltaForLine(line) }}
+          </template>
+          <template v-else>
+            {{ line.label }} {{ line.fmt(latestValue(line)) }}
+          </template>
         </span>
       </div>
     </div>

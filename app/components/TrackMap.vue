@@ -23,13 +23,37 @@ const props = withDefaults(defineProps<{
    *  frame's position + distance; cleaner than indexing because the points
    *  array is downsampled and filtered. */
   currentPoint?: { x: number, z: number, y: number, distance: number } | null
+  /** When true, clicking the map emits `seek-to-position` with world (x, z).
+   *  The parent translates that to a frame index and seeks. Replay-only. */
+  seekable?: boolean
 }>(), {
   points: () => [],
   traces: () => [],
   title: 'track',
   subtitle: '',
-  currentPoint: null
+  currentPoint: null,
+  seekable: false
 })
+
+const emit = defineEmits<{
+  seekToPosition: [point: { x: number, z: number }]
+}>()
+
+const mapSvgRef = ref<SVGSVGElement | null>(null)
+
+function onMapClick(e: MouseEvent) {
+  if (!props.seekable) return
+  const svg = mapSvgRef.value
+  if (!svg) return
+  const ctm = svg.getScreenCTM()
+  if (!ctm) return
+  const pt = svg.createSVGPoint()
+  pt.x = e.clientX
+  pt.y = e.clientY
+  const local = pt.matrixTransform(ctm.inverse())
+  // SVG y-axis maps to world Z in our viewBox (see line elements: y1=seg.z1).
+  emit('seekToPosition', { x: local.x, z: local.y })
+}
 
 type ColorMode = 'speed' | 'throttle' | 'brake' | 'drivingLine'
 const colorMode = ref<ColorMode>('speed')
@@ -267,10 +291,13 @@ function modeDisabled(m: ColorMode): boolean {
     <template v-else>
       <!-- Top-down map -->
       <svg
+        ref="mapSvgRef"
         :viewBox="mapViewBox"
         preserveAspectRatio="xMidYMid meet"
         class="block w-full"
+        :class="seekable ? 'cursor-pointer' : ''"
         :style="{ height: MAP_VIEW_H * 0.6 + 'px' }"
+        @click="onMapClick"
       >
         <!-- Backdrop traces (other laps): faint, single color -->
         <g
