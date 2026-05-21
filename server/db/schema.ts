@@ -20,6 +20,26 @@ export const cars = sqliteTable('cars', {
   displayName: text()
 })
 
+/**
+ * setups holds a named, per-car structured Setup = build (Phase 1) + tune (Phase 1b).
+ * The build/tune JSON shapes are owned by app/utils/setup-fields.ts.
+ *
+ * Sessions point at a setup via setupId and additionally carry an immutable
+ * setupSnapshot of `{ build, tune }` captured at attachment time — so later
+ * edits to the named setup don't retroactively rewrite historical session
+ * measurements.
+ */
+export const setups = sqliteTable('setups', {
+  id: integer().primaryKey({ autoIncrement: true }),
+  carId: integer().notNull().references(() => cars.id),
+  name: text().notNull(),
+  build: text({ mode: 'json' }).notNull().default(sql`('{}')`),
+  tune: text({ mode: 'json' }),
+  createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
+}, t => [
+  uniqueIndex('setups_car_name_unq').on(t.carId, t.name)
+])
+
 export const sessions = sqliteTable('sessions', {
   id: integer().primaryKey({ autoIncrement: true }),
   eventId: integer().notNull().references(() => events.id),
@@ -27,7 +47,9 @@ export const sessions = sqliteTable('sessions', {
   tuneLabel: text(),
   piAtStart: integer().notNull(),
   startedAt: integer({ mode: 'timestamp' }).notNull(),
-  endedAt: integer({ mode: 'timestamp' })
+  endedAt: integer({ mode: 'timestamp' }),
+  setupId: integer().references(() => setups.id),
+  setupSnapshot: text({ mode: 'json' })
 })
 
 export const laps = sqliteTable('laps', {
@@ -46,3 +68,5 @@ export type Session = typeof sessions.$inferSelect
 export type NewSession = typeof sessions.$inferInsert
 export type Lap = typeof laps.$inferSelect
 export type NewLap = typeof laps.$inferInsert
+export type Setup = typeof setups.$inferSelect
+export type NewSetup = typeof setups.$inferInsert

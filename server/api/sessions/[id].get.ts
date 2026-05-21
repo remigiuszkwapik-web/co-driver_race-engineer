@@ -21,11 +21,15 @@ export default defineEventHandler(async (event) => {
       tuneLabel: schema.sessions.tuneLabel,
       piAtStart: schema.sessions.piAtStart,
       startedAt: schema.sessions.startedAt,
-      endedAt: schema.sessions.endedAt
+      endedAt: schema.sessions.endedAt,
+      setupId: schema.sessions.setupId,
+      setupSnapshot: schema.sessions.setupSnapshot,
+      setupName: schema.setups.name
     })
     .from(schema.sessions)
     .innerJoin(schema.events, eq(schema.events.id, schema.sessions.eventId))
     .innerJoin(schema.cars, eq(schema.cars.id, schema.sessions.carId))
+    .leftJoin(schema.setups, eq(schema.setups.id, schema.sessions.setupId))
     .where(eq(schema.sessions.id, id))
     .limit(1))[0]
 
