@@ -6,7 +6,7 @@ const props = withDefaults(defineProps<{
   history: TraceSample[]
   /** Line configuration — see app/utils/trace-lines.ts for the canonical defs. */
   lines: LineDef[]
-  /** Header label, e.g. "traces · last 10 s" or "motor · last 10 s". */
+  /** Header label, e.g. "traces · last 30 s" or "motor · last 30 s". */
   label: string
   paused: boolean
   /** when true, pointer events on the strip emit `scrub` events */
