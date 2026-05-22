@@ -29,9 +29,13 @@ interface ServerMessage {
   lastPacketAt?: number | null
 }
 
+// Telemetry frames are wholesale-replaced (never mutated), and TraceSample/
+// Telemetry buffer entries are read by index — neither needs deep reactivity.
+// Using shallowRef + markRaw on pushed items avoids Vue proxying ~1800 deeply-
+// nested telemetry objects, which was driving the bulk of live-view RAM.
 const _state = {
-  telemetry: ref<Telemetry | null>(null),
-  debug: ref<DebugFrame | null>(null),
+  telemetry: shallowRef<Telemetry | null>(null),
+  debug: shallowRef<DebugFrame | null>(null),
   connected: ref(false),
   forzaConnected: ref(false),
   forzaLastPacketAt: ref<number | null>(null),
@@ -77,7 +81,7 @@ function connect() {
       return
     }
     if (msg.type === 'telemetry' && msg.t) {
-      const t = msg.t
+      const t = markRaw(msg.t)
       _state.telemetry.value = t
       _state.hasReceivedFrame.value = true
 
@@ -100,7 +104,7 @@ function connect() {
         const buf = _state.framesBuffer.value
         buf.push(t)
         while (buf.length > TRACE_BUFFER_SIZE) buf.shift()
-        pushSample(_state.history.value, {
+        pushSample(_state.history.value, markRaw({
           t: t.timestampMs,
           throttle: t.throttle,
           brake: t.brake,
@@ -110,7 +114,7 @@ function connect() {
           rpmMax: t.rpmMax,
           torqueNm: t.torque,
           powerKw: t.power / 1000
-        })
+        }))
       }
     } else if (msg.type === 'debug' && msg.d) {
       _state.debug.value = msg.d

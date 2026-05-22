@@ -50,23 +50,31 @@ const TRACE_H = VIEW_H - PAD_T - PAD_B
  * Plot the buffer as an SVG polyline points string. The buffer's logical
  * x-axis is fixed to TRACE_BUFFER_SIZE — short buffers (just-started) draw
  * a line that fills the right side, leaving the left empty.
+ *
+ * Computed once per (history, lines) change instead of per-render: binding
+ * `:d="pathFor(line)"` directly in the template re-walks the 1800-sample
+ * buffer on every Vue render at 60 Hz × N lines × M strips, which is the
+ * dominant CPU cost on /live.
  */
-function pathFor(line: LineDef): string {
+const linePaths = computed<string[]>(() => {
   const h = props.history
-  if (h.length < 2) return ''
+  const lines = props.lines
+  if (h.length < 2) return lines.map(() => '')
   const xStep = VIEW_W / (TRACE_BUFFER_SIZE - 1)
   const offset = TRACE_BUFFER_SIZE - h.length
-  let out = ''
-  for (let i = 0; i < h.length; i++) {
-    const sample = h[i]!
-    const x = (offset + i) * xStep
-    const raw = sample[line.key]
-    const v = typeof raw === 'number' ? raw : 0
-    const y = PAD_T + line.norm(v) * TRACE_H
-    out += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' '
-  }
-  return out.trim()
-}
+  return lines.map((line) => {
+    const parts: string[] = []
+    for (let i = 0; i < h.length; i++) {
+      const sample = h[i]!
+      const x = (offset + i) * xStep
+      const raw = sample[line.key]
+      const v = typeof raw === 'number' ? raw : 0
+      const y = PAD_T + line.norm(v) * TRACE_H
+      parts.push((i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1))
+    }
+    return parts.join(' ')
+  })
+})
 
 const latest = computed<TraceSample | null>(() => {
   return props.history.length > 0 ? props.history[props.history.length - 1] ?? null : null
@@ -368,9 +376,9 @@ function onPointerEnd(e: PointerEvent): void {
 
         <!-- Trace lines -->
         <path
-          v-for="line in lines"
+          v-for="(line, i) in lines"
           :key="line.key"
-          :d="pathFor(line)"
+          :d="linePaths[i]"
           fill="none"
           :stroke="line.color"
           stroke-width="1.5"
