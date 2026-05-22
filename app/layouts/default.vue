@@ -10,6 +10,28 @@ const lapsCompleted = computed(() =>
   recording.value.state === 'recording' ? recording.value.lapsCompleted : 0
 )
 
+// Picked-car validation data exposed in the banner so the driver can
+// sanity-check what's being recorded mid-session.
+const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'R']
+const recCarLabel = computed<string>(() => {
+  const r = recording.value
+  if (r.state !== 'recording') return ''
+  return r.carDisplayName ?? `#${r.carOrdinal}`
+})
+const recClassLabel = computed<string>(() => {
+  const r = recording.value
+  if (r.state !== 'recording') return ''
+  return CLASS_LETTERS[r.carClass] ?? '?'
+})
+const recPi = computed<number | null>(() => {
+  const r = recording.value
+  return r.state === 'recording' ? r.piAtStart : null
+})
+const recTuneLabel = computed<string | null>(() => {
+  const r = recording.value
+  return r.state === 'recording' ? (r.tuneLabel ?? null) : null
+})
+
 // Recording duration — once-per-second tick, only while recording. Keeps
 // the banner timer alive even when telemetry frames don't arrive (e.g.
 // between events).
@@ -60,8 +82,8 @@ useHead({
       class="sticky top-0 z-30 border-b border-red-500/50 bg-gradient-to-b from-red-500/15 to-red-500/5 backdrop-blur"
     >
       <div class="pointer-events-none absolute inset-x-0 top-0 h-px animate-pulse bg-red-400/80" />
-      <div class="container mx-auto flex max-w-6xl items-center justify-between px-6 py-2 font-mono">
-        <div class="flex items-center gap-3 text-red-200">
+      <div class="container mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-2 font-mono">
+        <div class="flex min-w-0 items-center gap-3 text-red-200">
           <span class="relative inline-flex items-center justify-center">
             <span class="absolute inline-block h-3 w-3 animate-ping rounded-full bg-red-400/60" />
             <span class="inline-block h-2.5 w-2.5 rounded-full bg-red-400" />
@@ -72,9 +94,28 @@ useHead({
             {{ lapsCompleted }} lap{{ lapsCompleted === 1 ? '' : 's' }}
           </span>
         </div>
+        <!-- Identity strip — what's actually being captured -->
+        <div class="hidden min-w-0 flex-1 items-center justify-center gap-3 text-[11px] text-red-100/90 md:flex">
+          <span class="rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.1em] text-red-200">
+            {{ recClassLabel }}
+          </span>
+          <span
+            class="truncate"
+            :title="recCarLabel"
+          >{{ recCarLabel }}</span>
+          <span
+            v-if="recPi !== null"
+            class="tabular-nums text-red-300/80"
+          >PI {{ recPi }}</span>
+          <span
+            v-if="recTuneLabel"
+            class="truncate text-red-300/70"
+            :title="`tune: ${recTuneLabel}`"
+          >· {{ recTuneLabel }}</span>
+        </div>
         <button
           type="button"
-          class="rounded-sm border border-red-500/60 bg-red-500/15 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-red-100 transition-colors hover:bg-red-500/30"
+          class="shrink-0 rounded-sm border border-red-500/60 bg-red-500/15 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-red-100 transition-colors hover:bg-red-500/30"
           @click="stopRecording"
         >
           Stop recording

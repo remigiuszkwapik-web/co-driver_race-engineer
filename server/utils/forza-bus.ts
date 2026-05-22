@@ -14,6 +14,13 @@ export type RecordingState
       sessionId: number
       eventId: number
       carOrdinal: number
+      // Display-only context — lets the live recording banner show what's
+      // actually being captured so the driver can sanity-check the picked
+      // car / class / PI / tune mid-session.
+      carDisplayName: string | null
+      carClass: number
+      piAtStart: number
+      tuneLabel: string | null
       lapsCompleted: number
     }
 

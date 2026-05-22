@@ -20,6 +20,10 @@ interface ServerMessage {
   sessionId?: number
   eventId?: number
   carOrdinal?: number
+  carDisplayName?: string | null
+  carClass?: number
+  piAtStart?: number
+  tuneLabel?: string | null
   lapsCompleted?: number
   // tune_prompt fields
   previousPi?: number
@@ -126,6 +130,8 @@ function connect() {
         && typeof msg.sessionId === 'number'
         && typeof msg.eventId === 'number'
         && typeof msg.carOrdinal === 'number'
+        && typeof msg.carClass === 'number'
+        && typeof msg.piAtStart === 'number'
         && typeof msg.lapsCompleted === 'number'
       ) {
         _state.recording.value = {
@@ -133,6 +139,10 @@ function connect() {
           sessionId: msg.sessionId,
           eventId: msg.eventId,
           carOrdinal: msg.carOrdinal,
+          carDisplayName: msg.carDisplayName ?? null,
+          carClass: msg.carClass,
+          piAtStart: msg.piAtStart,
+          tuneLabel: msg.tuneLabel ?? null,
           lapsCompleted: msg.lapsCompleted
         }
       }

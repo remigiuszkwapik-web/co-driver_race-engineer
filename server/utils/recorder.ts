@@ -51,8 +51,11 @@ interface RecordingContext {
   eventType: EventType
   carId: number
   carOrdinal: number
+  carDisplayName: string | null
+  carClass: number
   piAtStart: number
   previousPi: number | null
+  tuneLabel: string | null
   startedAt: Date
   lastLapNumber: number
   lapInProgressFromStart: boolean
@@ -75,6 +78,10 @@ class Recorder {
       sessionId: this.ctx.sessionId,
       eventId: this.ctx.eventId,
       carOrdinal: this.ctx.carOrdinal,
+      carDisplayName: this.ctx.carDisplayName,
+      carClass: this.ctx.carClass,
+      piAtStart: this.ctx.piAtStart,
+      tuneLabel: this.ctx.tuneLabel,
       lapsCompleted: this.ctx.lapsCompleted
     }
   }
@@ -121,8 +128,11 @@ class Recorder {
       eventType,
       carId: car.id,
       carOrdinal: ordinal,
+      carDisplayName: car.displayName ?? null,
+      carClass: car.class,
       piAtStart: frame.car.pi,
       previousPi: prevSession?.piAtStart ?? null,
+      tuneLabel,
       startedAt,
       lastLapNumber: frame.lap.number,
       lapInProgressFromStart: false,
