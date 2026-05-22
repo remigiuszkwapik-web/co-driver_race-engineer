@@ -42,25 +42,24 @@ function catTitle(slug: string): string {
 </script>
 
 <template>
-  <main class="mx-auto max-w-4xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/tune"
-        class="hover:text-zinc-300"
-      >
-        Tuning reference
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">Diagnose</span>
-    </div>
-    <h1 class="mb-3 font-mono text-3xl text-zinc-100">
-      Diagnose by symptom
-    </h1>
-    <p class="mb-8 max-w-2xl font-mono text-sm leading-relaxed text-zinc-400">
-      Pick the thing the car is doing wrong. Each entry lists the telemetry signal
-      to confirm the diagnosis and the tuning levers to try, in order of how often
-      they fix the problem.
-    </p>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader title="Diagnose by symptom">
+      <template #eyebrow>
+        <NuxtLink
+          to="/tune"
+          class="hover:text-zinc-300"
+        >
+          Tuning reference
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">Diagnose</span>
+      </template>
+      <template #intro>
+        Pick the thing the car is doing wrong. Each entry lists the telemetry signal
+        to confirm the diagnosis and the tuning levers to try, in order of how often
+        they fix the problem.
+      </template>
+    </PageHeader>
 
     <div class="mb-6 flex flex-wrap items-center gap-1.5">
       <button
@@ -91,7 +90,7 @@ function catTitle(slug: string): string {
       <li
         v-for="d in filtered"
         :key="d.symptom"
-        class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4"
+        class="card p-4"
       >
         <div class="mb-3 flex items-baseline justify-between gap-3">
           <h3 class="font-mono text-lg text-zinc-100">

@@ -45,7 +45,7 @@ function resetCurve() {
 </script>
 
 <template>
-  <main class="mx-auto max-w-6xl px-6 py-10">
+  <main class="container mx-auto max-w-6xl px-6 py-10">
     <div class="mb-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <span>
         Dyno
@@ -70,7 +70,7 @@ function resetCurve() {
 
     <div
       v-if="!hasReceivedFrame"
-      class="mb-6 rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center font-mono text-sm text-zinc-500"
+      class="mb-6 card-dashed p-8 text-center font-mono text-sm text-zinc-500"
     >
       <div class="text-[10px] uppercase tracking-[0.3em]">
         Awaiting
@@ -97,7 +97,7 @@ function resetCurve() {
       :current-rpm="currentRpm"
     />
 
-    <section class="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 font-mono text-sm leading-relaxed text-zinc-300">
+    <section class="mt-6 card p-4 font-mono text-sm leading-relaxed text-zinc-300">
       <div class="mb-2 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
         Gear tuning · quick rules
       </div>

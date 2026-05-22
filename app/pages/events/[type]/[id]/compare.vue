@@ -69,58 +69,51 @@ const aAhead = computed(() => netDelta.value > 0)
 </script>
 
 <template>
-  <main class="mx-auto max-w-[1600px] px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/events"
-        class="hover:text-zinc-300"
-      >
-        Events
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <NuxtLink
-        :to="`/events/${eventTypeKey}`"
-        class="hover:text-zinc-300"
-      >
-        {{ EVENT_TYPE_LABELS[eventTypeKey] }}
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <NuxtLink
-        :to="`/events/${eventTypeKey}/${eventId}`"
-        class="hover:text-zinc-300"
-      >
-        {{ eventData?.event.name }}
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">Compare</span>
-    </div>
-
-    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <div class="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-          {{ EVENT_TYPE_LABELS[eventTypeKey] }} · {{ eventData?.event.name }}
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader title="Compare">
+      <template #eyebrow>
+        <NuxtLink
+          to="/events"
+          class="hover:text-zinc-300"
+        >
+          Events
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <NuxtLink
+          :to="`/events/${eventTypeKey}`"
+          class="hover:text-zinc-300"
+        >
+          {{ EVENT_TYPE_LABELS[eventTypeKey] }}
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <NuxtLink
+          :to="`/events/${eventTypeKey}/${eventId}`"
+          class="hover:text-zinc-300"
+        >
+          {{ eventData?.event.name }}
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">Compare</span>
+      </template>
+      <template #actions>
+        <div
+          class="rounded-md border px-4 py-3 font-mono text-sm tabular-nums"
+          :class="aAhead ? 'border-green-500/40 bg-green-500/10 text-green-300' : 'border-amber-500/40 bg-amber-500/10 text-amber-300'"
+        >
+          <div class="text-[10px] uppercase tracking-[0.2em] opacity-70">
+            {{ aAhead ? 'A faster by' : 'B faster by' }}
+          </div>
+          <div class="mt-0.5 text-xl">
+            {{ formatDelta(netDelta) }} s
+          </div>
         </div>
-        <h1 class="mt-1 font-mono text-3xl text-zinc-100">
-          Compare
-        </h1>
-      </div>
-      <div
-        class="rounded-lg border px-4 py-3 font-mono text-sm tabular-nums"
-        :class="aAhead ? 'border-green-500/40 bg-green-500/10 text-green-300' : 'border-amber-500/40 bg-amber-500/10 text-amber-300'"
-      >
-        <div class="text-[10px] uppercase tracking-[0.2em] opacity-70">
-          {{ aAhead ? 'A faster by' : 'B faster by' }}
-        </div>
-        <div class="mt-0.5 text-xl">
-          {{ formatDelta(netDelta) }} s
-        </div>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <section class="mb-6 grid grid-cols-1 gap-3 font-mono text-sm sm:grid-cols-2">
       <NuxtLink
         :to="`/events/${eventTypeKey}/${eventId}/${lapA?.sessionId}`"
-        class="block rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/70"
+        class="block card p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/70"
       >
         <div class="flex items-center justify-between">
           <span class="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
@@ -148,7 +141,7 @@ const aAhead = computed(() => netDelta.value > 0)
 
       <NuxtLink
         :to="`/events/${eventTypeKey}/${eventId}/${lapB?.sessionId}`"
-        class="block rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/70"
+        class="block card p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/70"
       >
         <div class="flex items-center justify-between">
           <span class="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">

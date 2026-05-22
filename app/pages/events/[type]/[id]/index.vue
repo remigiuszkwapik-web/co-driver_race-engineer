@@ -127,35 +127,26 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <main class="mx-auto max-w-5xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/events"
-        class="hover:text-zinc-300"
-      >
-        Events
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <NuxtLink
-        :to="`/events/${eventTypeKey}`"
-        class="hover:text-zinc-300"
-      >
-        {{ EVENT_TYPE_LABELS[eventTypeKey] }}
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">{{ data?.event.name }}</span>
-    </div>
-
-    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <div class="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader :title="data?.event.name ?? ''">
+      <template #eyebrow>
+        <NuxtLink
+          to="/events"
+          class="hover:text-zinc-300"
+        >
+          Events
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <NuxtLink
+          :to="`/events/${eventTypeKey}`"
+          class="hover:text-zinc-300"
+        >
           {{ EVENT_TYPE_LABELS[eventTypeKey] }}
-        </div>
-        <h1 class="mt-1 font-mono text-3xl text-zinc-100">
-          {{ data?.event.name }}
-        </h1>
-      </div>
-      <div class="flex items-center gap-2">
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">{{ data?.event.name }}</span>
+      </template>
+      <template #actions>
         <button
           type="button"
           class="rounded-sm border border-red-500/40 bg-red-500/10 px-4 py-3 font-mono text-xs uppercase tracking-[0.3em] text-red-300 transition-colors hover:border-red-400/60 hover:bg-red-500/20"
@@ -171,19 +162,19 @@ async function confirmDelete() {
           <span class="mr-2 inline-block h-2 w-2 align-middle rounded-full bg-green-400" />
           {{ isRecording ? 'Go to Live' : 'Start Recording' }}
         </button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div
       v-if="lastError"
-      class="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-3 font-mono text-xs text-red-300"
+      class="mb-6 card-error p-3 font-mono text-xs text-red-300"
     >
       {{ lastError }}
     </div>
 
     <div
       v-if="deleteError"
-      class="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-3 font-mono text-xs text-red-300"
+      class="mb-6 card-error p-3 font-mono text-xs text-red-300"
     >
       {{ deleteError }}
     </div>
@@ -283,7 +274,7 @@ async function confirmDelete() {
     </section>
     <div
       v-else
-      class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center font-mono text-sm text-zinc-500"
+      class="card-dashed p-8 text-center font-mono text-sm text-zinc-500"
     >
       No recordings yet for this event. Hit Start Recording to capture your first run.
     </div>

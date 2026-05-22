@@ -39,7 +39,7 @@ async function attachSelected() {
 </script>
 
 <template>
-  <section class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-4 font-mono">
+  <section class="card-dashed p-4 font-mono">
     <div class="mb-3 flex items-baseline justify-between text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <span>Attach a build</span>
       <NuxtLink

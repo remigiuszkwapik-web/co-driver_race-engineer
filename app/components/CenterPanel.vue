@@ -91,7 +91,7 @@ function signedFixed(v: number, digits: number): string {
 </script>
 
 <template>
-  <div class="flex h-full flex-col items-stretch justify-between rounded-lg border border-zinc-800 bg-zinc-900/80 p-5 font-mono text-zinc-100 backdrop-blur">
+  <div class="flex h-full flex-col items-stretch justify-between panel p-5 font-mono text-zinc-100 backdrop-blur">
     <!-- Top: gear + speed -->
     <div class="flex items-start justify-between">
       <div>

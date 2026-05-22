@@ -43,29 +43,27 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
 
 <template>
   <main class="container mx-auto max-w-6xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/upgrade"
-        class="hover:text-zinc-300"
-      >
-        Upgrade reference
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">{{ cat.slug }}</span>
-    </div>
-
-    <div class="mb-2 flex items-center gap-3">
-      <UIcon
-        :name="`i-lucide-${cat.icon}`"
-        class="h-6 w-6 text-zinc-400"
-      />
-      <h1 class="font-mono text-3xl text-zinc-100">
-        {{ cat.title }}
-      </h1>
-    </div>
-    <p class="mb-10 font-mono text-sm leading-relaxed text-zinc-300">
-      {{ cat.summary }}
-    </p>
+    <PageHeader :title="cat.title">
+      <template #eyebrow>
+        <NuxtLink
+          to="/upgrade"
+          class="hover:text-zinc-300"
+        >
+          Upgrade reference
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">{{ cat.slug }}</span>
+      </template>
+      <template #icon>
+        <UIcon
+          :name="`i-lucide-${cat.icon}`"
+          class="h-6 w-6 text-zinc-400"
+        />
+      </template>
+      <template #intro>
+        {{ cat.summary }}
+      </template>
+    </PageHeader>
 
     <YourDataPanel
       :slug="slug"
@@ -133,7 +131,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
       <h2 class="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-zinc-400">
         PI-efficiency by discipline
       </h2>
-      <div class="overflow-hidden rounded-lg border border-zinc-800">
+      <div class="overflow-hidden rounded-md border border-zinc-800">
         <table class="w-full font-mono text-sm">
           <thead class="bg-zinc-900/60">
             <tr class="text-left text-[10px] uppercase tracking-[0.2em] text-zinc-500">

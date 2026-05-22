@@ -128,7 +128,7 @@ const clipBelowId = `overlay-below-${uid}`
 </script>
 
 <template>
-  <section class="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 font-mono text-zinc-100 backdrop-blur">
+  <section class="panel p-4 font-mono text-zinc-100 backdrop-blur">
     <header class="mb-3 flex flex-wrap items-center justify-between gap-3 text-[10px] uppercase tracking-[0.2em] text-zinc-400">
       <span>traces · by distance</span>
       <span class="flex flex-wrap items-center gap-4">

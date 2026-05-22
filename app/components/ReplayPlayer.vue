@@ -181,7 +181,7 @@ const trailBrakingBandsReplay = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+  <div class="card p-4">
     <header class="mb-3 flex items-center justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <span>Replay · {{ frames.length }} frames</span>
       <span class="tabular-nums text-zinc-300">

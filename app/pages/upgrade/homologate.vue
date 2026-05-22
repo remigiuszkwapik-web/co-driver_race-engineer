@@ -13,25 +13,24 @@ function catTitle(slug: string): string {
 </script>
 
 <template>
-  <main class="mx-auto max-w-4xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/upgrade"
-        class="hover:text-zinc-300"
-      >
-        Upgrade reference
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">Homologate</span>
-    </div>
-    <h1 class="mb-3 font-mono text-3xl text-zinc-100">
-      Homologate a car
-    </h1>
-    <p class="mb-8 max-w-2xl font-mono text-sm leading-relaxed text-zinc-400">
-      The order matters. Each step gates on the previous one — reorder them
-      and you waste PI. Walk the list top to bottom for any new build, then
-      use the smells table to audit existing builds.
-    </p>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader title="Homologate a car">
+      <template #eyebrow>
+        <NuxtLink
+          to="/upgrade"
+          class="hover:text-zinc-300"
+        >
+          Upgrade reference
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">Homologate</span>
+      </template>
+      <template #intro>
+        The order matters. Each step gates on the previous one — reorder them
+        and you waste PI. Walk the list top to bottom for any new build, then
+        use the smells table to audit existing builds.
+      </template>
+    </PageHeader>
 
     <section class="mb-12">
       <h2 class="mb-4 font-mono text-xs uppercase tracking-[0.3em] text-zinc-400">
@@ -41,7 +40,7 @@ function catTitle(slug: string): string {
         <li
           v-for="(s, i) in HOMOLOGATION_STEPS"
           :key="s.step"
-          class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4"
+          class="card p-4"
         >
           <div class="mb-2 flex items-baseline gap-3">
             <span class="font-mono text-xs text-zinc-600 tabular-nums">{{ String(i + 1).padStart(2, '0') }}</span>
@@ -80,7 +79,7 @@ function catTitle(slug: string): string {
         <li
           v-for="s in BUILD_SMELLS"
           :key="s.smell"
-          class="rounded-md border border-amber-900/30 bg-amber-950/10 p-3"
+          class="card-warn p-3"
         >
           <div class="flex items-baseline justify-between gap-3">
             <span class="font-mono text-sm text-zinc-200">{{ s.smell }}</span>

@@ -76,7 +76,7 @@ const trailPath = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 font-mono text-zinc-100 backdrop-blur">
+  <div class="panel p-4 font-mono text-zinc-100 backdrop-blur">
     <div class="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-400">
       <span>{{ label }}</span>
       <span

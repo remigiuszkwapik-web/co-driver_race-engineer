@@ -257,7 +257,7 @@ function onPointerEnd(e: PointerEvent): void {
 </script>
 
 <template>
-  <section class="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 font-mono text-zinc-100 backdrop-blur">
+  <section class="panel p-4 font-mono text-zinc-100 backdrop-blur">
     <header class="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-zinc-400">
       <span class="flex items-center gap-3">
         <span>{{ label }}</span>

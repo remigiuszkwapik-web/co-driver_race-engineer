@@ -128,34 +128,32 @@ async function onTuneSaved(saved: { id: number }) {
 </script>
 
 <template>
-  <main class="mx-auto max-w-3xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/cars"
-        class="hover:text-zinc-300"
-      >
-        Garage
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <NuxtLink
-        :to="`/cars/${ordinal}`"
-        class="hover:text-zinc-300"
-      >
-        {{ build?.carDisplayName ?? `#${ordinal}` }}
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">{{ build?.name }}</span>
-    </div>
-
-    <div class="mb-8 flex items-baseline gap-3">
-      <h1 class="font-mono text-3xl text-zinc-100">
-        {{ build?.name }}
-      </h1>
-      <span
-        v-if="build"
-        class="font-mono text-sm text-zinc-500"
-      >[{{ carClassLetter(build.carClass) }}] · {{ build.sessionCount }} session{{ build.sessionCount === 1 ? '' : 's' }}</span>
-    </div>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader :title="build?.name ?? ''">
+      <template #eyebrow>
+        <NuxtLink
+          to="/cars"
+          class="hover:text-zinc-300"
+        >
+          Garage
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <NuxtLink
+          :to="`/cars/${ordinal}`"
+          class="hover:text-zinc-300"
+        >
+          {{ build?.carDisplayName ?? `#${ordinal}` }}
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">{{ build?.name }}</span>
+      </template>
+      <template #meta>
+        <span
+          v-if="build"
+          class="font-mono text-sm text-zinc-500"
+        >[{{ carClassLetter(build.carClass) }}] · {{ build.sessionCount }} session{{ build.sessionCount === 1 ? '' : 's' }}</span>
+      </template>
+    </PageHeader>
 
     <section class="mb-8">
       <BuildForm
@@ -181,7 +179,7 @@ async function onTuneSaved(saved: { id: number }) {
         <span class="text-zinc-600 normal-case tracking-normal">{{ tunes?.length ?? 0 }} total</span>
       </div>
 
-      <div class="mb-3 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+      <div class="mb-3 card p-4">
         <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
           New tune
         </div>
@@ -235,7 +233,7 @@ async function onTuneSaved(saved: { id: number }) {
           </div>
           <div
             v-else
-            class="rounded-lg border border-zinc-800 bg-zinc-900/40"
+            class="card"
           >
             <div class="flex items-center justify-between gap-3 p-4">
               <button
@@ -274,7 +272,7 @@ async function onTuneSaved(saved: { id: number }) {
       </ul>
       <div
         v-else
-        class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-6 text-center font-mono text-sm text-zinc-500"
+        class="card-dashed p-6 text-center font-mono text-sm text-zinc-500"
       >
         No tunes for this build yet. Create one above.
       </div>

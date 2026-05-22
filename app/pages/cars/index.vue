@@ -23,13 +23,12 @@ function lastDrivenLabel(iso: string | null): string {
 </script>
 
 <template>
-  <main class="mx-auto max-w-5xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      Garage
-    </div>
-    <h1 class="mb-10 font-mono text-3xl text-zinc-100">
-      Your cars
-    </h1>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader title="Your cars">
+      <template #eyebrow>
+        Garage
+      </template>
+    </PageHeader>
 
     <div
       v-if="cars && cars.length"
@@ -39,7 +38,7 @@ function lastDrivenLabel(iso: string | null): string {
         v-for="car in cars"
         :key="car.ordinal"
         :to="`/cars/${car.ordinal}`"
-        class="group flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
+        class="group flex flex-col gap-2 card p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
       >
         <div class="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500 group-hover:text-zinc-400">
           [{{ carClassLetter(car.class) }}] · ordinal {{ car.ordinal }}
@@ -77,7 +76,7 @@ function lastDrivenLabel(iso: string | null): string {
     </div>
     <div
       v-else
-      class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center font-mono text-sm text-zinc-500"
+      class="card-dashed p-8 text-center font-mono text-sm text-zinc-500"
     >
       No cars yet. Cars appear here once you record a session in Forza
       with telemetry flowing.

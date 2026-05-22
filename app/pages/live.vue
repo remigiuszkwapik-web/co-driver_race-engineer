@@ -62,7 +62,7 @@ const trailBrakingBandsLive = computed(() => {
 </script>
 
 <template>
-  <div>
+  <div class="container mx-auto max-w-6xl">
     <!-- Waiting state — never received a frame yet -->
     <div
       v-if="!hasReceivedFrame"

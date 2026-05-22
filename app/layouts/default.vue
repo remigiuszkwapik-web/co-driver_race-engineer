@@ -10,7 +10,7 @@ const showQuickRecord = computed(() => recording.value.state !== 'recording')
 <template>
   <div class="min-h-screen bg-zinc-950 text-zinc-100">
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/85 backdrop-blur">
-      <div class="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+      <div class="container mx-auto flex max-w-6xl items-center justify-between px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400">
         <div class="flex items-center gap-6">
           <NuxtLink
             to="/live"

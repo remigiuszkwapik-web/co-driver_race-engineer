@@ -16,3 +16,34 @@
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
 }
+
+/* Card surfaces — pair with a p-* utility on the element. */
+@utility card {
+  @apply rounded-md border border-zinc-800 bg-zinc-900/40;
+}
+@utility card-subtle {
+  @apply rounded-md border border-zinc-800/80 bg-zinc-900/30;
+}
+@utility card-dashed {
+  @apply rounded-md border border-dashed border-zinc-800 bg-zinc-900/20;
+}
+@utility card-error {
+  @apply rounded-md border border-red-500/40 bg-red-500/10;
+}
+@utility card-trap {
+  @apply rounded-md border border-red-900/30 bg-red-950/10;
+}
+@utility card-warn {
+  @apply rounded-md border border-amber-900/30 bg-amber-950/10;
+}
+@utility card-good {
+  @apply rounded-md border border-green-900/30 bg-green-950/10;
+}
+@utility card-info {
+  @apply rounded-md border border-sky-900/30 bg-sky-950/10;
+}
+
+/* HUD panel — opaque surface with backdrop blur, used over telemetry visuals. */
+@utility panel {
+  @apply rounded-md border border-zinc-800 bg-zinc-900/80 backdrop-blur;
+}

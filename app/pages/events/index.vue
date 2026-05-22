@@ -20,20 +20,19 @@ const counts = computed<Record<EventType, number>>(() => {
 </script>
 
 <template>
-  <main class="mx-auto max-w-5xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      Events
-    </div>
-    <h1 class="mb-10 font-mono text-3xl text-zinc-100">
-      Pick an event type
-    </h1>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader title="Pick an event type">
+      <template #eyebrow>
+        Events
+      </template>
+    </PageHeader>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <NuxtLink
         v-for="type in EVENT_TYPE_ORDER"
         :key="type"
         :to="`/events/${type}`"
-        class="group flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-6 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
+        class="group flex flex-col gap-2 card p-6 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
       >
         <div class="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500 group-hover:text-zinc-400">
           {{ counts[type] }} event{{ counts[type] === 1 ? '' : 's' }}

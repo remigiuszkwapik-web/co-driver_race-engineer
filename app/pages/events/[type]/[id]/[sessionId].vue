@@ -279,59 +279,52 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <main class="mx-auto max-w-[1600px] px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/events"
-        class="hover:text-zinc-300"
-      >
-        Events
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <NuxtLink
-        :to="`/events/${eventTypeKey}`"
-        class="hover:text-zinc-300"
-      >
-        {{ EVENT_TYPE_LABELS[eventTypeKey] }}
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <NuxtLink
-        :to="`/events/${eventTypeKey}/${eventId}`"
-        class="hover:text-zinc-300"
-      >
-        {{ data?.session.eventName }}
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">Session #{{ sessionId }}</span>
-    </div>
-
-    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <div class="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-          {{ EVENT_TYPE_LABELS[eventTypeKey] }} · {{ data?.session.eventName }}
-        </div>
-        <h1 class="mt-1 font-mono text-3xl text-zinc-100">
-          Session #{{ sessionId }}
-        </h1>
-      </div>
-      <button
-        type="button"
-        class="rounded-sm border border-red-500/40 bg-red-500/10 px-4 py-2.5 font-mono text-xs uppercase tracking-[0.3em] text-red-300 transition-colors hover:border-red-400/60 hover:bg-red-500/20"
-        @click="openDelete"
-      >
-        Delete session
-      </button>
-    </div>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader :title="`Session #${sessionId}`">
+      <template #eyebrow>
+        <NuxtLink
+          to="/events"
+          class="hover:text-zinc-300"
+        >
+          Events
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <NuxtLink
+          :to="`/events/${eventTypeKey}`"
+          class="hover:text-zinc-300"
+        >
+          {{ EVENT_TYPE_LABELS[eventTypeKey] }}
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <NuxtLink
+          :to="`/events/${eventTypeKey}/${eventId}`"
+          class="hover:text-zinc-300"
+        >
+          {{ data?.session.eventName }}
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">Session #{{ sessionId }}</span>
+      </template>
+      <template #actions>
+        <button
+          type="button"
+          class="rounded-sm border border-red-500/40 bg-red-500/10 px-4 py-2.5 font-mono text-xs uppercase tracking-[0.3em] text-red-300 transition-colors hover:border-red-400/60 hover:bg-red-500/20"
+          @click="openDelete"
+        >
+          Delete session
+        </button>
+      </template>
+    </PageHeader>
 
     <div
       v-if="deleteError"
-      class="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 p-3 font-mono text-xs text-red-300"
+      class="mb-6 card-error p-3 font-mono text-xs text-red-300"
     >
       {{ deleteError }}
     </div>
 
     <section class="mb-8 grid grid-cols-2 gap-3 font-mono text-sm sm:grid-cols-4">
-      <div class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+      <div class="card p-3">
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           Car
         </div>
@@ -340,7 +333,7 @@ async function confirmDelete() {
           {{ data?.session.carDisplayName ?? `#${data?.session.carOrdinal}` }}
         </div>
       </div>
-      <div class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+      <div class="card p-3">
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           PI · Tune
         </div>
@@ -378,7 +371,7 @@ async function confirmDelete() {
           {{ tuneError }}
         </div>
       </div>
-      <div class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+      <div class="card p-3">
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           Best lap
         </div>
@@ -387,7 +380,7 @@ async function confirmDelete() {
           <span class="text-zinc-500 text-xs">· {{ data?.laps.length }} lap{{ data?.laps.length === 1 ? '' : 's' }}</span>
         </div>
       </div>
-      <div class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+      <div class="card p-3">
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           Started · Duration
         </div>
@@ -519,14 +512,14 @@ async function confirmDelete() {
     </section>
     <div
       v-else
-      class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center font-mono text-sm text-zinc-500"
+      class="card-dashed p-8 text-center font-mono text-sm text-zinc-500"
     >
       No laps captured in this session.
     </div>
 
     <div
       v-if="framesError"
-      class="mt-6 rounded-lg border border-red-500/40 bg-red-500/10 p-3 font-mono text-xs text-red-300"
+      class="mt-6 card-error p-3 font-mono text-xs text-red-300"
     >
       {{ framesError }}
     </div>

@@ -14,21 +14,20 @@ const PHASE_LABEL: Record<typeof DIAGNOSES[number]['phase'], string> = {
 </script>
 
 <template>
-  <main class="mx-auto max-w-5xl px-6 py-10">
-    <div class="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <span>Tuning reference</span>
-      <span class="rounded-sm border border-green-500/40 bg-green-500/10 px-1.5 py-0.5 text-green-300">FH6</span>
-    </div>
-    <h1 class="mb-3 font-mono text-3xl text-zinc-100">
-      What's this lever do?
-    </h1>
-    <p class="mb-10 max-w-2xl font-mono text-sm leading-relaxed text-zinc-400">
-      Every setting in the upgrade & tune menu for Forza Horizon 6, what it
-      changes in the car, which telemetry signal it leaves a fingerprint on, and
-      what to reach for when the car does the wrong thing. Distilled from years
-      of FH community knowledge and updated for FH6's caster sensitivity, fixed
-      brake-bias slider, aero-balance slider, and narrower diff ranges.
-    </p>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader title="What's this lever do?">
+      <template #eyebrow>
+        <span>Tuning reference</span>
+        <span class="rounded-sm border border-green-500/40 bg-green-500/10 px-1.5 py-0.5 text-green-300">FH6</span>
+      </template>
+      <template #intro>
+        Every setting in the upgrade & tune menu for Forza Horizon 6, what it
+        changes in the car, which telemetry signal it leaves a fingerprint on, and
+        what to reach for when the car does the wrong thing. Distilled from years
+        of FH community knowledge and updated for FH6's caster sensitivity, fixed
+        brake-bias slider, aero-balance slider, and narrower diff ranges.
+      </template>
+    </PageHeader>
 
     <section class="mb-12">
       <div class="mb-3 flex items-baseline justify-between">
@@ -48,7 +47,7 @@ const PHASE_LABEL: Record<typeof DIAGNOSES[number]['phase'], string> = {
           v-for="cat in TUNE_CATEGORIES"
           :key="cat.slug"
           :to="`/tune/${cat.slug}`"
-          class="group flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
+          class="group flex flex-col gap-2 card p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
         >
           <div class="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500 group-hover:text-zinc-400">
             <UIcon
@@ -83,7 +82,7 @@ const PHASE_LABEL: Record<typeof DIAGNOSES[number]['phase'], string> = {
         <li
           v-for="d in DIAGNOSES.slice(0, 6)"
           :key="d.symptom"
-          class="rounded-md border border-zinc-800/80 bg-zinc-900/30 p-3"
+          class="card-subtle p-3"
         >
           <div class="flex items-baseline justify-between gap-3">
             <span class="font-mono text-sm text-zinc-200">{{ d.symptom }}</span>

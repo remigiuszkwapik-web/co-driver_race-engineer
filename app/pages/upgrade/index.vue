@@ -7,21 +7,20 @@ const topSmells = BUILD_SMELLS.slice(0, 5)
 </script>
 
 <template>
-  <main class="mx-auto max-w-5xl px-6 py-10">
-    <div class="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <span>Upgrade reference</span>
-      <span class="rounded-sm border border-green-500/40 bg-green-500/10 px-1.5 py-0.5 text-green-300">FH6</span>
-    </div>
-    <h1 class="mb-3 font-mono text-3xl text-zinc-100">
-      What should I install?
-    </h1>
-    <p class="mb-10 max-w-2xl font-mono text-sm leading-relaxed text-zinc-400">
-      Every upgrade slot in Forza Horizon 6 — what it actually does, what it
-      costs in PI, when it earns its keep, and the traps that quietly burn
-      points. Distilled from community guides and updated for FH6's heavier
-      slick-on-dirt penalty, first-class front tire width, and the new reality
-      that brakes are no longer optional.
-    </p>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader title="What should I install?">
+      <template #eyebrow>
+        <span>Upgrade reference</span>
+        <span class="rounded-sm border border-green-500/40 bg-green-500/10 px-1.5 py-0.5 text-green-300">FH6</span>
+      </template>
+      <template #intro>
+        Every upgrade slot in Forza Horizon 6 — what it actually does, what it
+        costs in PI, when it earns its keep, and the traps that quietly burn
+        points. Distilled from community guides and updated for FH6's heavier
+        slick-on-dirt penalty, first-class front tire width, and the new reality
+        that brakes are no longer optional.
+      </template>
+    </PageHeader>
 
     <section class="mb-12">
       <div class="mb-3 flex items-baseline justify-between">
@@ -39,7 +38,7 @@ const topSmells = BUILD_SMELLS.slice(0, 5)
         <li
           v-for="r in MUST_DO_RULES"
           :key="r.rule"
-          class="rounded-md border border-zinc-800/80 bg-zinc-900/30 p-3"
+          class="card-subtle p-3"
         >
           <div class="font-mono text-sm text-zinc-100">
             {{ r.rule }}
@@ -63,7 +62,7 @@ const topSmells = BUILD_SMELLS.slice(0, 5)
           v-for="cat in UPGRADE_CATEGORIES"
           :key="cat.slug"
           :to="`/upgrade/${cat.slug}`"
-          class="group flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
+          class="group flex flex-col gap-2 card p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
         >
           <div class="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500 group-hover:text-zinc-400">
             <UIcon
@@ -98,7 +97,7 @@ const topSmells = BUILD_SMELLS.slice(0, 5)
         <li
           v-for="s in topSmells"
           :key="s.smell"
-          class="rounded-md border border-amber-900/30 bg-amber-950/10 p-3"
+          class="card-warn p-3"
         >
           <div class="flex items-baseline justify-between gap-3">
             <span class="font-mono text-sm text-zinc-200">{{ s.smell }}</span>

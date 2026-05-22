@@ -29,7 +29,7 @@ const timeAgo = useTimeAgo(() => lastDrivenDate.value ?? new Date(0))
   <li>
     <NuxtLink
       :to="`/events/${eventTypeKey}/${ev.id}`"
-      class="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
+      class="flex items-center justify-between gap-4 card p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
     >
       <span class="font-mono text-lg text-zinc-100">{{ ev.name }}</span>
       <span class="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">

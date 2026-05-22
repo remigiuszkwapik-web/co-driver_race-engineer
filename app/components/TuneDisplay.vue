@@ -33,7 +33,7 @@ function filledCount(sectionKey: typeof TUNE_SECTIONS[number]): number {
 </script>
 
 <template>
-  <section class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 font-mono">
+  <section class="card p-4 font-mono">
     <header class="mb-3 flex items-baseline justify-between">
       <div class="flex items-baseline gap-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
         <span>Tune</span>

@@ -101,7 +101,7 @@ function carClassLetter(c: number): string {
 </script>
 
 <template>
-  <main class="mx-auto max-w-3xl px-6 py-10">
+  <main class="container mx-auto max-w-6xl px-6 py-10">
     <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <NuxtLink
         to="/cars"
@@ -166,7 +166,7 @@ function carClassLetter(c: number): string {
       {{ nameError }}
     </div>
 
-    <section class="mb-8 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+    <section class="mb-8 card p-4">
       <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
         New build
       </div>
@@ -207,7 +207,7 @@ function carClassLetter(c: number): string {
       >
         <NuxtLink
           :to="`/cars/${ordinal}/builds/${build.id}`"
-          class="group flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
+          class="group flex items-center justify-between card p-4 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
         >
           <div class="font-mono">
             <div class="text-zinc-100">
@@ -225,7 +225,7 @@ function carClassLetter(c: number): string {
     </ul>
     <div
       v-else
-      class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center font-mono text-sm text-zinc-500"
+      class="card-dashed p-8 text-center font-mono text-sm text-zinc-500"
     >
       No builds yet. Create one above.
     </div>

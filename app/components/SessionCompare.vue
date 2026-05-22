@@ -107,7 +107,7 @@ function directionGlyph(d: MeasurementRow['direction']): string {
 <template>
   <section
     v-if="prior"
-    class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 font-mono"
+    class="card p-4 font-mono"
   >
     <header class="mb-3 flex items-baseline justify-between text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <span>vs session #{{ prior.sessionId }}</span>

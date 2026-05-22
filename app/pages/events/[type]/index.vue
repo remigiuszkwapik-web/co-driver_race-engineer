@@ -62,22 +62,21 @@ async function createEvent() {
 </script>
 
 <template>
-  <main class="mx-auto max-w-3xl px-6 py-10">
-    <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <NuxtLink
-        to="/events"
-        class="hover:text-zinc-300"
-      >
-        Events
-      </NuxtLink>
-      <span class="mx-2 text-zinc-700">/</span>
-      <span class="text-zinc-300">{{ EVENT_TYPE_LABELS[eventTypeKey] }}</span>
-    </div>
-    <h1 class="mb-8 font-mono text-3xl text-zinc-100">
-      {{ EVENT_TYPE_LABELS[eventTypeKey] }}
-    </h1>
+  <main class="container mx-auto max-w-6xl px-6 py-10">
+    <PageHeader :title="EVENT_TYPE_LABELS[eventTypeKey]">
+      <template #eyebrow>
+        <NuxtLink
+          to="/events"
+          class="hover:text-zinc-300"
+        >
+          Events
+        </NuxtLink>
+        <span class="text-zinc-700">/</span>
+        <span class="text-zinc-300">{{ EVENT_TYPE_LABELS[eventTypeKey] }}</span>
+      </template>
+    </PageHeader>
 
-    <section class="mb-8 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+    <section class="mb-8 card p-4">
       <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
         New event
       </div>
@@ -121,7 +120,7 @@ async function createEvent() {
     </ul>
     <div
       v-else
-      class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center font-mono text-sm text-zinc-500"
+      class="card-dashed p-8 text-center font-mono text-sm text-zinc-500"
     >
       No {{ EVENT_TYPE_LABELS[eventTypeKey].toLowerCase() }} events yet. Create one above.
     </div>
