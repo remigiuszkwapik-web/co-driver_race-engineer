@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { INPUT_TRACE_LINES, motorTraceLines } from '~/utils/trace-lines'
+import { INPUT_TRACE_LINES } from '~/utils/trace-lines'
 import { detectTrailBraking, trailBrakingBands } from '~/utils/trail-braking'
 
 const {
@@ -33,16 +33,7 @@ const dvrSeconds = computed<number | null>(() => {
   return Math.max(0, (last.t - at.t) / 1000)
 })
 
-// Motor strip's axis auto-scale — running max of torque/power across the
-// visible 30 s. Identity-stable: emits a new lines array only when the
-// running max actually shifts. Critical because the TraceStrip lines
-// watcher destroys+rebuilds the uPlot instance on identity change, so a
-// per-push churn here leaked DOM nodes and event listeners.
-const motorLines = shallowRef(motorTraceLines({ maxTorqueNm: 0, maxPowerKw: 0 }))
-let lastMaxTq = 0
-let lastMaxPw = 0
-
-// Reusable buffer for the trail-braking detector input — avoids ~1800
+// Reusable buffer for the trail-braking detector input — avoids ~600
 // object allocations per push at full buffer.
 const detectorBuf: Array<{ timestampMs: number, brake: number, steer: number }> = []
 
@@ -53,24 +44,6 @@ watch(() => {
   return h.length > 0 ? h[h.length - 1]!.t : -1
 }, () => {
   const h = history.value
-
-  // Running max for the motor axis. Epsilon absorbs FP jitter and tiny
-  // shifts that wouldn't visibly change the axis anyway.
-  let mTq = 0
-  let mPw = 0
-  for (let i = 0; i < h.length; i++) {
-    const s = h[i]!
-    if (s.torqueNm > mTq) mTq = s.torqueNm
-    if (s.powerKw > mPw) mPw = s.powerKw
-  }
-  if (Math.abs(mTq - lastMaxTq) > 1 || Math.abs(mPw - lastMaxPw) > 1) {
-    lastMaxTq = mTq
-    lastMaxPw = mPw
-    motorLines.value = motorTraceLines({ maxTorqueNm: mTq, maxPowerKw: mPw })
-  }
-
-  // Trail-braking bands. Reuses detectorBuf so we're not allocating 1800
-  // adapter objects every push.
   if (h.length < 2) {
     if (trailBrakingBandsLive.value.length > 0) trailBrakingBandsLive.value = []
     return
@@ -128,17 +101,6 @@ watch(() => {
         :buffer-length="history.length"
         :bands="trailBrakingBandsLive"
         @toggle-pause="onTogglePause"
-        @scrub="setScrub"
-      />
-      <TraceStrip
-        :history="history"
-        :lines="motorLines"
-        label="motor · last 10 s"
-        :paused="paused"
-        :scrubbable="true"
-        :scrub-index="scrubIndex"
-        :buffer-length="history.length"
-        :show-pause-button="false"
         @scrub="setScrub"
       />
     </section>
