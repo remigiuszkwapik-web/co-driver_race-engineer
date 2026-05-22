@@ -6,12 +6,18 @@ personal tuning instrument; **measurement-not-prescription**; player-centric
 language; build and tune as separate layers; the loop is tune-and-measure
 with `/tune/*` and `/upgrade/*` as the only prescriptive surfaces.
 
-Last refreshed 2026-05-21 (post-`/upgrade`, post-philosophy lock).
+Last refreshed 2026-05-22 (post-Compare).
 
 ---
 
 ## Recently shipped
 
+- **Before/After Compare** — commit `e6a2f05`. Auto-pairs current session
+  with the most recent prior on the same `(carId, eventId)`. Renders
+  measurement deltas (best lap, trail-brake ratio, peak power) and a
+  setup diff (build + tune) via `diffSetup` over the existing field
+  registries. The headline expression of the glass-box-measurement
+  angle; gated phase #6 (telemetry-grounded reference pages).
 - **Click-to-seek on the replay map** — commit `a5cb9b3`. Alt-click on the
   replay TrackMap jumps to the nearest frame by world (x, z) position.
   Adopted from the MoTeC/AiM pro-tool pattern.
@@ -51,16 +57,15 @@ The build/tune artifact track now heads toward a single headline surface:
    as Compare reveals gaps.
 4. ~~Session-summary descriptive panel~~ — **cut for now.** Sat on top of #3;
    reconsider if Compare reveals a real need.
-5. **Before/After Compare — HEADLINE, next up.** Auto-pair the current
-   session with the most recent prior session on the same car/event. Surface
-   tune diff (via `diffSetup`) + measurement diff (best lap, trail-brake
-   ratio, peak power). Add new measurements only when this surface asks for
-   them. *In progress — see uncommitted `SessionCompare.vue` /
-   `setup-diff.ts` / `compare.get.ts` in working tree.*
-6. **Telemetry-grounded `/tune/*` and `/upgrade/*` pages.** "Your data"
-   panel alongside the generic advice on each reference page — front-vs-rear
-   slip averages from the last 5 laps next to "stiffen rear ARB," PWR from
-   the actual car next to the engine-swap decision rule, etc.
+5. ~~Before/After Compare~~ — ✅ shipped (`e6a2f05`). Auto-pair on
+   `(carId, eventId)`, measurement deltas + setup diff. New measurements
+   get added when this surface reveals a gap, not speculatively.
+6. **Telemetry-grounded `/tune/*` and `/upgrade/*` pages — HEADLINE, next up.**
+   "Your data" panel alongside the generic advice on each reference page —
+   front-vs-rear slip averages from the last 5 laps next to "stiffen rear
+   ARB," PWR from the actual car next to the engine-swap decision rule, etc.
+   Reuses `diffSetup` to highlight which tune fields the current car/build
+   already sets vs. the reference recommendation.
 
 ---
 
