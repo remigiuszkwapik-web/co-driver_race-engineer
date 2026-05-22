@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
+    "build:node": "NITRO_PRESET=node-server nuxt build",
+    "start": "NITRO_PRESET=node-server nuxt build && node .output/server/index.mjs",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
