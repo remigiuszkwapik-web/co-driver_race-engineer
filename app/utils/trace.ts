@@ -21,8 +21,8 @@ export interface TraceSample {
   powerKw: number
 }
 
-/** 30 seconds @ 60 Hz of server fan-out. */
-export const TRACE_BUFFER_SIZE = 1800
+/** 10 seconds @ 60 Hz of server fan-out. */
+export const TRACE_BUFFER_SIZE = 600
 
 /**
  * Push a sample into a fixed-size history. Mutates the array in place — the

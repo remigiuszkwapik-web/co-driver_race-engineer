@@ -121,7 +121,7 @@ watch(() => {
       <TraceStrip
         :history="history"
         :lines="INPUT_TRACE_LINES"
-        label="traces · last 30 s"
+        label="traces · last 10 s"
         :paused="paused"
         :scrubbable="true"
         :scrub-index="scrubIndex"
@@ -133,7 +133,7 @@ watch(() => {
       <TraceStrip
         :history="history"
         :lines="motorLines"
-        label="motor · last 30 s"
+        label="motor · last 10 s"
         :paused="paused"
         :scrubbable="true"
         :scrub-index="scrubIndex"
