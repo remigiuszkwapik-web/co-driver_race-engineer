@@ -17,16 +17,8 @@ function carClassLetter(c: number): string {
   return CLASS_LETTERS[c] ?? '?'
 }
 
-function relativeDate(iso: string | null): string {
-  if (!iso) return 'never driven'
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const days = Math.round((now - then) / 86400000)
-  if (days < 1) return 'today'
-  if (days === 1) return 'yesterday'
-  if (days < 30) return `${days} days ago`
-  if (days < 365) return `${Math.round(days / 30)} months ago`
-  return `${Math.round(days / 365)} years ago`
+function lastDrivenLabel(iso: string | null): string {
+  return iso ? relativeDate(iso) : 'never driven'
 }
 </script>
 
@@ -77,7 +69,7 @@ function relativeDate(iso: string | null): string {
               Last used
             </div>
             <div class="text-zinc-200">
-              {{ relativeDate(car.lastUsedAt) }}
+              {{ lastDrivenLabel(car.lastUsedAt) }}
             </div>
           </div>
         </div>
