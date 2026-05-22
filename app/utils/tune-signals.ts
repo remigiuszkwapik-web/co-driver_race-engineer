@@ -276,6 +276,55 @@ export function summarizeGearing(frames: Telemetry[]): GearSummary {
   return { rpmByGear, atRevLimitPct: nearLimit / frames.length, shiftCount: shifts }
 }
 
+// --- engine power & torque -------------------------------------------------
+
+export interface PowerSummary {
+  /** Max power (kW) observed across all frames. */
+  peakPowerKw: number
+  /** Max torque (Nm) observed across all frames. */
+  peakTorqueNm: number
+  /** RPM at the frame that produced peak power. */
+  rpmAtPeakPower: number
+}
+
+export function summarizePower(frames: Telemetry[]): PowerSummary {
+  let peakPowerKw = 0
+  let peakTorqueNm = 0
+  let rpmAtPeakPower = 0
+  for (const f of frames) {
+    const pwKw = f.power / 1000
+    if (pwKw > peakPowerKw) {
+      peakPowerKw = pwKw
+      rpmAtPeakPower = f.rpm
+    }
+    if (f.torque > peakTorqueNm) peakTorqueNm = f.torque
+  }
+  return { peakPowerKw, peakTorqueNm, rpmAtPeakPower }
+}
+
+// --- boost (turbo / supercharger) ------------------------------------------
+
+export interface BoostSummary {
+  /** Max boost observed across all frames (Forza units — typically PSI). */
+  peakBoost: number
+  /** Mean boost while throttle > 0.5. Naturally-aspirated cars stay near 0. */
+  avgUnderThrottle: number
+}
+
+export function summarizeBoost(frames: Telemetry[]): BoostSummary {
+  let peak = 0
+  let sum = 0
+  let n = 0
+  for (const f of frames) {
+    if (f.boost > peak) peak = f.boost
+    if (f.throttle > 0.5) {
+      sum += f.boost
+      n++
+    }
+  }
+  return { peakBoost: peak, avgUnderThrottle: n > 0 ? sum / n : 0 }
+}
+
 // --- lateral G (general) ---------------------------------------------------
 
 export interface LateralGSummary {
@@ -313,6 +362,8 @@ export interface FrameAggregates {
   aero: AeroSummary
   gear: GearSummary
   lateralG: LateralGSummary
+  power: PowerSummary
+  boost: BoostSummary
   rumbleContactPct: number
 }
 
@@ -326,6 +377,8 @@ export function summarizeFrames(frames: Telemetry[]): FrameAggregates {
     aero: summarizeAero(frames),
     gear: summarizeGearing(frames),
     lateralG: summarizeLateralG(frames),
+    power: summarizePower(frames),
+    boost: summarizeBoost(frames),
     rumbleContactPct: rumbleContactPct(frames)
   }
 }

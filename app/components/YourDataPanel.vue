@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { TUNE_DATA_BINDINGS } from '~/utils/tune-data-bindings'
+import { UPGRADE_DATA_BINDINGS } from '~/utils/upgrade-data-bindings'
 
-const props = defineProps<{ slug: string }>()
+const props = withDefaults(defineProps<{ slug: string, side?: 'tune' | 'upgrade' }>(), {
+  side: 'tune'
+})
 
 const { data } = useTuneData()
 
-const binding = computed(() => TUNE_DATA_BINDINGS[props.slug] ?? null)
+const binding = computed(() => {
+  const registry = props.side === 'upgrade' ? UPGRADE_DATA_BINDINGS : TUNE_DATA_BINDINGS
+  return registry[props.slug] ?? null
+})
 
 const rows = computed(() => {
   if (!binding.value || !data.value) return null
@@ -24,7 +30,7 @@ const buildLabel = computed(() => data.value?.build?.name ?? null)
 <template>
   <section
     v-if="data && rows !== null && data.lapCount > 0"
-    class="mb-10 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 font-mono"
+    class="mb-10 card p-4 font-mono"
   >
     <header class="mb-3 flex items-baseline justify-between text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <span>Your data</span>
@@ -52,7 +58,7 @@ const buildLabel = computed(() => data.value?.build?.name ?? null)
 
   <section
     v-else-if="data && rows !== null && data.lapCount === 0"
-    class="mb-10 rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-4 font-mono text-xs text-zinc-500"
+    class="mb-10 card-dashed p-4 font-mono text-xs text-zinc-500"
   >
     No recent laps for this build — drive a session to populate this panel.
   </section>

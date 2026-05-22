@@ -42,7 +42,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
 </script>
 
 <template>
-  <main class="mx-auto max-w-3xl px-6 py-10">
+  <main class="container mx-auto max-w-6xl px-6 py-10">
     <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
       <NuxtLink
         to="/upgrade"
@@ -67,6 +67,11 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
       {{ cat.summary }}
     </p>
 
+    <YourDataPanel
+      :slug="slug"
+      side="upgrade"
+    />
+
     <section class="mb-10">
       <h2 class="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-zinc-400">
         What it does
@@ -89,7 +94,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
         <div
           v-for="opt in cat.options"
           :key="opt.name"
-          class="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4"
+          class="card p-4"
         >
           <div class="mb-1 flex items-baseline justify-between gap-3">
             <div class="font-mono text-sm text-zinc-100">
@@ -100,7 +105,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
             </div>
           </div>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div class="rounded-md border border-green-900/30 bg-green-950/10 p-2.5 text-sm">
+            <div class="card-good p-2.5 text-sm">
               <div class="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-green-400/70">
                 Best for
               </div>
@@ -108,7 +113,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
                 {{ opt.bestFor }}
               </div>
             </div>
-            <div class="rounded-md border border-amber-900/30 bg-amber-950/10 p-2.5 text-sm">
+            <div class="card-warn p-2.5 text-sm">
               <div class="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-amber-400/70">
                 Tradeoff
               </div>
@@ -184,7 +189,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
         <li
           v-for="(r, i) in cat.rules"
           :key="i"
-          class="flex gap-3 rounded-md border border-zinc-800/80 bg-zinc-900/30 px-3 py-2 text-sm"
+          class="flex gap-3 card-subtle px-3 py-2 text-sm"
         >
           <span class="font-mono text-xs text-zinc-600 tabular-nums">{{ i + 1 }}.</span>
           <span class="text-zinc-200">{{ r }}</span>
@@ -203,7 +208,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
         <div
           v-for="t in cat.traps"
           :key="t.trap"
-          class="rounded-lg border border-red-900/30 bg-red-950/10 p-4"
+          class="card-trap p-4"
         >
           <div class="mb-1 font-mono text-sm text-zinc-100">
             {{ t.trap }}
@@ -229,7 +234,7 @@ const efficiencyClass: Record<EfficiencyMark, string> = {
         <li
           v-for="s in relevantSmells"
           :key="s.smell"
-          class="rounded-md border border-zinc-800/80 bg-zinc-900/30 p-3"
+          class="card-subtle p-3"
         >
           <div class="font-mono text-sm text-zinc-200">
             {{ s.smell }}

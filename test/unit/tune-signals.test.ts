@@ -8,6 +8,8 @@ import {
   summarizeAero,
   summarizeGearing,
   summarizeLateralG,
+  summarizePower,
+  summarizeBoost,
   rumbleContactPct,
   summarizeFrames
 } from '../../app/utils/tune-signals'
@@ -187,6 +189,48 @@ describe('summarizeGearing', () => {
       frame({ gear: 2 })
     ]
     expect(summarizeGearing(frames).shiftCount).toBe(0)
+  })
+})
+
+describe('summarizePower', () => {
+  it('reports peak power in kW (raw frame is watts)', () => {
+    const frames = [
+      frame({ power: 200_000, torque: 300, rpm: 4000 }),
+      frame({ power: 600_000, torque: 700, rpm: 6500 }), // peak power
+      frame({ power: 400_000, torque: 500, rpm: 7500 })
+    ]
+    const s = summarizePower(frames)
+    expect(s.peakPowerKw).toBe(600)
+    expect(s.peakTorqueNm).toBe(700)
+    expect(s.rpmAtPeakPower).toBe(6500)
+  })
+
+  it('returns zeros on empty input', () => {
+    expect(summarizePower([])).toEqual({ peakPowerKw: 0, peakTorqueNm: 0, rpmAtPeakPower: 0 })
+  })
+})
+
+describe('summarizeBoost', () => {
+  it('returns peak across all frames and avg only under throttle > 0.5', () => {
+    const frames = [
+      frame({ throttle: 0.1, boost: 0.5 }), // not counted in avg
+      frame({ throttle: 0.8, boost: 1.0 }),
+      frame({ throttle: 0.8, boost: 2.0 }) // peak
+    ]
+    const s = summarizeBoost(frames)
+    expect(s.peakBoost).toBe(2.0)
+    expect(s.avgUnderThrottle).toBeCloseTo(1.5, 3)
+  })
+
+  it('avgUnderThrottle is 0 when no frame passes the throttle gate', () => {
+    expect(summarizeBoost([frame({ throttle: 0.1, boost: 0.5 })]).avgUnderThrottle).toBe(0)
+  })
+
+  it('handles naturally-aspirated (boost = 0) cleanly', () => {
+    const frames = Array.from({ length: 10 }, () => frame({ throttle: 0.9, boost: 0 }))
+    const s = summarizeBoost(frames)
+    expect(s.peakBoost).toBe(0)
+    expect(s.avgUnderThrottle).toBe(0)
   })
 })
 
