@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { telemetry, connected, hasReceivedFrame } = useTelemetry()
+const { telemetry, connected, forzaConnected, hasReceivedFrame } = useTelemetry()
 const { recording } = useRecording()
 
 const quickRecordOpen = ref(false)
@@ -80,6 +80,13 @@ const showQuickRecord = computed(() => recording.value.state !== 'recording')
               :class="connected ? 'bg-green-400' : 'bg-zinc-600'"
             />
             {{ connected ? 'WS LINKED' : 'WS OFFLINE' }}
+          </span>
+          <span class="flex items-center gap-2">
+            <span
+              class="inline-block h-2 w-2 rounded-full"
+              :class="!connected ? 'bg-zinc-600' : forzaConnected ? 'bg-green-400' : 'bg-amber-400 animate-pulse'"
+            />
+            {{ !connected ? 'FORZA —' : forzaConnected ? 'FORZA STREAMING' : 'FORZA NO TELEMETRY' }}
           </span>
           <span
             v-if="hasReceivedFrame && telemetry"

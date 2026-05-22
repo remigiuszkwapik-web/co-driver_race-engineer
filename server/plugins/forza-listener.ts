@@ -1,6 +1,11 @@
 import dgram from 'node:dgram'
 import { decodeCarDash } from '../utils/decode'
-import { forzaBus } from '../utils/forza-bus'
+import { forzaBus, getForzaStatus, setForzaStatus, bumpForzaLastPacket } from '../utils/forza-bus'
+
+// Connection watchdog: Forza UDP is connectionless, so "connected" means
+// "we received a packet in the last STALE_MS". This drives the UI badge.
+const STALE_MS = 1000
+const TICK_MS = 500
 
 // ECONNRESET on the WebSocket upgrade socket bubbles up as an
 // unhandledRejection when a browser tab is closed abruptly. It's harmless —
@@ -25,8 +30,20 @@ export default defineNitroPlugin(() => {
 
   const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true })
   let warnedShort = false
+  let firstPacketLogged = false
 
-  sock.on('message', (buf) => {
+  sock.on('message', (buf, rinfo) => {
+    const now = Date.now()
+    if (!firstPacketLogged) {
+      console.log(`[forza] first packet received: ${buf.length} bytes from ${rinfo.address}:${rinfo.port}`)
+      firstPacketLogged = true
+    }
+    if (!getForzaStatus().connected) {
+      setForzaStatus({ connected: true, lastPacketAt: now })
+    } else {
+      bumpForzaLastPacket(now)
+    }
+
     forzaBus.emit('debug', {
       length: buf.length,
       tailHex: buf.subarray(Math.max(0, buf.length - 8)).toString('hex')
@@ -50,5 +67,15 @@ export default defineNitroPlugin(() => {
   sock.bind(port, bind, () => {
     const addr = sock.address()
     console.log(`[forza] listening udp://${addr.address}:${addr.port} (Car Dash @ ~60 Hz)`)
+    console.log('[forza] waiting for first packet — set Forza Data Out to this host\'s LAN IP and port above')
   })
+
+  const watchdog = setInterval(() => {
+    const s = getForzaStatus()
+    const stale = s.lastPacketAt === null || (Date.now() - s.lastPacketAt) > STALE_MS
+    if (s.connected && stale) {
+      setForzaStatus({ connected: false, lastPacketAt: s.lastPacketAt })
+    }
+  }, TICK_MS)
+  watchdog.unref()
 })

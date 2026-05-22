@@ -1,4 +1,4 @@
-import { forzaBus, type DebugFrame, type RecordingState, type TunePrompt } from '../utils/forza-bus'
+import { forzaBus, getForzaStatus, type DebugFrame, type ForzaStatus, type RecordingState, type TunePrompt } from '../utils/forza-bus'
 import { recorder } from '../utils/recorder'
 import type { Telemetry } from '../utils/decode'
 
@@ -38,8 +38,9 @@ function parseInbound(raw: unknown): InboundMessage | null {
 export default defineWebSocketHandler({
   open(peer) {
     peer.send(JSON.stringify({ type: 'hello' }))
-    // Sync new clients to current recording state.
+    // Sync new clients to current recording + forza status.
     peer.send(JSON.stringify({ type: 'recording_state', ...recorder.getState() }))
+    peer.send(JSON.stringify({ type: 'forza_status', ...getForzaStatus() }))
 
     const safeSend = (payload: unknown) => {
       try {
@@ -52,17 +53,20 @@ export default defineWebSocketHandler({
     const onDebug = (d: DebugFrame) => safeSend({ type: 'debug', d })
     const onRecordingState = (s: RecordingState) => safeSend({ type: 'recording_state', ...s })
     const onTunePrompt = (p: TunePrompt) => safeSend({ type: 'tune_prompt', ...p })
+    const onForzaStatus = (s: ForzaStatus) => safeSend({ type: 'forza_status', ...s })
 
     forzaBus.on('telemetry', onTelemetry)
     forzaBus.on('debug', onDebug)
     forzaBus.on('recording_state', onRecordingState)
     forzaBus.on('tune_prompt', onTunePrompt)
+    forzaBus.on('forza_status', onForzaStatus)
 
     ;(peer as unknown as { _cleanup: () => void })._cleanup = () => {
       forzaBus.off('telemetry', onTelemetry)
       forzaBus.off('debug', onDebug)
       forzaBus.off('recording_state', onRecordingState)
       forzaBus.off('tune_prompt', onTunePrompt)
+      forzaBus.off('forza_status', onForzaStatus)
     }
   },
   async message(peer, message) {

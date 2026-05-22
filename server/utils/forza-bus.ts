@@ -24,14 +24,34 @@ export interface TunePrompt {
   currentPi: number
 }
 
+export interface ForzaStatus {
+  connected: boolean
+  lastPacketAt: number | null
+}
+
 interface ForzaEvents {
   telemetry: [Telemetry]
   debug: [DebugFrame]
   recording_state: [RecordingState]
   tune_prompt: [TunePrompt]
+  forza_status: [ForzaStatus]
 }
 
 class ForzaBus extends EventEmitter<ForzaEvents> {}
 
 export const forzaBus = new ForzaBus()
 forzaBus.setMaxListeners(50)
+
+let _status: ForzaStatus = { connected: false, lastPacketAt: null }
+export function getForzaStatus(): ForzaStatus {
+  return _status
+}
+// Updates lastPacketAt without emitting — used on every UDP packet (~60 Hz)
+// so we don't flood the bus. Transitions go through setForzaStatus.
+export function bumpForzaLastPacket(at: number): void {
+  _status = { ..._status, lastPacketAt: at }
+}
+export function setForzaStatus(next: ForzaStatus): void {
+  _status = next
+  forzaBus.emit('forza_status', next)
+}

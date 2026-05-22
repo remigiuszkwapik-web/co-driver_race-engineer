@@ -11,7 +11,7 @@ import { TRACE_BUFFER_SIZE, pushSample, type TraceSample } from '../utils/trace'
 type PauseSource = 'live' | 'user' | 'game'
 
 interface ServerMessage {
-  type: 'hello' | 'telemetry' | 'debug' | 'recording_state' | 'tune_prompt' | 'error'
+  type: 'hello' | 'telemetry' | 'debug' | 'recording_state' | 'tune_prompt' | 'forza_status' | 'error'
   t?: Telemetry
   d?: DebugFrame
   message?: string
@@ -24,12 +24,17 @@ interface ServerMessage {
   // tune_prompt fields
   previousPi?: number
   currentPi?: number
+  // forza_status fields
+  connected?: boolean
+  lastPacketAt?: number | null
 }
 
 const _state = {
   telemetry: ref<Telemetry | null>(null),
   debug: ref<DebugFrame | null>(null),
   connected: ref(false),
+  forzaConnected: ref(false),
+  forzaLastPacketAt: ref<number | null>(null),
   hasReceivedFrame: ref(false),
   history: ref<TraceSample[]>([]),
   framesBuffer: ref<Telemetry[]>([]),
@@ -55,6 +60,9 @@ function connect() {
   }
   ws.onclose = () => {
     _state.connected.value = false
+    // We've lost ground truth about Forza — show as disconnected until the
+    // server tells us otherwise on reconnect.
+    _state.forzaConnected.value = false
     _state.ws = null
     if (_state.refCount > 0) setTimeout(connect, 1000)
   }
@@ -137,6 +145,9 @@ function connect() {
         previousPi: msg.previousPi,
         currentPi: msg.currentPi
       }
+    } else if (msg.type === 'forza_status' && typeof msg.connected === 'boolean') {
+      _state.forzaConnected.value = msg.connected
+      _state.forzaLastPacketAt.value = msg.lastPacketAt ?? null
     } else if (msg.type === 'error' && msg.message) {
       _state.lastError.value = msg.message
     }
@@ -201,6 +212,8 @@ export function useTelemetry() {
     telemetry: _state.telemetry,
     debug: _state.debug,
     connected: _state.connected,
+    forzaConnected: _state.forzaConnected,
+    forzaLastPacketAt: _state.forzaLastPacketAt,
     hasReceivedFrame: _state.hasReceivedFrame,
     history: _state.history,
     framesBuffer: _state.framesBuffer,
