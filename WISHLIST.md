@@ -6,18 +6,27 @@ personal tuning instrument; **measurement-not-prescription**; player-centric
 language; build and tune as separate layers; the loop is tune-and-measure
 with `/tune/*` and `/upgrade/*` as the only prescriptive surfaces.
 
-Last refreshed 2026-05-22 (post-`/tune` "Your data" panels).
+Last refreshed 2026-05-22 (post-`/upgrade` "Your data" panels).
 
 ---
 
 ## Recently shipped
 
+- **`/upgrade/*` "Your data" panels (5 slugs)** — commit `674afb9`.
+  Bindings for the upgrade categories where telemetry genuinely
+  informs the decision: `tires`, `drivetrain-conversion`,
+  `engine-swap`, `aspiration`, `aero-body`. Five other upgrade slugs
+  (`brakes`, `suspension-class`, `drivetrain-parts`, `weight`, `rims`)
+  intentionally stay as static reference — either the build artifact
+  already answers them or the relevant signals belong on a `/tune`
+  page. Reuses `useTuneData` + `summarizeFrames`; added `summarizePower`
+  and `summarizeBoost` to the signal layer.
 - **`/tune/*` "Your data" panels** — commits `9fcaab5` (backend) +
   `941fef6` (frontend). Each `/tune/[slug]` page now shows a measurement
   panel above the static copy, populated from the last 5 laps on the
   most-recently-driven car + build (or `?car=&build=` override). 11
   bespoke per-slug bindings; drivetrain-aware for differential /
-  center-diff. Closes phase #6 for the tune side; `/upgrade/*` deferred.
+  center-diff.
 - **Before/After Compare** — commit `e6a2f05`. Auto-pairs current session
   with the most recent prior on the same `(carId, eventId)`. Renders
   measurement deltas (best lap, trail-brake ratio, peak power) and a
@@ -70,12 +79,11 @@ The build/tune artifact track now heads toward a single headline surface:
    `941fef6`). 11 per-slug bindings; drivetrain-aware. The "diff vs
    reference recommendation" subhint was deliberately dropped — pure
    measurements only, per the philosophy lock.
-7. **Telemetry-grounded `/upgrade/*` pages — next up.** Same pattern as
-   #6, applied to the upgrade-side reference pages — PWR next to the
-   engine-swap decision rule, tire-compound slip stats next to the
-   tire-upgrade options, top speed vs lateral G p95 next to the aero-body
-   tradeoff. 10 slugs to wire up; can reuse `useTuneData` and
-   `summarizeFrames` directly.
+7. ~~Telemetry-grounded `/upgrade/*` pages~~ — ✅ shipped (`674afb9`).
+   Scoped to 5 of 10 slugs after a philosophy check: only the upgrade
+   categories where telemetry actually informs the decision get a
+   binding. The other 5 either duplicate `/tune` bindings or have
+   nothing meaningful to surface from the Car Dash packet.
 
 ---
 
