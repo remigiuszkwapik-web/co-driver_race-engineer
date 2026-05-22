@@ -395,7 +395,7 @@ function signedFixed(v: number, digits: number): string {
       </div>
 
       <!-- Attitude + rotation readouts -->
-      <div class="grid flex-1 grid-cols-2 gap-x-4 gap-y-3 self-center text-sm">
+      <div class="flex flex-1 flex-col gap-3 self-center text-sm">
         <div class="flex items-center justify-between text-zinc-400">
           <NuxtLink
             to="/tune/anti-roll-bars"

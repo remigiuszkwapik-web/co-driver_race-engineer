@@ -51,12 +51,13 @@ const TRACE_H = VIEW_H - PAD_T - PAD_B
  * x-axis is fixed to TRACE_BUFFER_SIZE — short buffers (just-started) draw
  * a line that fills the right side, leaving the left empty.
  *
- * Computed once per (history, lines) change instead of per-render: binding
- * `:d="pathFor(line)"` directly in the template re-walks the 1800-sample
- * buffer on every Vue render at 60 Hz × N lines × M strips, which is the
- * dominant CPU cost on /live.
+ * Rebuilt on a throttled schedule (~30 Hz) rather than reactively on every
+ * push, because at full buffer × N lines × M strips this dominates /live's
+ * CPU at 60 Hz. 30 Hz is visually indistinguishable for thin SVG lines.
  */
-const linePaths = computed<string[]>(() => {
+const linePaths = shallowRef<string[]>(props.lines.map(() => ''))
+
+function buildLinePaths(): string[] {
   const h = props.history
   const lines = props.lines
   if (h.length < 2) return lines.map(() => '')
@@ -74,7 +75,16 @@ const linePaths = computed<string[]>(() => {
     }
     return parts.join(' ')
   })
-})
+}
+
+const refreshPaths = useThrottleFn(() => {
+  linePaths.value = buildLinePaths()
+}, 33, true)
+
+// Length changes cover both live appends and scrub-induced replay updates.
+// Lines reference changes when the parent swaps the line set.
+watch(() => props.history.length, refreshPaths, { immediate: true })
+watch(() => props.lines, refreshPaths)
 
 const latest = computed<TraceSample | null>(() => {
   return props.history.length > 0 ? props.history[props.history.length - 1] ?? null : null

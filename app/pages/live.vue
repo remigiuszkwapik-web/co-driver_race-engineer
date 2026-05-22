@@ -33,11 +33,21 @@ const dvrSeconds = computed<number | null>(() => {
   return Math.max(0, (last.t - at.t) / 1000)
 })
 
-// Window-max for torque/power so the motor strip auto-scales to whatever the
-// current engine is putting out across the visible 30 s. Recomputing on every
-// reactive change is cheap (we already walk `history` for the path draw).
-const motorLines = computed(() => {
+// Diagnostic overlays: trail-braking bands and motor-axis auto-scale. Both
+// walk the entire history buffer; computed-per-frame at 60 Hz × ~1800 samples
+// is what makes /live degrade as the buffer fills. The eye can't track them
+// faster than a few Hz anyway — throttle to 250 ms updates while still letting
+// every captured frame reach the recorder.
+const motorLines = shallowRef(motorTraceLines({ maxTorqueNm: 0, maxPowerKw: 0 }))
+const trailBrakingBandsLive = shallowRef<Array<{ startIdx: number, endIdx: number, color?: string }>>([])
+
+const recomputeOverlays = () => {
   const h = history.value
+  if (h.length < 2) {
+    trailBrakingBandsLive.value = []
+    motorLines.value = motorTraceLines({ maxTorqueNm: 0, maxPowerKw: 0 })
+    return
+  }
   let mTq = 0
   let mPw = 0
   for (let i = 0; i < h.length; i++) {
@@ -45,20 +55,19 @@ const motorLines = computed(() => {
     if (s.torqueNm > mTq) mTq = s.torqueNm
     if (s.powerKw > mPw) mPw = s.powerKw
   }
-  return motorTraceLines({ maxTorqueNm: mTq, maxPowerKw: mPw })
-})
+  motorLines.value = motorTraceLines({ maxTorqueNm: mTq, maxPowerKw: mPw })
 
-// Trail-braking bands: shade the brake-trace where the driver was braking
-// AND turning AND the brake was higher recently in the window. See
-// app/utils/trail-braking.ts and /tune/brakes for the why.
-const trailBrakingBandsLive = computed(() => {
-  const h = history.value
-  if (h.length < 2) return []
-  const flags = detectTrailBraking(
-    h.map(s => ({ timestampMs: s.t, brake: s.brake, steer: s.steer }))
-  )
-  return trailBrakingBands(flags)
-})
+  // Adapt TraceSample → DetectorFrame inline rather than via h.map (which
+  // would allocate ~1800 objects per call).
+  const detectorFrames = new Array<{ timestampMs: number, brake: number, steer: number }>(h.length)
+  for (let i = 0; i < h.length; i++) {
+    const s = h[i]!
+    detectorFrames[i] = { timestampMs: s.t, brake: s.brake, steer: s.steer }
+  }
+  trailBrakingBandsLive.value = trailBrakingBands(detectTrailBraking(detectorFrames))
+}
+
+useIntervalFn(recomputeOverlays, 250, { immediate: true })
 </script>
 
 <template>
