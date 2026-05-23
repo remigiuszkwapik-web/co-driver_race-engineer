@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { gearLabel } from '~/utils/tuning'
 
+const { unitLabel, prefs } = useUnits()
+
 const props = defineProps<{
   rpm: number
   rpmMax: number
@@ -22,6 +24,11 @@ const props = defineProps<{
   /** yaw rate, rad/s — sign matches steer direction */
   yawRate: number
 }>()
+
+const speedValue = computed(() => {
+  if (prefs.value.speed === 'mph') return Math.round(props.speedKmh * 0.621371)
+  return Math.round(props.speedKmh)
+})
 
 const rpmPct = computed(() => {
   if (props.rpmMax <= 0) return 0
@@ -111,10 +118,10 @@ function signedFixed(v: number, digits: number): string {
       </div>
       <div class="text-right">
         <div class="text-xs uppercase tracking-[0.2em] text-zinc-400">
-          KM/H
+          {{ unitLabel.speed }}
         </div>
         <div class="text-6xl leading-none font-light tabular-nums">
-          {{ Math.round(speedKmh) }}
+          {{ speedValue }}
         </div>
       </div>
     </div>

@@ -60,9 +60,19 @@ export interface MotorScales {
   maxPowerKw: number
 }
 
-export function motorTraceLines(scales: MotorScales): LineDef[] {
+/** Optional unit formatters so the motor-strip pills follow user prefs.
+ *  Falls back to Nm + kW when not supplied. Caller passes
+ *  `{ torque: format.torque, power: format.power }` from useUnits. */
+export interface MotorFormatters {
+  torque: (nm: number) => string
+  power: (kw: number) => string
+}
+
+export function motorTraceLines(scales: MotorScales, fmt?: MotorFormatters): LineDef[] {
   const tqCeil = Math.max(1, scales.maxTorqueNm) * 1.05
   const pwCeil = Math.max(1, scales.maxPowerKw) * 1.05
+  const fmtTorque = fmt?.torque ?? ((v: number) => Math.round(v) + ' Nm')
+  const fmtPower = fmt?.power ?? ((v: number) => Math.round(v) + ' kW')
   return [
     {
       key: 'rpm',
@@ -80,14 +90,14 @@ export function motorTraceLines(scales: MotorScales): LineDef[] {
       label: 'TQ',
       color: MOTOR_COLORS.torque,
       norm: v => 1 - clamp01(v / tqCeil),
-      fmt: v => Math.round(v) + ' Nm'
+      fmt: fmtTorque
     },
     {
       key: 'powerKw',
       label: 'PWR',
       color: MOTOR_COLORS.power,
       norm: v => 1 - clamp01(v / pwCeil),
-      fmt: v => Math.round(v) + ' kW'
+      fmt: fmtPower
     }
   ]
 }

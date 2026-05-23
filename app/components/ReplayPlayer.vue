@@ -6,6 +6,8 @@ import { binFrames } from '~/utils/dyno'
 import { pointsFromFrames } from '~/utils/track-map'
 import { detectTrailBraking, trailBrakingBands } from '~/utils/trail-braking'
 
+const { format } = useUnits()
+
 const props = defineProps<{
   frames: Telemetry[]
 }>()
@@ -112,7 +114,7 @@ const motorLines = computed(() => {
     if (s.torqueNm > mTq) mTq = s.torqueNm
     if (s.powerKw > mPw) mPw = s.powerKw
   }
-  return motorTraceLines({ maxTorqueNm: mTq, maxPowerKw: mPw })
+  return motorTraceLines({ maxTorqueNm: mTq, maxPowerKw: mPw }, { torque: format.torque, power: format.power })
 })
 
 // Dyno curve grows as the lap plays — bin the lap frames from start up to
