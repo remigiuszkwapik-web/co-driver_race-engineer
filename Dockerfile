@@ -21,9 +21,11 @@ COPY . .
 RUN NITRO_PRESET=node-server bun run build
 
 # Bun's bundler can drop transitive deps that resolve via conditional exports
-# at build time but are needed at runtime (e.g. ws via @libsql/isomorphic-ws's
-# node entrypoint). Backfill from the build stage's full node_modules.
-RUN cp -r node_modules/ws .output/server/node_modules/ws
+# (ws via @libsql/isomorphic-ws's node entrypoint) or dynamic require
+# (@libsql's platform-specific native binding). Backfill from the build
+# stage's full node_modules so the runtime can resolve them.
+RUN cp -r node_modules/ws .output/server/node_modules/ws \
+ && cp -r node_modules/@libsql/linux-* .output/server/node_modules/@libsql/
 
 # NuxtHub bakes the absolute project path into the bundle as a string
 # literal. Rewrite it to the stable in-container path the runtime uses.
