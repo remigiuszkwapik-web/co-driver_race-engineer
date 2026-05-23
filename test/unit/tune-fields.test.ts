@@ -67,13 +67,13 @@ describe('drivetrain gating', () => {
     expect(ids).not.toContain('centerBalance')
   })
 
-  it('AWD shows rear + center, hides front', () => {
+  it('AWD shows front + rear + center diff', () => {
     const ids = visibleTuneFields('awd').map(f => f.id)
+    expect(ids).toContain('frontAccel')
+    expect(ids).toContain('frontDecel')
     expect(ids).toContain('rearAccel')
     expect(ids).toContain('rearDecel')
     expect(ids).toContain('centerBalance')
-    expect(ids).not.toContain('frontAccel')
-    expect(ids).not.toContain('frontDecel')
   })
 
   it('unknown drivetrain hides all gated diff fields', () => {
@@ -106,6 +106,6 @@ describe('tuneFieldsBySection', () => {
   it('differential group reflects drivetrain', () => {
     expect(tuneFieldsBySection('fwd').differential?.length).toBe(2)
     expect(tuneFieldsBySection('rwd').differential?.length).toBe(2)
-    expect(tuneFieldsBySection('awd').differential?.length).toBe(3)
+    expect(tuneFieldsBySection('awd').differential?.length).toBe(5)
   })
 })

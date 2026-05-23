@@ -108,8 +108,8 @@ export const TUNE_FIELDS: readonly TuneField[] = [
   { id: 'tirePressureRear', label: 'Rear pressure', section: 'tirePressure', kind: 'number', unitCategory: 'pressure', tuneRef: 'tire-pressure' },
 
   // Differential (%) — drivetrain-gated
-  { id: 'frontAccel', label: 'Front accel', section: 'differential', kind: 'number', unit: '%', requiresDrivetrain: 'fwd', tuneRef: 'differential' },
-  { id: 'frontDecel', label: 'Front decel', section: 'differential', kind: 'number', unit: '%', requiresDrivetrain: 'fwd', tuneRef: 'differential' },
+  { id: 'frontAccel', label: 'Front accel', section: 'differential', kind: 'number', unit: '%', requiresDrivetrain: ['fwd', 'awd'], tuneRef: 'differential' },
+  { id: 'frontDecel', label: 'Front decel', section: 'differential', kind: 'number', unit: '%', requiresDrivetrain: ['fwd', 'awd'], tuneRef: 'differential' },
   { id: 'rearAccel', label: 'Rear accel', section: 'differential', kind: 'number', unit: '%', requiresDrivetrain: ['rwd', 'awd'], tuneRef: 'differential' },
   { id: 'rearDecel', label: 'Rear decel', section: 'differential', kind: 'number', unit: '%', requiresDrivetrain: ['rwd', 'awd'], tuneRef: 'differential' },
   { id: 'centerBalance', label: 'Center balance', section: 'differential', kind: 'number', unit: '% rear', requiresDrivetrain: 'awd', tuneRef: 'center-diff' },
