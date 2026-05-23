@@ -24,7 +24,9 @@ const unitFmt = {
   pressure: format.pressure,
   springRate: format.springRate,
   distanceShort: format.distanceShort,
-  downforce: format.downforce
+  downforce: format.downforce,
+  powerHp: format.powerHp,
+  mass: format.mass
 }
 
 const sectionGroups = computed(() => tuneFieldsBySection(props.drivetrain))

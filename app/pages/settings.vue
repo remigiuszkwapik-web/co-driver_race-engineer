@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UnitPrefs } from '~/composables/useUnits'
 
-useHead({ title: 'Settings · forza-data' })
+useHead({ title: 'Settings · co-driver' })
 
 const { prefs, applyPreset } = useUnits()
 
@@ -76,6 +76,14 @@ const CATEGORIES: Category[] = [
     options: [
       { value: 'nm', label: 'Nm' },
       { value: 'lbft', label: 'lb-ft' }
+    ]
+  },
+  {
+    key: 'mass',
+    label: 'Mass / weight',
+    options: [
+      { value: 'kg', label: 'kg' },
+      { value: 'lb', label: 'lb' }
     ]
   }
 ]

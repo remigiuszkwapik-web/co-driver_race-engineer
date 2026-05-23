@@ -10,6 +10,16 @@ const emit = defineEmits<{
   edit: []
 }>()
 
+const { format } = useUnits()
+const unitFmt = {
+  pressure: format.pressure,
+  springRate: format.springRate,
+  distanceShort: format.distanceShort,
+  downforce: format.downforce,
+  powerHp: format.powerHp,
+  mass: format.mass
+}
+
 interface Row {
   id: string
   label: string
@@ -20,7 +30,7 @@ const rows = computed<Row[]>(() => {
   return BUILD_FIELDS.map(f => ({
     id: f.id,
     label: f.label,
-    value: formatFieldValue(f, props.build[f.id as keyof BuildSettings] ?? null)
+    value: formatFieldValue(f, props.build[f.id as keyof BuildSettings] ?? null, unitFmt)
   }))
 })
 </script>

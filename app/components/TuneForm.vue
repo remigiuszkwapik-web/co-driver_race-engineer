@@ -41,7 +41,9 @@ function placeholderFor(field: SetupField): string {
       pressure: unitLabel.pressure,
       springRate: unitLabel.springRate,
       distanceShortIn: unitLabel.distanceShort,
-      downforce: unitLabel.downforce
+      downforce: unitLabel.downforce,
+      powerHp: unitLabel.power,
+      mass: unitLabel.mass
     }
     return map[field.unitCategory]
   }

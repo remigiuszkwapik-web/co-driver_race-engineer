@@ -14,7 +14,7 @@ export type FieldKind = 'number' | 'enum' | 'text'
  *  preferences (see app/composables/useUnits.ts). When set, the form/display
  *  layer reads `unitLabel[unitCategory]` for the suffix and round-trips
  *  values through `toDisplay`/`fromDisplay` of the same name. */
-export type UnitCategory = 'pressure' | 'springRate' | 'distanceShortIn' | 'downforce'
+export type UnitCategory = 'pressure' | 'springRate' | 'distanceShortIn' | 'downforce' | 'powerHp' | 'mass'
 
 /**
  * How a field's default value gets pre-filled when the form opens.
@@ -58,7 +58,7 @@ export const BUILD_FIELDS: readonly SetupField[] = [
     label: 'Power',
     section: 'engine',
     kind: 'number',
-    unit: ' HP',
+    unitCategory: 'powerHp',
     auto: 'dyno_peak_power'
   },
   {
@@ -66,7 +66,7 @@ export const BUILD_FIELDS: readonly SetupField[] = [
     label: 'Weight',
     section: 'chassis',
     kind: 'number',
-    unit: ' kg'
+    unitCategory: 'mass'
   },
   {
     id: 'weightFrontPct',
@@ -189,6 +189,8 @@ export function formatFieldValue(
     /** distanceShort takes meters — see useUnits.format.distanceShort */
     distanceShort: (meters: number) => string
     downforce: (lb: number) => string
+    powerHp: (hp: number) => string
+    mass: (kg: number) => string
   }
 ): string {
   if (value === null || value === undefined || value === '') return '—'
@@ -213,6 +215,8 @@ export function formatFieldValue(
         case 'springRate': return unitFmt.springRate(n)
         case 'distanceShortIn': return unitFmt.distanceShort(n * 0.0254) // in → m
         case 'downforce': return unitFmt.downforce(n)
+        case 'powerHp': return unitFmt.powerHp(n)
+        case 'mass': return unitFmt.mass(n)
       }
     }
     const rounded = Number.isInteger(n) ? n.toString() : n.toFixed(1)

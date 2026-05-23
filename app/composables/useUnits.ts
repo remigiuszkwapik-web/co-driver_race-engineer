@@ -18,6 +18,7 @@ interface UnitPrefs {
   downforce: 'lb' | 'kgf'
   power: 'hp' | 'kw' | 'ps'
   torque: 'lbft' | 'nm'
+  mass: 'kg' | 'lb'
 }
 
 export const DEFAULT_UNIT_PREFS: UnitPrefs = {
@@ -28,7 +29,8 @@ export const DEFAULT_UNIT_PREFS: UnitPrefs = {
   springRate: 'lbin',
   downforce: 'lb',
   power: 'kw',
-  torque: 'nm'
+  torque: 'nm',
+  mass: 'kg'
 }
 
 const METRIC_PRESET: UnitPrefs = {
@@ -39,7 +41,8 @@ const METRIC_PRESET: UnitPrefs = {
   springRate: 'kgmm',
   downforce: 'kgf',
   power: 'kw',
-  torque: 'nm'
+  torque: 'nm',
+  mass: 'kg'
 }
 
 const IMPERIAL_PRESET: UnitPrefs = {
@@ -50,7 +53,8 @@ const IMPERIAL_PRESET: UnitPrefs = {
   springRate: 'lbin',
   downforce: 'lb',
   power: 'hp',
-  torque: 'lbft'
+  torque: 'lbft',
+  mass: 'lb'
 }
 
 // Conversion constants — locked here so no library dep is needed.
@@ -63,7 +67,9 @@ const LBIN_TO_KGMM = 0.0178579
 const LB_TO_KGF = 0.453592
 const KW_TO_HP = 1.34102
 const KW_TO_PS = 1.35962
+const HP_TO_PS = 1.01387
 const NM_TO_LBFT = 0.737562
+const KG_TO_LB = 2.20462
 
 function cToF(c: number): number {
   return c * 9 / 5 + 32
@@ -79,7 +85,7 @@ function smartDecimals(n: number, base = 1): number {
 }
 
 export function useUnits() {
-  const prefs = useLocalStorage<UnitPrefs>('forza-data:units', DEFAULT_UNIT_PREFS, {
+  const prefs = useLocalStorage<UnitPrefs>('co-driver:units', DEFAULT_UNIT_PREFS, {
     mergeDefaults: true
   })
 
@@ -102,7 +108,8 @@ export function useUnits() {
       if (prefs.value.power === 'ps') return 'PS'
       return 'kW'
     }),
-    torque: computed(() => prefs.value.torque === 'lbft' ? 'lb-ft' : 'Nm')
+    torque: computed(() => prefs.value.torque === 'lbft' ? 'lb-ft' : 'Nm'),
+    mass: computed(() => prefs.value.mass === 'lb' ? 'lb' : 'kg')
   })
 
   // --- display formatters (string with suffix) ---------------------------
@@ -165,9 +172,19 @@ export function useUnits() {
       if (prefs.value.power === 'ps') return `${Math.round(kw * KW_TO_PS)} PS`
       return `${Math.round(kw)} kW`
     },
+    /** Same as `power` but the input is in HP (canonical for build form). */
+    powerHp(hp: number): string {
+      if (prefs.value.power === 'kw') return `${Math.round(hp / KW_TO_HP)} kW`
+      if (prefs.value.power === 'ps') return `${Math.round(hp * HP_TO_PS)} PS`
+      return `${Math.round(hp)} hp`
+    },
     torque(nm: number): string {
       if (prefs.value.torque === 'lbft') return `${Math.round(nm * NM_TO_LBFT)} lb-ft`
       return `${Math.round(nm)} Nm`
+    },
+    mass(kg: number): string {
+      if (prefs.value.mass === 'lb') return `${Math.round(kg * KG_TO_LB)} lb`
+      return `${Math.round(kg)} kg`
     }
   }
 
@@ -194,6 +211,17 @@ export function useUnits() {
     downforce(lb: number): number {
       if (prefs.value.downforce === 'kgf') return Math.round(lb * LB_TO_KGF)
       return lb
+    },
+    /** Build form canonical = HP. Returns the input value in the display unit. */
+    powerHp(hp: number): number {
+      if (prefs.value.power === 'kw') return Math.round(hp / KW_TO_HP)
+      if (prefs.value.power === 'ps') return Math.round(hp * HP_TO_PS)
+      return Math.round(hp)
+    },
+    /** Build form canonical = kg. */
+    mass(kg: number): number {
+      if (prefs.value.mass === 'lb') return Math.round(kg * KG_TO_LB)
+      return Math.round(kg)
     }
   }
 
@@ -215,6 +243,15 @@ export function useUnits() {
     downforce(v: number): number {
       if (prefs.value.downforce === 'kgf') return Math.round(v / LB_TO_KGF)
       return v
+    },
+    powerHp(v: number): number {
+      if (prefs.value.power === 'kw') return Math.round(v * KW_TO_HP)
+      if (prefs.value.power === 'ps') return Math.round(v / HP_TO_PS)
+      return Math.round(v)
+    },
+    mass(v: number): number {
+      if (prefs.value.mass === 'lb') return Math.round(v / KG_TO_LB)
+      return Math.round(v)
     }
   }
 
