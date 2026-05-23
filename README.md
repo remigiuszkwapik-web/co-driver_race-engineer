@@ -24,13 +24,30 @@ Self-hosted telemetry and tuning tool for **Forza Horizon 6**. Listens for the g
 
 ## Install
 
+### Docker Hub (recommended)
+
+Pull the prebuilt image. No clone, no toolchain.
+
+```bash
+docker run -d --name co-driver \
+  -p 3000:3000 \
+  -p 5300:5300/udp \
+  -v co-driver:/app/data \
+  --restart unless-stopped \
+  obedbj/co-driver:latest
+```
+
+Open <http://localhost:3000>. You'll see "WAITING FOR TELEMETRY" until Forza starts sending. Migrations run automatically on first start; session/lap data lives in the named volume (`co-driver`) and survives container rebuilds.
+
+Multi-arch — `linux/amd64` and `linux/arm64` both supported. Docker Hub serves the right manifest automatically.
+
+### Build it yourself
+
 ```bash
 git clone https://github.com/Ojansen/co-driver.git
 cd co-driver
 docker compose up -d --build
 ```
-
-Open <http://localhost:3000>. You'll see "WAITING FOR TELEMETRY" until Forza starts sending. Migrations run automatically on first start; session/lap data lives in the named volume (`co-driver`) and survives container rebuilds.
 
 The Dockerfile is multi-stage: it installs and builds inside the container, so no host toolchain beyond Docker is required.
 
@@ -105,6 +122,16 @@ A starter `.env.example` is included; copy to `.env` to override defaults outsid
 | `bun test:e2e` | Playwright E2E |
 
 Package manager is **bun**. Do not use npm, yarn, or pnpm.
+
+### Publishing your own image
+
+Forks can push to their own Docker Hub repo with one command:
+
+```bash
+make publish DOCKER_IMAGE=you/co-driver
+```
+
+The Makefile handles the buildx builder + QEMU emulator setup on first run, then does a multi-arch (`linux/amd64`, `linux/arm64`) build and push. `DOCKER_TAG` defaults to `latest`.
 
 ## Status
 
