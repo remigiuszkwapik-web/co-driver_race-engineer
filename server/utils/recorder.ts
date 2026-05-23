@@ -8,9 +8,8 @@
  * Live-data gating: frames where `isRaceOn === false` are never buffered.
  * The bit reads "the game's feeding live data right now", not "an event is
  * running" — so this filters loading screens, countdowns, the pause menu
- * and the post-finish UI uniformly. For point-to-point event types (touge /
- * rally / drag / cross-country / freeroam) the buffer is additionally
- * CLEARED on `isRaceOn=false` *only while no real run has started yet* — so
+ * and the post-finish UI uniformly. The buffer is additionally CLEARED on
+ * `isRaceOn=false` *only while no real run has started yet* — so
  * driving-to-the-event-entrance frames get dropped at the loading screen,
  * but a completed run survives the finish-line UI flipping the bit off.
  *
@@ -19,9 +18,18 @@
  * later transition is a fully-captured lap; gzip the frame buffer and
  * insert a `laps` row with time_ms = LastLap from the new packet.
  *
- * stop() discards the in-progress buffer (partial lap), finalizes the
- * session, and emits a `tune_prompt` if PI shifted vs the car's previous
- * session.
+ * Point-to-point fallback: when stop() fires with zero completed laps but
+ * a non-trivial buffer, the whole Start→Stop window is flushed as one
+ * "lap" with time_ms = last.timestampMs − first.timestampMs. Applies to
+ * every event type — FH6 has point-to-point routes under the race /
+ * street_race classes too (issue #5), and there's no reliable way to tell
+ * them apart from multi-lap races by event.type alone. Runtime detection
+ * (did LapNumber ever tick?) is the discriminant. Multi-lap races still
+ * land on the LapNumber-transition path; the fallback only fires when
+ * lapsCompleted === 0.
+ *
+ * stop() finalizes the session and emits a `tune_prompt` if PI shifted vs
+ * the car's previous session.
  */
 
 import { gzipSync } from 'node:zlib'
@@ -31,19 +39,10 @@ import type { EventType } from './../db/schema'
 import type { Telemetry } from './decode'
 import { forzaBus, type RecordingState, type TunePrompt } from './forza-bus'
 
-/**
- * Event types where FH6 doesn't tick `LapNumber` during the run (point-to-point
- * or unbounded). For these, when the user clicks Stop without LapNumber ever
- * advancing, the whole Start→Stop window is flushed as one "lap" so the
- * session isn't empty. Documented in DESIGN.md §8.7.
- */
-const POINT_TO_POINT_TYPES = new Set<EventType>([
-  'touge',
-  'rally',
-  'cross_country',
-  'drag',
-  'freeroam'
-])
+/** Buffer length (frames at 60 Hz) past which we treat the run as "started"
+ *  for the purposes of preserving the buffer across an isRaceOn=false
+ *  transition. 120 ≈ 2 s. Either this OR a LapNumber tick flips the guard. */
+const RUN_STARTED_MIN_FRAMES = 120
 
 interface RecordingContext {
   sessionId: number
@@ -63,7 +62,7 @@ interface RecordingContext {
   lapsCompleted: number
 }
 
-class Recorder {
+export class Recorder {
   private latestFrame: Telemetry | null = null
   private ctx: RecordingContext | null = null
 
@@ -153,15 +152,13 @@ class Recorder {
     const ctx = this.ctx
     this.ctx = null
 
-    // Point-to-point fallback (§8.7): FH6 doesn't tick LapNumber on touge /
-    // rally / drag / cross-country / freeroam runs, so a stop without any
-    // LapNumber advance means the whole window is the run. Flush the buffer
-    // as a single lap rather than discarding everything.
-    if (
-      ctx.lapsCompleted === 0
-      && ctx.buffer.length >= 2
-      && POINT_TO_POINT_TYPES.has(ctx.eventType)
-    ) {
+    // Point-to-point fallback (§8.7, issue #5): if LapNumber never ticked
+    // during the recording, treat the whole Start→Stop window as one "lap".
+    // Applies to every event type — FH6 has point-to-point routes under the
+    // race / street_race classes too, and event.type alone can't tell us
+    // whether a given session was multi-lap or point-to-point. Runtime
+    // detection (did LapNumber ever tick?) is the only reliable signal.
+    if (ctx.lapsCompleted === 0 && ctx.buffer.length >= 2) {
       const first = ctx.buffer[0]!
       const last = ctx.buffer[ctx.buffer.length - 1]!
       const timeMs = Math.max(1, last.timestampMs - first.timestampMs)
@@ -202,19 +199,15 @@ class Recorder {
     // memory: project_is_race_on_semantic), so we can't infer "the race is
     // over, dump the buffer" just from it going false.
     if (!t.isRaceOn) {
-      // Point-to-point: the buffer == the run, and frames queued before the
-      // actual run starts (driving to the event entrance, sitting in the
-      // lobby) are pre-event garbage worth dropping. But the SAME signal
-      // fires at the *end* of the run when the finish UI appears — clearing
-      // there would discard the whole captured run. Only clear if we
-      // haven't yet accumulated meaningful run data.
-      const RUN_STARTED_MIN_FRAMES = 120 // ~2 s at 60 Hz
+      // Pre-event garbage (driving to the event entrance, sitting in the
+      // lobby) is worth dropping the moment the game shows a loading
+      // screen. But the SAME `isRaceOn=false` signal fires at the *end* of
+      // the run when the finish UI appears — clearing there would discard
+      // the whole captured run. Only clear if no run-started signal has
+      // fired yet (no LapNumber tick AND less than ~2 s of frames). After
+      // that, !isRaceOn just pauses buffering. Applies to every event type.
       const runStarted = ctx.lapInProgressFromStart || ctx.buffer.length >= RUN_STARTED_MIN_FRAMES
-      if (
-        POINT_TO_POINT_TYPES.has(ctx.eventType)
-        && ctx.buffer.length > 0
-        && !runStarted
-      ) {
+      if (ctx.buffer.length > 0 && !runStarted) {
         ctx.buffer = []
         ctx.lapInProgressFromStart = false
       }
