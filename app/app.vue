@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useHead({
-  title: 'forza-data',
+  title: 'co-driver',
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
   ],

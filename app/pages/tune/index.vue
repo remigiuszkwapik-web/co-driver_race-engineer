@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TUNE_CATEGORIES, DIAGNOSES } from '~/utils/tuning-reference'
 
-useHead({ title: 'Tuning reference · forza-data' })
+useHead({ title: 'Tuning reference · co-driver' })
 
 const PHASE_LABEL: Record<typeof DIAGNOSES[number]['phase'], string> = {
   entry: 'Entry',

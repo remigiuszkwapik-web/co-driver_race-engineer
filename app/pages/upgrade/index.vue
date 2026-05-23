@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { UPGRADE_CATEGORIES, MUST_DO_RULES, BUILD_SMELLS } from '~/utils/upgrade-reference'
 
-useHead({ title: 'Upgrade reference · forza-data' })
+useHead({ title: 'Upgrade reference · co-driver' })
 
 const topSmells = BUILD_SMELLS.slice(0, 5)
 </script>

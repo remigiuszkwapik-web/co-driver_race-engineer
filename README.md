@@ -1,4 +1,4 @@
-# forza-data
+# co-driver
 
 Self-hosted telemetry and tuning tool for **Forza Horizon 6**. Listens for the game's UDP "Data Out" packets on your own machine and turns them into a per-corner instrument, a lap recorder, and a tune-aware workflow. No accounts, no cloud, no third-party telemetry.
 
@@ -24,36 +24,41 @@ Self-hosted telemetry and tuning tool for **Forza Horizon 6**. Listens for the g
 
 ## Install
 
-### Option A — Docker (recommended)
+### Option A — Docker Hub (recommended for users)
 
-You build the Nuxt bundle on your host, then ship it into a thin Node container.
+Pull the prebuilt image. No clone, no build toolchain.
 
 ```bash
-git clone https://github.com/<you>/forza-data.git
-cd forza-data
+docker run -d --name co-driver \
+  -p 3000:3000 \
+  -p 5300:5300/udp \
+  -v co-driver:/app/data \
+  --restart unless-stopped \
+  <dockerhub-user>/co-driver:latest
+```
 
-# 1. Build the Nuxt bundle (host needs bun)
-bun install
-bun run build:node
+Open <http://localhost:3000>. You'll see "WAITING FOR TELEMETRY" until Forza starts sending. Migrations run automatically on first start; session/lap data lives in the named volume (`co-driver`) and survives container rebuilds.
 
-# 2. Build + run the container
+Images are published for `linux/amd64` and `linux/arm64`.
+
+### Option B — Build it yourself
+
+```bash
+git clone https://github.com/Ojansen/co-driver.git
+cd co-driver
 docker compose up -d --build
 ```
 
-Open <http://localhost:3000> and you'll see the "WAITING FOR TELEMETRY" screen until Forza starts sending.
+The Dockerfile is multi-stage: it installs and builds inside the container, so no host toolchain beyond Docker is required.
 
-Database migrations run automatically on container start. Session/lap data lives in a named volume (`forza-data`) and survives rebuilds.
-
-To rebuild after pulling new code: re-run `bun run build:node && docker compose up -d --build`.
-
-### Option B — Bare Node / Bun
+### Option C — Dev mode (contributors)
 
 ```bash
-git clone https://github.com/<you>/forza-data.git
-cd forza-data
+git clone https://github.com/Ojansen/co-driver.git
+cd co-driver
 bun install
-bun run dev          # development with HMR
-# or
+bun run dev          # HMR
+# or production-style on bare metal
 bun run build:node && node .output/server/index.mjs
 ```
 
@@ -66,7 +71,7 @@ In the game:
 | Setting | Value |
 |---|---|
 | Data Out | **On** |
-| Data Out IP | LAN IP of the machine running forza-data (or `127.0.0.1` if same PC) |
+| Data Out IP | LAN IP of the machine running co-driver (or `127.0.0.1` if same PC) |
 | Data Out Port | `5300` (or whatever you set `FORZA_PORT` to) |
 | Data Out Packet Format | **Car Dash** |
 
@@ -120,6 +125,25 @@ A starter `.env.example` is included; copy to `.env` to override defaults outsid
 | `bun test:e2e` | Playwright E2E |
 
 Package manager is **bun**. Do not use npm, yarn, or pnpm.
+
+## Publishing a new image to Docker Hub
+
+Manual flow — no CI yet.
+
+```bash
+# One-time setup
+docker login                                  # use a Docker Hub access token
+docker buildx create --name forza-builder --use
+docker buildx inspect --bootstrap
+
+# Each release
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t <dockerhub-user>/co-driver:latest \
+  --push .
+```
+
+The build runs inside the container per architecture, so the libsql native bindings match each target. Expect 3–6 minutes on first run (longer for the arm64 leg under QEMU emulation).
 
 ## Status
 

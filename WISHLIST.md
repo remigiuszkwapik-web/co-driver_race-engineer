@@ -1,7 +1,7 @@
 # Wishlist
 
 Ideas worth building. **Not a roadmap** — none of these are commitments.
-Filtered through the locked tool philosophy (2026-05-21): forza-data is a
+Filtered through the locked tool philosophy (2026-05-21): co-driver is a
 personal tuning instrument; **measurement-not-prescription**; player-centric
 language; build and tune as separate layers; the loop is tune-and-measure
 with `/tune/*` and `/upgrade/*` as the only prescriptive surfaces.

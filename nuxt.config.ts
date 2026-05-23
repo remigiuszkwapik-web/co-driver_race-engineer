@@ -34,7 +34,12 @@ export default defineNuxtConfig({
   },
 
   hub: {
-    db: 'sqlite'
+    // The docker image runs docker/migrate.mjs on startup; build-time migration
+    // is redundant and trips up clean-room builds (e.g. multi-stage Docker).
+    db: {
+      dialect: 'sqlite',
+      applyMigrationsDuringBuild: false
+    }
   },
 
   vite: {

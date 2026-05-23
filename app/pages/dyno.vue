@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { emptyDynoState, ingestFrame, snapshot, type DynoState } from '~/utils/dyno'
 
-useHead({ title: 'Dyno · forza-data' })
+useHead({ title: 'Dyno · co-driver' })
 
 const { telemetry, hasReceivedFrame, connected } = useTelemetry()
 

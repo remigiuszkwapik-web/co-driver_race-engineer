@@ -1,8 +1,8 @@
 services:
-  forza-data:
+  co-driver:
     build: .
-    image: forza-data
-    container_name: forza-data
+    image: ${CO_DRIVER_IMAGE:-co-driver:latest}
+    container_name: co-driver
     restart: unless-stopped
     ports:
       - "3000:3000"      # Web UI
@@ -13,7 +13,7 @@ services:
       NITRO_PORT: 3000
       NITRO_HOST: 0.0.0.0
     volumes:
-      - forza-data:/app/data
+      - co-driver:/app/data
 
 volumes:
-  forza-data:
+  co-driver:

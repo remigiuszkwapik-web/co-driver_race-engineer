@@ -69,7 +69,7 @@ const recDuration = computed<string>(() => {
 
 // Update the tab title so it's obvious even when this tab isn't focused.
 useHead({
-  title: () => isRecording.value ? `● REC ${recDuration.value} · forza-data` : 'forza-data'
+  title: () => isRecording.value ? `● REC ${recDuration.value} · co-driver` : 'co-driver'
 })
 </script>
 
@@ -133,7 +133,7 @@ useHead({
             to="/live"
             class="text-zinc-100 transition-colors hover:text-zinc-50"
           >
-            forza-data
+            co-driver
           </NuxtLink>
           <nav class="flex items-center gap-1">
             <NuxtLink

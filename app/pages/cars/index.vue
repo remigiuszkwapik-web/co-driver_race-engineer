@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useHead({ title: 'Garage · forza-data' })
+useHead({ title: 'Garage · co-driver' })
 
 interface CarRow {
   ordinal: number
