@@ -42,8 +42,6 @@ WORKDIR /app
 COPY --from=build /src/.output ./
 COPY docker/migrate.mjs /app/server/migrate.mjs
 
-RUN mkdir -p /app/data/db
-
 ENV NODE_ENV=production \
     NITRO_PORT=3000 \
     NITRO_HOST=0.0.0.0 \
@@ -53,4 +51,7 @@ ENV NODE_ENV=production \
 EXPOSE 3000
 EXPOSE 5300/udp
 
-CMD ["sh", "-c", "node /app/server/migrate.mjs && exec node /app/server/index.mjs"]
+# /app/data/db is created at runtime — a build-time mkdir gets shadowed by
+# any bind-mount or named volume on /app/data, leaving libsql with no
+# parent dir to open. Doing it in CMD survives every mount strategy.
+CMD ["sh", "-c", "mkdir -p /app/data/db && node /app/server/migrate.mjs && exec node /app/server/index.mjs"]
