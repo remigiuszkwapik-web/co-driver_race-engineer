@@ -19,6 +19,8 @@ interface UnitPrefs {
   power: 'hp' | 'kw' | 'ps'
   torque: 'lbft' | 'nm'
   mass: 'kg' | 'lb'
+  /** Engine boost. Separate from `pressure` (tires) — different conventions. */
+  boost: 'bar' | 'psi' | 'atm'
 }
 
 export const DEFAULT_UNIT_PREFS: UnitPrefs = {
@@ -30,7 +32,8 @@ export const DEFAULT_UNIT_PREFS: UnitPrefs = {
   downforce: 'lb',
   power: 'kw',
   torque: 'nm',
-  mass: 'kg'
+  mass: 'kg',
+  boost: 'bar'
 }
 
 const METRIC_PRESET: UnitPrefs = {
@@ -42,7 +45,8 @@ const METRIC_PRESET: UnitPrefs = {
   downforce: 'kgf',
   power: 'kw',
   torque: 'nm',
-  mass: 'kg'
+  mass: 'kg',
+  boost: 'bar'
 }
 
 const IMPERIAL_PRESET: UnitPrefs = {
@@ -54,7 +58,8 @@ const IMPERIAL_PRESET: UnitPrefs = {
   downforce: 'lb',
   power: 'hp',
   torque: 'lbft',
-  mass: 'lb'
+  mass: 'lb',
+  boost: 'psi'
 }
 
 // Conversion constants — locked here so no library dep is needed.
@@ -70,6 +75,9 @@ const KW_TO_PS = 1.35962
 const HP_TO_PS = 1.01387
 const NM_TO_LBFT = 0.737562
 const KG_TO_LB = 2.20462
+// Forza reports boost in atmospheres relative to ambient.
+const ATM_TO_BAR = 1.01325
+const ATM_TO_PSI = 14.6959
 
 function cToF(c: number): number {
   return c * 9 / 5 + 32
@@ -109,7 +117,12 @@ export function useUnits() {
       return 'kW'
     }),
     torque: computed(() => prefs.value.torque === 'lbft' ? 'lb-ft' : 'Nm'),
-    mass: computed(() => prefs.value.mass === 'lb' ? 'lb' : 'kg')
+    mass: computed(() => prefs.value.mass === 'lb' ? 'lb' : 'kg'),
+    boost: computed(() => {
+      if (prefs.value.boost === 'psi') return 'psi'
+      if (prefs.value.boost === 'atm') return 'atm'
+      return 'bar'
+    })
   })
 
   // --- display formatters (string with suffix) ---------------------------
@@ -185,6 +198,12 @@ export function useUnits() {
     mass(kg: number): string {
       if (prefs.value.mass === 'lb') return `${Math.round(kg * KG_TO_LB)} lb`
       return `${Math.round(kg)} kg`
+    },
+    /** Engine boost. Input is atmospheres relative to ambient (Forza native). */
+    boost(atm: number): string {
+      if (prefs.value.boost === 'psi') return `${(atm * ATM_TO_PSI).toFixed(1)} psi`
+      if (prefs.value.boost === 'atm') return `${atm.toFixed(2)} atm`
+      return `${(atm * ATM_TO_BAR).toFixed(2)} bar`
     }
   }
 

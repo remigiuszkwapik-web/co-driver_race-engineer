@@ -29,6 +29,7 @@ const PLOT_H = VIEW_H - PAD_T - PAD_B
 
 const COLOR_TORQUE = '#06b6d4'
 const COLOR_POWER = '#a855f7'
+const COLOR_BOOST = '#f59e0b'
 
 const isEmpty = computed(() => props.curve.buckets.length === 0)
 
@@ -54,6 +55,8 @@ function yForFraction(fr: number): number {
 
 const torquePeakVal = computed(() => props.curve.peakTorque?.value ?? 1)
 const powerPeakVal = computed(() => props.curve.peakPower?.value ?? 1)
+const boostPeakVal = computed(() => props.curve.peakBoost?.value ?? 1)
+const showBoost = computed(() => props.curve.peakBoost !== null)
 
 const torquePath = computed(() => {
   if (isEmpty.value) return ''
@@ -74,6 +77,18 @@ const powerPath = computed(() => {
     const b = props.curve.buckets[i]!
     const x = xFor(b.rpm)
     const y = yForFraction(b.maxPowerKw / Math.max(powerPeakVal.value, 1))
+    out += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' '
+  }
+  return out.trim()
+})
+
+const boostPath = computed(() => {
+  if (isEmpty.value || !showBoost.value) return ''
+  let out = ''
+  for (let i = 0; i < props.curve.buckets.length; i++) {
+    const b = props.curve.buckets[i]!
+    const x = xFor(b.rpm)
+    const y = yForFraction(b.maxBoostAtm / Math.max(boostPeakVal.value, 1))
     out += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' '
   }
   return out.trim()
@@ -109,6 +124,7 @@ const idleX = computed(() => {
 
 const peakTorqueX = computed(() => props.curve.peakTorque ? xFor(props.curve.peakTorque.rpm) : null)
 const peakPowerX = computed(() => props.curve.peakPower ? xFor(props.curve.peakPower.rpm) : null)
+const peakBoostX = computed(() => props.curve.peakBoost ? xFor(props.curve.peakBoost.rpm) : null)
 
 const needleX = computed(() => {
   if (props.mode !== 'detailed') return null
@@ -125,6 +141,9 @@ function fmtNm(n: number): string {
 }
 function fmtKw(n: number): string {
   return format.power(n)
+}
+function fmtBoost(n: number): string {
+  return format.boost(n)
 }
 </script>
 
@@ -150,6 +169,15 @@ function fmtKw(n: number): string {
             class="inline-block h-1.5 w-3"
             :style="{ background: COLOR_POWER }"
           />power
+        </span>
+        <span
+          v-if="showBoost"
+          class="flex items-center gap-1.5"
+        >
+          <span
+            class="inline-block h-1.5 w-3"
+            :style="{ background: COLOR_BOOST }"
+          />boost
         </span>
       </span>
     </header>
@@ -281,6 +309,17 @@ function fmtKw(n: number): string {
           :fill="COLOR_POWER"
           :opacity="0.25 + 0.55 * (b.samples / maxSamples)"
         />
+        <template v-if="showBoost">
+          <circle
+            v-for="b in curve.buckets"
+            :key="`b-${b.rpm}`"
+            :cx="xFor(b.rpm)"
+            :cy="yForFraction(b.maxBoostAtm / boostPeakVal)"
+            r="1.6"
+            :fill="COLOR_BOOST"
+            :opacity="0.25 + 0.55 * (b.samples / maxSamples)"
+          />
+        </template>
       </g>
 
       <!-- Curves -->
@@ -301,6 +340,17 @@ function fmtKw(n: number): string {
         stroke-linejoin="round"
         stroke-linecap="round"
         opacity="0.95"
+      />
+      <path
+        v-if="showBoost"
+        :d="boostPath"
+        fill="none"
+        :stroke="COLOR_BOOST"
+        stroke-width="1.4"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        stroke-dasharray="4,3"
+        opacity="0.9"
       />
 
       <!-- Peak markers -->
@@ -356,6 +406,14 @@ function fmtKw(n: number): string {
           font-family="monospace"
         >{{ fmtKw(curve.peakPower.value) }} @ {{ fmtRpm(curve.peakPower.rpm) }}</text>
       </g>
+      <g v-if="peakBoostX !== null && curve.peakBoost">
+        <circle
+          :cx="peakBoostX"
+          :cy="yForFraction(1)"
+          r="2.5"
+          :fill="COLOR_BOOST"
+        />
+      </g>
 
       <!-- Detailed mode: shift-up label at peak power -->
       <g v-if="mode === 'detailed' && peakPowerX !== null">
@@ -395,7 +453,8 @@ function fmtKw(n: number): string {
     <!-- Readouts (only in detailed mode) -->
     <div
       v-if="mode === 'detailed' && !isEmpty"
-      class="mt-3 grid grid-cols-3 gap-2 text-sm tabular-nums"
+      class="mt-3 grid gap-2 text-sm tabular-nums"
+      :class="showBoost ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'"
     >
       <div class="rounded-md border border-zinc-800 bg-zinc-950/50 px-3 py-2">
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
@@ -421,6 +480,22 @@ function fmtKw(n: number): string {
           {{ curve.peakPower ? fmtKw(curve.peakPower.value) : '—' }}
           <span class="text-zinc-500">@</span>
           {{ curve.peakPower ? fmtRpm(curve.peakPower.rpm) : '—' }}
+        </div>
+      </div>
+      <div
+        v-if="showBoost"
+        class="rounded-md border border-zinc-800 bg-zinc-950/50 px-3 py-2"
+      >
+        <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          Peak boost
+        </div>
+        <div
+          class="mt-0.5"
+          :style="{ color: COLOR_BOOST }"
+        >
+          {{ curve.peakBoost ? fmtBoost(curve.peakBoost.value) : '—' }}
+          <span class="text-zinc-500">@</span>
+          {{ curve.peakBoost ? fmtRpm(curve.peakBoost.rpm) : '—' }}
         </div>
       </div>
       <div class="rounded-md border border-zinc-800 bg-zinc-950/50 px-3 py-2">

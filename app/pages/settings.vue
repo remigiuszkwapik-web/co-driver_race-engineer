@@ -85,6 +85,15 @@ const CATEGORIES: Category[] = [
       { value: 'kg', label: 'kg' },
       { value: 'lb', label: 'lb' }
     ]
+  },
+  {
+    key: 'boost',
+    label: 'Engine boost',
+    options: [
+      { value: 'bar', label: 'bar' },
+      { value: 'psi', label: 'psi' },
+      { value: 'atm', label: 'atm' }
+    ]
   }
 ]
 
