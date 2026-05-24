@@ -52,12 +52,56 @@ const _state = {
   tunePrompt: ref<TunePrompt | null>(null),
   lastError: ref<string | null>(null),
   ws: null as WebSocket | null,
-  refCount: 0
+  refCount: 0,
+  // Set when we close the WS ourselves because the tab went hidden — tells
+  // the onclose handler not to schedule an auto-reconnect. Cleared when the
+  // tab becomes visible again.
+  suspendedForHidden: false,
+  visibilityListenerAttached: false
+}
+
+// Backgrounded tabs get aggressively throttled by browsers (Chrome caps the
+// main thread at ~1Hz after ~5 min hidden) while the server keeps sending
+// 60Hz telemetry. The backlog hammers the main thread on return — multi-
+// second freeze. Cut the source: close the socket while hidden, reconnect
+// on return. Server re-sends recording_state + forza_status on open, so UI
+// re-syncs in one round trip. See GH issue #6.
+function attachVisibilityListener() {
+  if (_state.visibilityListenerAttached) return
+  if (typeof document === 'undefined') return
+  _state.visibilityListenerAttached = true
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      _state.suspendedForHidden = true
+      // Drop stale trace so the strip doesn't flash 10s-old data on return.
+      // Keep `telemetry.value` so the corner panels don't blank out.
+      _state.history.value = []
+      _state.framesBuffer.value = []
+      _state.scrubIndex.value = null
+      const ws = _state.ws
+      if (ws) {
+        _state.ws = null
+        ws.close()
+      }
+    } else {
+      _state.suspendedForHidden = false
+      if (_state.refCount > 0 && !_state.ws) connect()
+    }
+  })
 }
 
 function connect() {
   if (_state.ws) return
   if (typeof window === 'undefined') return
+  attachVisibilityListener()
+  // Don't open while hidden — covers both ongoing suspension and the
+  // "opened directly into a background tab" case where visibilitychange
+  // hasn't fired yet. The listener will reconnect on return.
+  if (typeof document !== 'undefined' && document.hidden) {
+    _state.suspendedForHidden = true
+    return
+  }
+  if (_state.suspendedForHidden) return
 
   const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/_ws`
   const ws = new WebSocket(url)
@@ -72,7 +116,7 @@ function connect() {
     // server tells us otherwise on reconnect.
     _state.forzaConnected.value = false
     _state.ws = null
-    if (_state.refCount > 0) setTimeout(connect, 1000)
+    if (_state.refCount > 0 && !_state.suspendedForHidden) setTimeout(connect, 1000)
   }
   ws.onerror = () => {
     ws.close()
