@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeSectorTimes } from '../../app/utils/sectors'
+import { computeSectorTimes, minSpeedPerSector } from '../../app/utils/sectors'
 import type { Telemetry } from '../../server/utils/decode'
 
 function frame(distance: number, lapCurrent: number, timestampMs = 0): Telemetry {
@@ -102,5 +102,45 @@ describe('computeSectorTimes', () => {
     const s = computeSectorTimes(lap)!
     expect(s).toHaveLength(3)
     expect(s[0]).toBeLessThan(s[2]!) // sector 1 quicker than sector 3
+  })
+})
+
+describe('minSpeedPerSector', () => {
+  it('returns the minimum speed in each equal-distance sector', () => {
+    // Build a lap where speed is staircase: 60 in S1, 30 in S2, 90 in S3.
+    const length = 4500
+    const seconds = 90
+    const n = 90
+    const lap: Telemetry[] = []
+    for (let i = 0; i < n; i++) {
+      const ratio = i / (n - 1)
+      const d = ratio * length
+      const t = ratio * seconds
+      let s = 90
+      if (ratio < 1 / 3) s = 60
+      else if (ratio < 2 / 3) s = 30
+      const f = frame(d, t, Math.round(t * 1000))
+      f.speedKmh = s
+      lap.push(f)
+    }
+    const mins = minSpeedPerSector(lap)!
+    expect(mins).toHaveLength(3)
+    expect(mins[0]).toBe(60)
+    expect(mins[1]).toBe(30)
+    expect(mins[2]).toBe(90)
+  })
+
+  it('returns null for laps that are too short', () => {
+    expect(minSpeedPerSector(makeLap(150, 5))).toBeNull()
+    expect(minSpeedPerSector([frame(0, 0)])).toBeNull()
+  })
+
+  it('ignores non-finite speed values', () => {
+    const lap = makeLap(4500, 90).map((f, i) => {
+      f.speedKmh = i === 0 ? Number.NaN : 50
+      return f
+    })
+    const mins = minSpeedPerSector(lap)!
+    for (const m of mins) expect(m).toBe(50)
   })
 })

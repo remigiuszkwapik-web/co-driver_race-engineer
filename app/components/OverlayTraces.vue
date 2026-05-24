@@ -67,21 +67,24 @@ const finalDeltaMs = computed(() => {
 })
 
 // --- Row definitions -----------------------------------------------------
-// Each entry becomes one synced uPlot instance.
+// Each entry becomes one synced uPlot instance. Δ TIME leads the stack and
+// gets double height — it's the headline channel, the others are supporting
+// inputs the eye drops to when a delta spike calls for an explanation.
 type RowKey = 'throttle' | 'brake' | 'steer' | 'delta'
 interface Row {
   key: RowKey
   label: string
   fmt: (v: number) => string
+  height: number
 }
+const INPUT_ROW_H = 90
+const DELTA_ROW_H = INPUT_ROW_H * 2
 const rows: Row[] = [
-  { key: 'throttle', label: 'THROTL', fmt: v => Math.round(v * 100) + '%' },
-  { key: 'brake', label: 'BRAKE', fmt: v => Math.round(v * 100) + '%' },
-  { key: 'steer', label: 'STEER', fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2) },
-  { key: 'delta', label: 'Δ TIME', fmt: v => formatDelta(v) + 's' }
+  { key: 'delta', label: 'Δ TIME', fmt: v => formatDelta(v) + 's', height: DELTA_ROW_H },
+  { key: 'throttle', label: 'THROTL', fmt: v => Math.round(v * 100) + '%', height: INPUT_ROW_H },
+  { key: 'brake', label: 'BRAKE', fmt: v => Math.round(v * 100) + '%', height: INPUT_ROW_H },
+  { key: 'steer', label: 'STEER', fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2), height: INPUT_ROW_H }
 ]
-
-const ROW_H = 90
 
 // --- uPlot lifecycle ------------------------------------------------------
 const plotEls = ref<HTMLDivElement[]>([])
@@ -150,7 +153,7 @@ function buildOpts(row: Row, isLast: boolean, width: number): uPlot.Options {
 
   return {
     width,
-    height: ROW_H,
+    height: row.height,
     pxAlign: 0,
     legend: { show: false },
     cursor: {
@@ -258,9 +261,10 @@ onMounted(() => {
     for (let i = 0; i < plots.length; i++) {
       const p = plots[i]
       const el = plotEls.value[i]
-      if (!p || !el) continue
+      const row = rows[i]
+      if (!p || !el || !row) continue
       const w = el.clientWidth
-      if (w > 0) p.setSize({ width: w, height: ROW_H })
+      if (w > 0) p.setSize({ width: w, height: row.height })
     }
   })
   for (const el of plotEls.value) resizeObs.observe(el)
@@ -288,10 +292,10 @@ const hoverValues = computed<HoverValues | null>(() => {
   return {
     distance: xs.value[i]!,
     rows: [
+      { key: 'delta', a: delta.value[i]!, b: null },
       { key: 'throttle', a: a.value.throttle[i]!, b: b.value.throttle[i]! },
       { key: 'brake', a: a.value.brake[i]!, b: b.value.brake[i]! },
-      { key: 'steer', a: a.value.steer[i]!, b: b.value.steer[i]! },
-      { key: 'delta', a: delta.value[i]!, b: null }
+      { key: 'steer', a: a.value.steer[i]!, b: b.value.steer[i]! }
     ]
   }
 })
@@ -401,8 +405,8 @@ function valueFor(row: Row, side: 'a' | 'b'): string {
             v-else
             class="rounded px-1.5 py-0.5"
             :style="{
-              background: (hoverValues.rows[3]?.a ?? 0) > 0 ? COLOR_DELTA_A_AHEAD + '20' : COLOR_DELTA_B_AHEAD + '20',
-              color: (hoverValues.rows[3]?.a ?? 0) > 0 ? COLOR_DELTA_A_AHEAD : COLOR_DELTA_B_AHEAD
+              background: (hoverValues.rows[0]?.a ?? 0) > 0 ? COLOR_DELTA_A_AHEAD + '20' : COLOR_DELTA_B_AHEAD + '20',
+              color: (hoverValues.rows[0]?.a ?? 0) > 0 ? COLOR_DELTA_A_AHEAD : COLOR_DELTA_B_AHEAD
             }"
           >
             {{ valueFor(row, 'a') }}
@@ -411,7 +415,7 @@ function valueFor(row: Row, side: 'a' | 'b'): string {
         <div
           ref="plotEls"
           class="overlay-plot w-full"
-          :style="{ height: (i === rows.length - 1 ? ROW_H + 22 : ROW_H) + 'px' }"
+          :style="{ height: (i === rows.length - 1 ? row.height + 22 : row.height) + 'px' }"
         />
       </div>
     </div>

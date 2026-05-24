@@ -75,3 +75,49 @@ export function computeSectorTimes(
   }
   return out
 }
+
+/**
+ * Per-sector minimum speed (km/h) — apex-speed proxy.
+ *
+ * Same equal-distance buckets `computeSectorTimes` uses, but instead of clock
+ * times we record the lowest `speedKmh` seen inside each bucket. On a fixed
+ * track each sector tends to contain at least one corner, so the per-sector
+ * min is a defensible "slowest point in this stretch" reading — close enough
+ * to apex-speed for cross-lap comparison without inventing a corner detector.
+ *
+ * Returns null when the lap is too short or corrupt (same guards as
+ * `computeSectorTimes`). Individual sector entries are null only if the
+ * sector was reached but contained no valid frames (shouldn't happen given
+ * the length guard, but typed defensively).
+ */
+export function minSpeedPerSector(
+  frames: Telemetry[],
+  sectorCount: number = DEFAULT_SECTOR_COUNT
+): Array<number | null> | null {
+  if (sectorCount < 1) return null
+  if (frames.length < 2) return null
+
+  const first = frames[0]!
+  const last = frames[frames.length - 1]!
+  const d0 = first.lap.distance
+  const lapLength = last.lap.distance - d0
+  if (!Number.isFinite(lapLength) || lapLength <= 0) return null
+  if (lapLength < sectorCount * MIN_SECTOR_LENGTH_M) return null
+
+  const mins: Array<number | null> = new Array(sectorCount).fill(null)
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i]!
+    const d = f.lap.distance - d0
+    // Which sector does this frame land in? Floor + clamp because the very
+    // last frame can sit exactly on the boundary and otherwise round up.
+    const ratio = d / lapLength
+    let idx = Math.floor(ratio * sectorCount)
+    if (idx >= sectorCount) idx = sectorCount - 1
+    if (idx < 0) continue
+    const s = f.speedKmh
+    if (!Number.isFinite(s)) continue
+    const prev = mins[idx] ?? null
+    if (prev === null || s < prev) mins[idx] = s
+  }
+  return mins
+}

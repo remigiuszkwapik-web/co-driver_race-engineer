@@ -16,6 +16,10 @@ export default defineEventHandler(async (event) => {
       eventId: schema.sessions.eventId,
       tuneLabel: schema.sessions.tuneLabel,
       piAtStart: schema.sessions.piAtStart,
+      buildSnapshot: schema.sessions.buildSnapshot,
+      tuneSnapshot: schema.sessions.tuneSnapshot,
+      buildName: schema.builds.name,
+      tuneName: schema.tunes.name,
       carOrdinal: schema.cars.ordinal,
       carClass: schema.cars.class,
       carDisplayName: schema.cars.displayName
@@ -23,6 +27,8 @@ export default defineEventHandler(async (event) => {
     .from(schema.laps)
     .innerJoin(schema.sessions, eq(schema.sessions.id, schema.laps.sessionId))
     .innerJoin(schema.cars, eq(schema.cars.id, schema.sessions.carId))
+    .leftJoin(schema.builds, eq(schema.builds.id, schema.sessions.buildId))
+    .leftJoin(schema.tunes, eq(schema.tunes.id, schema.sessions.tuneId))
     .where(eq(schema.laps.id, id))
     .limit(1))[0]
 
@@ -41,6 +47,10 @@ export default defineEventHandler(async (event) => {
     eventId: row.eventId,
     tuneLabel: row.tuneLabel,
     piAtStart: row.piAtStart,
+    buildSnapshot: row.buildSnapshot,
+    tuneSnapshot: row.tuneSnapshot,
+    buildName: row.buildName,
+    tuneName: row.tuneName,
     carOrdinal: row.carOrdinal,
     carClass: row.carClass,
     carDisplayName: row.carDisplayName,

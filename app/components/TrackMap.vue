@@ -14,6 +14,11 @@ export interface TrackTrace {
   label?: string
   /** Highlights this trace (brighter, thicker line). Typically the best lap. */
   best?: boolean
+  /** Override the trace's stroke color (any CSS color). Bypasses color-mode
+   *  recolouring so two laps can render in their own legend colors (used by
+   *  `/compare`). Renders with the same backdrop + width as the best trace,
+   *  not as a faint backdrop. */
+  stroke?: string
 }
 
 const props = withDefaults(defineProps<{
@@ -184,22 +189,42 @@ interface Segment {
   color: string
 }
 
-function segmentsFor(points: TrackPoint[]): Segment[] {
+function segmentsFor(points: TrackPoint[], fixedColor?: string): Segment[] {
   const out: Segment[] = []
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1]!
     const b = points[i]!
-    out.push({ x1: a.x, z1: a.z, x2: b.x, z2: b.z, color: colorFor(b) })
+    out.push({ x1: a.x, z1: a.z, x2: b.x, z2: b.z, color: fixedColor ?? colorFor(b) })
   }
   return out
 }
 
-// Best-trace segments are colored; other traces render as faint backdrops.
-const bestSegments = computed(() => bestTrace.value ? segmentsFor(bestTrace.value.points) : [])
+// Traces split into three render flavors:
+//   - "solid"   : explicit `stroke` override, rendered like a best-trace but
+//                 in the override colour (used by /compare to show A and B
+//                 in their legend colors).
+//   - "best"    : current behavior — color-mode recolored, no stroke override.
+//   - "backdrop": every other trace, rendered as faint zinc lines.
+const bestSegments = computed(() => {
+  const t = bestTrace.value
+  if (!t) return []
+  return segmentsFor(t.points, t.stroke)
+})
 
-const backdropTraces = computed(() => {
-  const best = bestTrace.value
-  return allTraces.value.filter(t => t !== best)
+const overlayTraces = computed(() =>
+  allTraces.value.filter(t => t !== bestTrace.value && t.stroke !== undefined)
+)
+
+const backdropTraces = computed(() =>
+  allTraces.value.filter(t => t !== bestTrace.value && t.stroke === undefined)
+)
+
+// Hide colour-mode chips when every trace has an explicit stroke override —
+// the chips would be no-ops, and on /compare the legend (A white, B amber) is
+// what carries identity.
+const allTracesHaveStroke = computed(() => {
+  const list = allTraces.value
+  return list.length > 0 && list.every(t => t.stroke !== undefined)
 })
 
 // --- Current-frame dot ----------------------------------------------------
@@ -277,7 +302,7 @@ function modeDisabled(m: ColorMode): boolean {
         >{{ subtitle }}</span>
       </span>
       <span
-        v-if="!compact"
+        v-if="!compact && !allTracesHaveStroke"
         class="flex items-center gap-1"
       >
         <button
@@ -315,7 +340,7 @@ function modeDisabled(m: ColorMode): boolean {
         :style="{ height: (compact ? MAP_VIEW_H * 0.3 : MAP_VIEW_H * 0.6) + 'px' }"
         @click="onMapClick"
       >
-        <!-- Backdrop traces (other laps): faint, single color -->
+        <!-- Backdrop traces (no stroke override): faint zinc -->
         <g
           v-for="(t, ti) in backdropTraces"
           :key="`bk-${ti}`"
@@ -331,6 +356,38 @@ function modeDisabled(m: ColorMode): boolean {
             :stroke-width="strokeBase * 1.2"
             stroke-linecap="round"
             opacity="0.5"
+          />
+        </g>
+
+        <!-- Overlay traces (stroke override but not the best trace): render
+             zinc backdrop + solid stroke, same weight as the best trace. -->
+        <g
+          v-for="(t, ti) in overlayTraces"
+          :key="`ov-${ti}`"
+        >
+          <line
+            v-for="(seg, si) in segmentsFor(t.points, t.stroke)"
+            :key="`ovbk-${ti}-${si}`"
+            :x1="seg.x1"
+            :y1="svgYFromWorldZ(seg.z1)"
+            :x2="seg.x2"
+            :y2="svgYFromWorldZ(seg.z2)"
+            stroke="#27272a"
+            :stroke-width="strokeBase * 3"
+            stroke-linecap="round"
+            opacity="0.55"
+          />
+          <line
+            v-for="(seg, si) in segmentsFor(t.points, t.stroke)"
+            :key="`ov-${ti}-${si}`"
+            :x1="seg.x1"
+            :y1="svgYFromWorldZ(seg.z1)"
+            :x2="seg.x2"
+            :y2="svgYFromWorldZ(seg.z2)"
+            :stroke="seg.color"
+            :stroke-width="strokeBase * 1.6"
+            stroke-linecap="round"
+            opacity="0.95"
           />
         </g>
 
