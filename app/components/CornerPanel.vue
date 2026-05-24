@@ -78,8 +78,8 @@ const trailPath = computed(() => {
 </script>
 
 <template>
-  <div class="panel p-4 font-mono text-zinc-100 backdrop-blur">
-    <div class="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-400">
+  <div class="panel p-2 font-mono text-zinc-100 backdrop-blur sm:p-4">
+    <div class="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-zinc-400 sm:text-xs">
       <span>{{ label }}</span>
       <span
         v-if="rumble"

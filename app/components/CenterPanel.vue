@@ -100,7 +100,7 @@ function signedFixed(v: number, digits: number): string {
 </script>
 
 <template>
-  <div class="flex h-full flex-col items-stretch justify-between panel p-5 font-mono text-zinc-100 backdrop-blur">
+  <div class="flex h-full flex-col items-stretch justify-between panel p-3 font-mono text-zinc-100 backdrop-blur sm:p-5">
     <!-- Top: gear + speed -->
     <div class="flex items-start justify-between">
       <div>
@@ -114,7 +114,7 @@ function signedFixed(v: number, digits: number): string {
             class="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70"
           />
         </NuxtLink>
-        <div class="text-8xl leading-none font-light tabular-nums">
+        <div class="text-6xl leading-none font-light tabular-nums sm:text-8xl">
           {{ gearLabel(gear) }}
         </div>
       </div>
@@ -122,7 +122,7 @@ function signedFixed(v: number, digits: number): string {
         <div class="text-xs uppercase tracking-[0.2em] text-zinc-400">
           {{ unitLabel.speed }}
         </div>
-        <div class="text-6xl leading-none font-light tabular-nums">
+        <div class="text-5xl leading-none font-light tabular-nums sm:text-6xl">
           {{ speedValue }}
         </div>
       </div>
@@ -237,11 +237,14 @@ function signedFixed(v: number, digits: number): string {
 
     <!-- Chassis strip: G-G dot + attitude/rotation readouts -->
     <div class="mt-5 flex items-stretch gap-4">
-      <!-- G-G dot — dominant chassis visualization -->
+      <!-- G-G dot — dominant chassis visualization. Sized fluidly so a
+           landscape phone (≈840×390) doesn't get a 224px disc that eats the
+           whole panel; clamps back to 224px on desktop. -->
       <div class="relative shrink-0">
         <svg
           viewBox="0 0 100 100"
-          class="h-56 w-56"
+          class="aspect-square"
+          style="width: clamp(7rem, 22vw, 14rem);"
         >
           <defs>
             <radialGradient id="ggBackdrop">

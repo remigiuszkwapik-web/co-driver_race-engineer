@@ -1,6 +1,13 @@
 <script setup lang="ts">
 const { telemetry, connected, forzaConnected, hasReceivedFrame } = useTelemetry()
 const { recording, stopRecording } = useRecording()
+const route = useRoute()
+
+// Pages opt out of the header on narrow viewports via
+// `definePageMeta({ hideHeaderOnMobile: true })` — used by /live so a phone
+// propped next to the TV gets full vertical space for telemetry. Those
+// pages render their own floating hamburger using the same NAV_ITEMS.
+const hideHeaderOnMobile = computed(() => !!route.meta.hideHeaderOnMobile)
 
 const quickRecordOpen = ref(false)
 
@@ -125,17 +132,35 @@ useHead({
 
     <header
       class="sticky z-20 border-b border-zinc-800 bg-zinc-950/85 backdrop-blur"
-      :class="isRecording ? 'top-[44px]' : 'top-0'"
+      :class="[
+        isRecording ? 'top-[44px]' : 'top-0',
+        hideHeaderOnMobile ? 'max-sm:hidden [@media(max-height:500px)]:hidden' : ''
+      ]"
     >
       <div class="container mx-auto flex max-w-6xl items-center justify-between px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400">
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3 sm:gap-6">
           <NuxtLink
             to="/live"
             class="text-zinc-100 transition-colors hover:text-zinc-50"
           >
             co-driver
           </NuxtLink>
-          <nav class="flex items-center gap-1">
+          <!-- Hamburger menu — portrait phone only. Inline nav row below
+               handles sm+ viewports. UDropdownMenu auto-closes on selection
+               via the Link items, so no manual open state needed. -->
+          <UDropdownMenu
+            :items="NAV_ITEMS"
+            class="sm:hidden"
+          >
+            <UButton
+              icon="i-lucide-menu"
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              aria-label="Open menu"
+            />
+          </UDropdownMenu>
+          <nav class="hidden items-center gap-1 sm:flex">
             <NuxtLink
               to="/live"
               exact-active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
@@ -187,33 +212,35 @@ useHead({
             </NuxtLink>
           </nav>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 sm:gap-4">
           <button
             v-if="showQuickRecord"
             type="button"
-            class="rounded-sm border border-green-500/40 bg-green-500/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-green-300 transition-colors hover:border-green-400/60 hover:bg-green-500/20"
+            :aria-label="quickRecordOpen ? undefined : 'Quick record'"
+            class="rounded-sm border border-green-500/40 bg-green-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-green-300 transition-colors hover:border-green-400/60 hover:bg-green-500/20 sm:px-2.5"
             @click="quickRecordOpen = true"
           >
             <span class="mr-1.5 inline-block h-1.5 w-1.5 align-middle rounded-full bg-green-400" />
-            Quick record
+            <span class="sm:hidden">Rec</span>
+            <span class="hidden sm:inline">Quick record</span>
           </button>
           <span class="flex items-center gap-2">
             <span
               class="inline-block h-2 w-2 rounded-full"
               :class="connected ? 'bg-green-400' : 'bg-zinc-600'"
             />
-            {{ connected ? 'WS LINKED' : 'WS OFFLINE' }}
+            <span class="hidden sm:inline">{{ connected ? 'WS LINKED' : 'WS OFFLINE' }}</span>
           </span>
           <span class="flex items-center gap-2">
             <span
               class="inline-block h-2 w-2 rounded-full"
               :class="!connected ? 'bg-zinc-600' : forzaConnected ? 'bg-green-400' : 'bg-amber-400 animate-pulse'"
             />
-            {{ !connected ? 'FORZA —' : forzaConnected ? 'FORZA STREAMING' : 'FORZA NO TELEMETRY' }}
+            <span class="hidden sm:inline">{{ !connected ? 'FORZA —' : forzaConnected ? 'FORZA STREAMING' : 'FORZA NO TELEMETRY' }}</span>
           </span>
           <span
             v-if="hasReceivedFrame && telemetry"
-            class="tabular-nums text-zinc-500"
+            class="hidden tabular-nums text-zinc-500 sm:inline"
           >
             T+{{ (telemetry.timestampMs / 1000).toFixed(1) }}s
           </span>
