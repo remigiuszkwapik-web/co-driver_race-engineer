@@ -61,6 +61,12 @@ export function useHotlapReference() {
   const currentLapSectorTimes = ref<Array<number | null>>(
     new Array(SECTOR_COUNT).fill(null)
   )
+  // FH6 reports `lap.distance` as cumulative race distance, not per-lap
+  // (lap 1: 5949→11901, lap 2: 11903→17855, …). The reference lap normalises
+  // to 0→totalDistanceM, so every comparison needs to subtract the cumulative
+  // distance captured at the *current* lap's start. Reactive because the
+  // computeds below depend on it.
+  const lapStartDistance = ref<number | null>(null)
 
   // Mutable per-frame accumulators. Not refs — nothing reactive reads them,
   // only the watcher itself in the same synchronous tick. Avoids per-frame
@@ -82,6 +88,7 @@ export function useHotlapReference() {
     pointStride = 0
     trackedLapNumber = null
     sectorIndex = 0
+    lapStartDistance.value = null
   }
 
   function resetCurrentLap(): void {
@@ -90,6 +97,7 @@ export function useHotlapReference() {
     currentLapPoints = []
     pointStride = 0
     sectorIndex = 0
+    lapStartDistance.value = null
   }
 
   watch(telemetry, (t) => {
@@ -125,11 +133,19 @@ export function useHotlapReference() {
     }
     trackedLapNumber = lapNum
 
+    // Seed lap-start cumulative distance on the first frame of each lap (or
+    // the first frame we ever see). Everything below works in lap-relative
+    // distance so it matches the reference's normalised [0, totalDistanceM].
+    if (lapStartDistance.value === null) {
+      lapStartDistance.value = lapDistance
+    }
+    const lapRelDistance = lapDistance - lapStartDistance.value
+
     // Append in-lap sample. Drop frames that don't advance distance — Forza
     // occasionally repeats a metre across frames during pause edges.
     const lastSample = currentLapSamples[currentLapSamples.length - 1]
-    if (!lastSample || lapDistance > lastSample.distance) {
-      currentLapSamples.push({ distance: lapDistance, clockMs: lapCurrentMs })
+    if (!lastSample || lapRelDistance > lastSample.distance) {
+      currentLapSamples.push({ distance: lapRelDistance, clockMs: lapCurrentMs })
     }
 
     // Downsampled track points for the map. Skip pre-position (0,0) frames
@@ -143,7 +159,7 @@ export function useHotlapReference() {
           speed: t.speedKmh,
           throttle: t.throttle,
           brake: t.brake,
-          distance: lapDistance,
+          distance: lapRelDistance,
           drivingLine: typeof t.drivingLine === 'number' ? t.drivingLine : null
         })
       }
@@ -157,7 +173,7 @@ export function useHotlapReference() {
     if (refLap) {
       while (sectorIndex < SECTOR_COUNT) {
         const boundary = refLap.totalDistanceM * (sectorIndex + 1) / SECTOR_COUNT
-        if (lapDistance < boundary) break
+        if (lapRelDistance < boundary) break
         const prevSum = currentLapSectorTimes.value
           .slice(0, sectorIndex)
           .reduce<number>((sum, st) => sum + (st ?? 0), 0)
@@ -177,8 +193,9 @@ export function useHotlapReference() {
   const rollingDeltaMs = computed<number | null>(() => {
     const t = telemetry.value
     const ref = referenceLap.value
-    if (!t || !ref) return null
-    const refClock = referenceClockAt(ref, t.lap.distance)
+    const base = lapStartDistance.value
+    if (!t || !ref || base === null) return null
+    const refClock = referenceClockAt(ref, t.lap.distance - base)
     if (refClock === null) return null
     return Math.round(t.lap.current * 1000 - refClock)
   })
@@ -250,7 +267,15 @@ export function useHotlapReference() {
     if (referenceLap.value !== null) return
 
     referenceLap.value = ref
-    referencePoints.value = pointsFromFrames(res.frames)
+    // pointsFromFrames keeps raw cumulative `lap.distance`; rebase to lap-
+    // relative so the elevation strip + cursor live in the same space the
+    // reference lap does.
+    const pts = pointsFromFrames(res.frames)
+    if (pts.length > 0) {
+      const base = pts[0]!.distance
+      for (const p of pts) p.distance -= base
+    }
+    referencePoints.value = pts
   }
 
   watch(recording, (r) => {
@@ -264,11 +289,12 @@ export function useHotlapReference() {
     const t = telemetry.value
     if (!t) return null
     if (t.position.x === 0 && t.position.z === 0) return null
+    const base = lapStartDistance.value
     return {
       x: t.position.x,
       z: t.position.z,
       y: t.position.y,
-      distance: t.lap.distance
+      distance: base === null ? 0 : t.lap.distance - base
     }
   })
 
