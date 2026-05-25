@@ -274,6 +274,56 @@ describe('computeAutoTune — spring math sanity', () => {
   })
 })
 
+describe('computeAutoTune — FH6 slider precision and ranges', () => {
+  const dials = { stiffness: 'medium' as const, balance: 'tight' as const, surface: 'road' as const }
+
+  it('emits dampers at 0.1 step (not forced to integer)', () => {
+    const { tune } = computeAutoTune({ build: RWD_S2_BUILD, dials })
+    // With stiff=1.0 and bal=+1, bump becomes 9 (integer) but rebound shifts
+    // to 12 ± 1. Pick a configuration that actually exercises the fractional
+    // path so we know the step1 helper landed.
+    const soft = computeAutoTune({ build: RWD_S2_BUILD, dials: { ...dials, stiffness: 'soft' } }).tune
+    // soft stiff (0.85) * bump_base (8) = 6.8, + bal 1 = 7.8
+    expect(soft.bumpFront).toBeCloseTo(7.8, 5)
+    // damper-rear at soft + tight = 6.8 - 1 = 5.8
+    expect(soft.bumpRear).toBeCloseTo(5.8, 5)
+    // And every value stays inside FH6's 1.0–20.0 window.
+    for (const k of ['bumpFront', 'bumpRear', 'reboundFront', 'reboundRear'] as const) {
+      expect(tune[k] as number).toBeGreaterThanOrEqual(1)
+      expect(tune[k] as number).toBeLessThanOrEqual(20)
+    }
+  })
+
+  it('emits ARB at 0.1 step within FH6 1.0–65.0', () => {
+    const soft = computeAutoTune({ build: RWD_S2_BUILD, dials: { ...dials, stiffness: 'soft' } }).tune
+    // arbFront base 30 * 0.85 * (1 + 0.1·1) = 28.05 → 28.1
+    expect(soft.arbFront).toBeCloseTo(28.1, 5)
+    expect(soft.arbFront).toBeGreaterThanOrEqual(1)
+    expect(soft.arbFront).toBeLessThanOrEqual(65)
+  })
+
+  it('alignment values respect FH6 ranges (±5° camber/toe, 1–7° caster)', () => {
+    const { tune } = computeAutoTune({ build: RWD_S2_BUILD, dials })
+    expect(tune.camberFront).toBeGreaterThanOrEqual(-5)
+    expect(tune.camberFront).toBeLessThanOrEqual(5)
+    expect(tune.casterFront).toBeGreaterThanOrEqual(1)
+    expect(tune.casterFront).toBeLessThanOrEqual(7)
+    expect(tune.toeRear).toBeGreaterThanOrEqual(-5)
+    expect(tune.toeRear).toBeLessThanOrEqual(5)
+  })
+
+  it('tire pressure stays inside FH6 14.5–55.1 psi (= 1.0–3.8 bar)', () => {
+    for (const surface of ['road', 'dirt', 'cross-country'] as const) {
+      const { tune } = computeAutoTune({
+        build: RWD_S2_BUILD,
+        dials: { ...dials, surface }
+      })
+      expect(tune.tirePressureFront).toBeGreaterThanOrEqual(14.5)
+      expect(tune.tirePressureFront).toBeLessThanOrEqual(55.1)
+    }
+  })
+})
+
 describe('autoTuneSlug', () => {
   it('generates a short kebab-case identifier', () => {
     expect(autoTuneSlug({ stiffness: 'medium', balance: 'neutral', surface: 'road' })).toBe('baseline-medium-neutral-road')

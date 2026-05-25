@@ -4,6 +4,7 @@ import {
   DEFAULT_OPEN_SECTIONS,
   SECTION_LABELS,
   tuneFieldsBySection,
+  type TuneField,
   type TuneSettings
 } from '~/utils/tune-fields'
 import type { SetupField, UnitCategory } from '~/utils/build-fields'
@@ -31,6 +32,54 @@ function canonicalFromInput(field: SetupField, raw: string): string | number | n
     return n
   }
   return raw
+}
+
+/** Canonical → display conversion for a numeric bound. For unit-category
+ *  fields, runs through the active unit pref; for plain numeric fields, the
+ *  bound is already in display units. */
+function toDisplayNumber(field: TuneField, canonical: number): number {
+  if (!field.unitCategory) return canonical
+  return toDisplay[field.unitCategory](canonical)
+}
+
+/** Min / max / step for the HTML5 number input, converted to the display
+ *  unit. Returned values are strings (matching the attribute typing) — empty
+ *  string means "no constraint." */
+function inputBoundsFor(field: TuneField): { min: string, max: string, step: string } {
+  if (field.kind !== 'number') return { min: '', max: '', step: 'any' }
+  const min = field.min !== undefined ? String(toDisplayNumber(field, field.min)) : ''
+  const max = field.max !== undefined ? String(toDisplayNumber(field, field.max)) : ''
+  // Step is a delta — convert it the same way as a value-from-zero. Linear
+  // conversions (all of ours) make this exact; we round to 4dp to drop
+  // floating-point fuzz like 0.1 bar → 0.100000000001.
+  let step: string = 'any'
+  if (field.step !== undefined) {
+    const s = field.unitCategory
+      ? Number((toDisplay[field.unitCategory](field.step) - toDisplay[field.unitCategory](0)).toFixed(4))
+      : field.step
+    step = String(s)
+  }
+  return { min, max, step }
+}
+
+/** True if the stored canonical value falls outside the field's FH6 range.
+ *  Returns false when the field has no bounds or the value is empty. */
+function isOutOfRange(field: TuneField, canonical: string | number | null | undefined): boolean {
+  if (canonical === null || canonical === undefined || canonical === '') return false
+  if (field.min === undefined && field.max === undefined) return false
+  const n = Number(canonical)
+  if (!Number.isFinite(n)) return false
+  if (field.min !== undefined && n < field.min) return true
+  if (field.max !== undefined && n > field.max) return true
+  return false
+}
+
+/** Human-readable bounds string for the warning ("FH6 range: 1.0 – 20.0"). */
+function rangeLabelFor(field: TuneField): string {
+  if (field.min === undefined && field.max === undefined) return ''
+  const lo = field.min !== undefined ? String(toDisplayNumber(field, field.min)) : '−∞'
+  const hi = field.max !== undefined ? String(toDisplayNumber(field, field.max)) : '∞'
+  return `FH6 range: ${lo} – ${hi}`
 }
 
 /** Suffix the input placeholder hints at — uses live unit-pref labels for
@@ -266,12 +315,23 @@ async function save() {
             <input
               :value="displayValueFor(field, values[field.id]) ?? ''"
               :type="field.kind === 'number' ? 'number' : 'text'"
-              :step="field.kind === 'number' ? 'any' : undefined"
+              :min="field.kind === 'number' ? inputBoundsFor(field).min : undefined"
+              :max="field.kind === 'number' ? inputBoundsFor(field).max : undefined"
+              :step="field.kind === 'number' ? inputBoundsFor(field).step : undefined"
               :placeholder="placeholderFor(field)"
               :disabled="saving"
-              class="rounded-sm border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
+              class="rounded-sm border bg-zinc-950 px-2 py-1.5 text-zinc-100 placeholder-zinc-600 focus:outline-none disabled:opacity-50"
+              :class="isOutOfRange(field, values[field.id])
+                ? 'border-amber-500/60 focus:border-amber-400'
+                : 'border-zinc-700 focus:border-zinc-500'"
               @input="(e) => values[field.id] = canonicalFromInput(field, (e.target as HTMLInputElement).value)"
             >
+            <span
+              v-if="isOutOfRange(field, values[field.id])"
+              class="text-[10px] normal-case tracking-normal text-amber-400/80"
+            >
+              ⚠ {{ rangeLabelFor(field) }}
+            </span>
           </label>
         </div>
       </details>

@@ -71,9 +71,10 @@ describe('formatFieldValue', () => {
     expect(formatFieldValue(f, '')).toBe('—')
   })
 
-  it('renders numbers with units appended', () => {
+  it('renders numbers with units appended and two-decimal precision', () => {
     const f = field({ unit: ' HP' })
-    expect(formatFieldValue(f, 612)).toBe('612 HP')
+    expect(formatFieldValue(f, 612)).toBe('612.00 HP')
+    expect(formatFieldValue(f, 35)).toBe('35.00 HP')
   })
 
   it('renders fractional numbers with two decimals', () => {

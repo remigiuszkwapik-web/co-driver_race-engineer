@@ -219,8 +219,7 @@ export function formatFieldValue(
         case 'mass': return unitFmt.mass(n)
       }
     }
-    const rounded = Number.isInteger(n) ? n.toString() : n.toFixed(2)
-    return rounded + (field.unit ?? '')
+    return n.toFixed(2) + (field.unit ?? '')
   }
 
   return String(value)

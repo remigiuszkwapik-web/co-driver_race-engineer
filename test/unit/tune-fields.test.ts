@@ -36,6 +36,64 @@ describe('TUNE_FIELDS metadata', () => {
       expect(s in DEFAULT_OPEN_SECTIONS).toBe(true)
     }
   })
+
+  it('numeric fields with bounds have a coherent min/max/step triple', () => {
+    for (const f of TUNE_FIELDS) {
+      if (f.kind !== 'number') {
+        expect(f.min).toBeUndefined()
+        expect(f.max).toBeUndefined()
+        expect(f.step).toBeUndefined()
+        continue
+      }
+      // Fields can either declare all three bounds or leave the field
+      // open (per-car ranges for springs, ride height, aero F/R).
+      const hasBounds = f.min !== undefined || f.max !== undefined || f.step !== undefined
+      if (hasBounds) {
+        expect(f.min).toBeDefined()
+        expect(f.max).toBeDefined()
+        expect(f.step).toBeDefined()
+        expect(f.max!).toBeGreaterThan(f.min!)
+        expect(f.step!).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('FH6 slider ranges (spot checks from the captured tune menu)', () => {
+    const damper = getTuneField('bumpFront')!
+    expect(damper.min).toBe(1)
+    expect(damper.max).toBe(20)
+    expect(damper.step).toBe(0.1)
+
+    const arb = getTuneField('arbFront')!
+    expect(arb.min).toBe(1)
+    expect(arb.max).toBe(65)
+
+    const camber = getTuneField('camberFront')!
+    expect(camber.min).toBe(-5)
+    expect(camber.max).toBe(5)
+
+    const caster = getTuneField('casterFront')!
+    expect(caster.min).toBe(1)
+    expect(caster.max).toBe(7)
+
+    const brakePressure = getTuneField('brakePressure')!
+    // Confirms the >100% surprise — pressure runs 0–200%.
+    expect(brakePressure.max).toBe(200)
+
+    const finalDrive = getTuneField('finalDrive')!
+    expect(finalDrive.min).toBe(2.2)
+    expect(finalDrive.max).toBe(6.1)
+    expect(finalDrive.step).toBe(0.01)
+  })
+
+  it('per-car-varying fields do NOT declare bounds', () => {
+    for (const id of ['springsFront', 'springsRear', 'rideHeightFront', 'rideHeightRear', 'aeroFront', 'aeroRear']) {
+      const f = getTuneField(id)!
+      expect(f.min).toBeUndefined()
+      expect(f.max).toBeUndefined()
+      expect(f.step).toBeUndefined()
+    }
+  })
 })
 
 describe('getTuneField', () => {

@@ -91,10 +91,13 @@ const CAMBER_FRONT_BASE: Record<Surface, number> = {
 }
 const CAMBER_REAR_OFFSET = 0.6 // rear less negative than front
 
-const TIRE_PRESSURE_PSI: Record<Surface, number> = {
-  'road': 29.0,
-  'dirt': 22.0,
-  'cross-country': 18.0
+// Tire pressures anchored to FH6's 0.1-bar step so the value lands exactly on
+// a slider notch in metric. Stored as canonical psi via BAR_TO_PSI.
+const BAR_TO_PSI = 14.5038
+const TIRE_PRESSURE_BAR: Record<Surface, number> = {
+  'road': 2.0,
+  'dirt': 1.5,
+  'cross-country': 1.2
 }
 
 const CASTER_DEG = 5.0
@@ -116,6 +119,12 @@ const N_PER_MM_TO_LB_PER_IN = 5.71015
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v))
+}
+
+/** Round to 1 decimal — matches FH6's 0.1 slider step for dampers / ARB /
+ *  alignment / caster. Avoids floating-point noise like 8.300000000000001. */
+function step1(v: number): number {
+  return Number(v.toFixed(1))
 }
 
 /** Spring rate from sprung mass + target natural frequency.
@@ -195,36 +204,37 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
   // (When weight or weightFrontPct is missing, blockers prevents submission;
   // springs are left undefined in the preview.)
 
-  // Dampers — stiffness drives magnitude, balance shifts F/R.
+  // Dampers — stiffness drives magnitude, balance shifts F/R. FH6 step is 0.1.
   const bump = DAMPER_BUMP_BASE * stiff
   const reb = DAMPER_REBOUND_BASE * stiff
-  tune.bumpFront = Math.round(clamp(bump + bal, 1, 20))
-  tune.bumpRear = Math.round(clamp(bump - bal, 1, 20))
-  tune.reboundFront = Math.round(clamp(reb + bal, 1, 20))
-  tune.reboundRear = Math.round(clamp(reb - bal, 1, 20))
+  tune.bumpFront = step1(clamp(bump + bal, 1, 20))
+  tune.bumpRear = step1(clamp(bump - bal, 1, 20))
+  tune.reboundFront = step1(clamp(reb + bal, 1, 20))
+  tune.reboundRear = step1(clamp(reb - bal, 1, 20))
 
-  // ARB — stiffer end ⇒ more load transfer ⇒ less grip at that end.
-  tune.arbFront = Math.round(clamp(ARB_FRONT_BASE * stiff * (1 + 0.10 * bal), 1, 65))
-  tune.arbRear = Math.round(clamp(ARB_REAR_BASE * stiff * (1 - 0.10 * bal), 1, 65))
+  // ARB — stiffer end ⇒ more load transfer ⇒ less grip at that end. FH6 step is 0.1.
+  tune.arbFront = step1(clamp(ARB_FRONT_BASE * stiff * (1 + 0.10 * bal), 1, 65))
+  tune.arbRear = step1(clamp(ARB_REAR_BASE * stiff * (1 - 0.10 * bal), 1, 65))
 
   // Ride height — surface-driven; same front/rear for v1.
   const rh = RIDE_HEIGHT_IN[dials.surface]
   tune.rideHeightFront = rh
   tune.rideHeightRear = rh
 
-  // Alignment — 2-decimal precision so balance/surface scaling stays visible.
+  // Alignment — FH6 step is 0.1° everywhere. Display pads to 2 decimals.
   const camberF = CAMBER_FRONT_BASE[dials.surface]
-  tune.camberFront = Number(camberF.toFixed(2))
-  tune.camberRear = Number((camberF + CAMBER_REAR_OFFSET).toFixed(2))
-  tune.casterFront = CASTER_DEG
+  tune.camberFront = step1(clamp(camberF, -5, 5))
+  tune.camberRear = step1(clamp(camberF + CAMBER_REAR_OFFSET, -5, 5))
+  tune.casterFront = step1(clamp(CASTER_DEG, 1, 7))
   tune.toeFront = 0.0
   // Tight ⇒ more rear toe-in for stability; loose ⇒ less.
-  tune.toeRear = Number((TOE_REAR_BASE * (1 + 0.5 * bal)).toFixed(2))
+  tune.toeRear = step1(clamp(TOE_REAR_BASE * (1 + 0.5 * bal), -5, 5))
 
   // Tire pressure — flat F/R for v1; player adjusts after seeing tire-temp data.
-  const tp = TIRE_PRESSURE_PSI[dials.surface]
-  tune.tirePressureFront = tp
-  tune.tirePressureRear = tp
+  // Anchored to FH6's 0.1-bar slider notch (= 1.0–3.8 bar valid window).
+  const tp = clamp(TIRE_PRESSURE_BAR[dials.surface] * BAR_TO_PSI, 14.5, 55.1)
+  tune.tirePressureFront = Number(tp.toFixed(4))
+  tune.tirePressureRear = Number(tp.toFixed(4))
 
   // Differential — drivetrain-gated. Tight ⇒ more lock (more traction bias).
   const drivetrain = typeof build.drivetrain === 'string' ? build.drivetrain : null
@@ -244,9 +254,10 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
   }
   // (Missing drivetrain is a blocker — diff fields stay undefined in preview.)
 
-  // Brakes — slight front-bias bump for tight, dial back for loose.
-  tune.brakeBalance = clamp(Math.round(BRAKE_BALANCE_BASE + 2 * bal), 30, 70)
-  tune.brakePressure = BRAKE_PRESSURE
+  // Brakes — slight front-bias bump for tight, dial back for loose. FH6
+  // allows 0–100% balance and 0–200% pressure; our baseline stays mid-range.
+  tune.brakeBalance = clamp(Math.round(BRAKE_BALANCE_BASE + 2 * bal), 0, 100)
+  tune.brakePressure = clamp(BRAKE_PRESSURE, 0, 200)
 
   // Aero — emit per-axle absolute downforce (lb canonical; displays as kgf
   // in metric). Per-car maxes vary so these are mid-range defaults the user
