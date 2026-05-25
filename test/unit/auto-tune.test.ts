@@ -226,11 +226,39 @@ describe('computeAutoTune — required-field gating', () => {
     expect(tune.aeroRear).toBeGreaterThan(0)
   })
 
-  it('balance dial shifts aero front-rear distribution', () => {
+  it('balance dial shifts aero balance toward rear at tight, front at loose', () => {
+    // Option A: front anchored, rear derived to hit drivetrain target.
+    // Tight ⇒ more rear-biased balance ⇒ HIGHER aeroRear (more rear grip
+    // pushes the car toward understeer / "tight"). aeroFront stays put.
     const loose = computeAutoTune({ build: { ...RWD_S2_BUILD, aero: 'both' }, dials: { ...dials, balance: 'loose' } }).tune
     const tight = computeAutoTune({ build: { ...RWD_S2_BUILD, aero: 'both' }, dials: { ...dials, balance: 'tight' } }).tune
-    expect(tight.aeroFront).toBeGreaterThan(loose.aeroFront as number)
-    expect(tight.aeroRear).toBeLessThan(loose.aeroRear as number)
+    expect(tight.aeroFront).toBe(loose.aeroFront)
+    expect(tight.aeroRear).toBeGreaterThan(loose.aeroRear as number)
+  })
+
+  it('hits drivetrain-correct aero balance at neutral', () => {
+    const fwd = computeAutoTune({ build: { ...FWD_BUILD, aero: 'both' }, dials: { ...dials, balance: 'neutral' } }).tune
+    const rwd = computeAutoTune({ build: { ...RWD_S2_BUILD, aero: 'both' }, dials: { ...dials, balance: 'neutral' } }).tune
+    const awd = computeAutoTune({ build: { ...AWD_BUILD, aero: 'both' }, dials: { ...dials, balance: 'neutral' } }).tune
+    const balance = (f: number, r: number) => f / (f + r)
+    expect(balance(fwd.aeroFront as number, fwd.aeroRear as number)).toBeCloseTo(0.50, 1)
+    expect(balance(rwd.aeroFront as number, rwd.aeroRear as number)).toBeCloseTo(0.52, 1)
+    expect(balance(awd.aeroFront as number, awd.aeroRear as number)).toBeCloseTo(0.42, 1)
+  })
+
+  it('keeps aero magnitudes below the lowest known race-kit cap (~110 / ~220 lb)', () => {
+    // Sanity check that Option A's "conservative" claim holds — front never
+    // exceeds 110 lb, rear never exceeds 220 lb across all dial combinations.
+    for (const stiffness of ['soft', 'medium', 'stiff'] as const) {
+      for (const balance of ['loose', 'neutral', 'tight'] as const) {
+        const { tune } = computeAutoTune({
+          build: { ...AWD_BUILD, aero: 'both' },
+          dials: { stiffness, balance, surface: 'road' }
+        })
+        if (tune.aeroFront !== undefined) expect(tune.aeroFront).toBeLessThanOrEqual(110)
+        if (tune.aeroRear !== undefined) expect(tune.aeroRear).toBeLessThanOrEqual(220)
+      }
+    }
   })
 
   it('never emits a legacy aeroBalance field', () => {

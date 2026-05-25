@@ -139,10 +139,23 @@ const BRAKE_BALANCE_BASE = 52 // % front
 const BRAKE_PRESSURE = 100
 
 // Aero — values are stored in lb (Forza-canonical); metric display is kgf.
-// FH6 sliders are per-car so absolute max varies; these are conservative
-// mid-range defaults for an aero-equipped circuit build.
-const AERO_FRONT_BASE_LB = 150
-const AERO_REAR_BASE_LB = 250
+// FH6 slider max is per-car (bumper + wing dependent), so the absolute
+// magnitude can clip per car. We anchor below the lowest published race-kit
+// cap (~110 lb front, ~220 lb rear from FH4/5 QuickTune lineage) and let the
+// drivetrain-correct Aero Balance target drive the F/R ratio.
+//
+// FH6's in-game readout exposes an "Aero Balance" stat = F / (F + R).
+// Community consensus (forzatune, forzafire, kboosting, sportskeeda):
+//   FWD ≈ 0.50, RWD ≈ 0.52, AWD ≈ 0.42 (AWD wants more front to fight push)
+const AERO_FRONT_BASE_LB = 90
+const AERO_REAR_WING_ONLY_LB = 110
+const AERO_TARGET_BALANCE: Record<string, number> = {
+  fwd: 0.50,
+  rwd: 0.52,
+  awd: 0.42
+}
+const AERO_TARGET_BALANCE_DEFAULT = 0.50
+const AERO_BALANCE_DIAL_SHIFT = 0.03 // per balance click; tight ⇒ more rear-biased
 
 // --- HELPERS --------------------------------------------------------------
 
@@ -335,14 +348,26 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
   tune.brakePressure = clamp(BRAKE_PRESSURE, 0, 200)
 
   // Aero — emit per-axle absolute downforce (lb canonical; displays as kgf
-  // in metric). Per-car maxes vary so these are mid-range defaults the user
-  // can dial to their car's slider range. Balance pref shifts ±20 lb F/R.
+  // in metric). Conservative magnitudes (under the lowest known race-kit
+  // slider cap) so values don't get clipped on lower-class cars; the
+  // drivetrain-correct Aero Balance target drives the F/R ratio.
+  //
+  //   splitter-only: front aero adds front grip → tight dial ↓ aeroFront
+  //   wing-only:     rear aero adds rear grip   → tight dial ↑ aeroRear
+  //   both:          anchor front, derive rear to hit drivetrain target;
+  //                  tight dial shifts target toward more-rear-biased
   const aero = typeof build.aero === 'string' ? build.aero : 'none'
-  if (aero === 'splitter' || aero === 'both') {
-    tune.aeroFront = Math.max(0, Math.round(AERO_FRONT_BASE_LB + 20 * bal))
-  }
-  if (aero === 'wing' || aero === 'both') {
-    tune.aeroRear = Math.max(0, Math.round(AERO_REAR_BASE_LB - 20 * bal))
+  if (aero === 'splitter') {
+    tune.aeroFront = Math.max(0, Math.round(AERO_FRONT_BASE_LB - 10 * bal))
+  } else if (aero === 'wing') {
+    tune.aeroRear = Math.max(0, Math.round(AERO_REAR_WING_ONLY_LB + 10 * bal))
+  } else if (aero === 'both') {
+    const baseTarget = AERO_TARGET_BALANCE[drivetrain ?? ''] ?? AERO_TARGET_BALANCE_DEFAULT
+    const target = clamp(baseTarget - AERO_BALANCE_DIAL_SHIFT * bal, 0.2, 0.8)
+    const f = AERO_FRONT_BASE_LB
+    const r = f * (1 - target) / target
+    tune.aeroFront = Math.max(0, Math.round(f))
+    tune.aeroRear = Math.max(0, Math.round(r))
   }
 
   tune.notes = `Auto-baseline · ${dials.stiffness}/${dials.balance}/${dials.surface}. Seed for /tune diagnostics — drive it and refine.`
