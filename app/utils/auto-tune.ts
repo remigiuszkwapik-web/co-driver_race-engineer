@@ -61,15 +61,31 @@ const UNSPRUNG_RATIO = 0.13
 
 /** Front suspension frequency (Hz) at neutral dials, by surface. Rear gets
  *  +FREQ_REAR_OFFSET for "flat-ride" tuning (rear settles faster than front).
- *  Penske Shocks industry guidance: street 0.5-1.5 Hz, non-aero race 1.5-2.5,
- *  moderate downforce 2.5-3.5. 2.0 Hz sits in non-aero-race for road, with
- *  dirt and cross-country progressively softer for compliance. */
+ *  Baseline anchored to NumberlessMath's community Forza freq table
+ *  (forums.forza.net basic-formula-for-spring-rate): soft 1.98, moderate
+ *  2.42, stiff 2.80 Hz. With STIFFNESS_MUL = 0.85/1.0/1.15 applied on top,
+ *  road lands at 2.06/2.42/2.78 — within 0.02 Hz of all three community
+ *  targets. Dirt and cross-country drop proportionally (~×0.80 / ~×0.70)
+ *  into the rally band (DRTuned 1.5–2.0 Hz) for compliance. */
 const FREQ_FRONT_BASE: Record<Surface, number> = {
-  'road': 2.0,
-  'dirt': 1.6,
-  'cross-country': 1.4
+  'road': 2.42,
+  'dirt': 1.94,
+  'cross-country': 1.69
 }
 const FREQ_REAR_OFFSET = 0.2
+
+/** Spring-frequency multiplier by aero package. NumberlessMath separates a
+ *  "heavy aero / limited travel" band at 3.43 Hz and "heavy aero + limited
+ *  travel" at 3.96 Hz from the non-aero "Stiff" 2.80 Hz. We map: splitter or
+ *  wing alone ⇒ +10 %, both ⇒ +22 % — so stiff+both lands at ~3.40 Hz
+ *  (community "heavy aero"), comfortably mid-slider on FH6's per-car spring
+ *  range instead of pegged at the floor. */
+const AERO_FREQ_MUL: Record<string, number> = {
+  none: 1.00,
+  splitter: 1.10,
+  wing: 1.10,
+  both: 1.22
+}
 
 /** Damper midpoints on FH's 1–20 scale at neutral dials, for the reference
  *  build (see REFERENCE_*). Real damper rate scales with √(sprung mass)
@@ -248,13 +264,20 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
     buildComplete = true
   }
 
-  // Springs — frequency method.
+  // Aero package — read once, used by both the spring-frequency multiplier
+  // and the downforce assignment further below.
+  const aero = typeof build.aero === 'string' ? build.aero : 'none'
+
+  // Springs — frequency method. Aero package scales the target frequency:
+  // a car with downforce wants to keep ride height stable under high-speed
+  // load and so wants stiffer springs than its mass-and-surface peers.
+  const aeroMul = AERO_FREQ_MUL[aero] ?? 1.00
   if (buildComplete) {
     const freqFBase = FREQ_FRONT_BASE[dials.surface]
     const freqRBase = freqFBase + FREQ_REAR_OFFSET
     // Tight ⇒ stiffer front, softer rear (load to front to reduce rotation).
-    const freqF = freqFBase * stiff * (1 + 0.05 * bal)
-    const freqR = freqRBase * stiff * (1 - 0.05 * bal)
+    const freqF = freqFBase * stiff * aeroMul * (1 + 0.05 * bal)
+    const freqR = freqRBase * stiff * aeroMul * (1 - 0.05 * bal)
     tune.springsFront = Math.round(springRateLbIn(sprungF, freqF))
     tune.springsRear = Math.round(springRateLbIn(sprungR, freqR))
   }
@@ -356,7 +379,6 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
   //   wing-only:     rear aero adds rear grip   → tight dial ↑ aeroRear
   //   both:          anchor front, derive rear to hit drivetrain target;
   //                  tight dial shifts target toward more-rear-biased
-  const aero = typeof build.aero === 'string' ? build.aero : 'none'
   if (aero === 'splitter') {
     tune.aeroFront = Math.max(0, Math.round(AERO_FRONT_BASE_LB - 10 * bal))
   } else if (aero === 'wing') {

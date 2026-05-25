@@ -288,17 +288,20 @@ describe('missingRequiredFields helper', () => {
 })
 
 describe('computeAutoTune — spring math sanity', () => {
-  it('S2 1400 kg / 48F at medium-neutral-road lands in a plausible lb/in range', () => {
+  it('S2 1400 kg / 48F wing at medium-neutral-road lands in a plausible lb/in range', () => {
     // Sprung mass per corner ≈ 1400·0.87·0.48/2 ≈ 292 kg front, 317 kg rear.
-    // @ 2.0 Hz: k_N/mm ≈ (12.57)²·292/1000 ≈ 46 → ≈ 263 lb/in. Same form for rear.
+    // Road medium = 2.42 Hz × wing aero ×1.10 = 2.66 Hz front, 2.88 Hz rear.
+    // k_N/mm ≈ (2π·2.66)²·292/1000 ≈ 82 → ≈ 466 lb/in. Same form for rear (~591).
+    // Bounds widened to bracket the community-anchored target without
+    // pinning the exact value (mass / aero / surface tweaks can shift it).
     const { tune } = computeAutoTune({
       build: RWD_S2_BUILD,
       dials: { stiffness: 'medium', balance: 'neutral', surface: 'road' }
     })
-    expect(tune.springsFront).toBeGreaterThan(200)
-    expect(tune.springsFront).toBeLessThan(400)
-    expect(tune.springsRear).toBeGreaterThan(250)
-    expect(tune.springsRear).toBeLessThan(500)
+    expect(tune.springsFront).toBeGreaterThan(400)
+    expect(tune.springsFront).toBeLessThan(550)
+    expect(tune.springsRear).toBeGreaterThan(500)
+    expect(tune.springsRear).toBeLessThan(700)
   })
 })
 
