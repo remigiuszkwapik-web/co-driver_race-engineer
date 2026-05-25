@@ -6,12 +6,37 @@ personal tuning instrument; **measurement-not-prescription**; player-centric
 language; build and tune as separate layers; the loop is tune-and-measure
 with `/tune/*` and `/upgrade/*` as the only prescriptive surfaces.
 
-Last refreshed 2026-05-24 (post-g-g-scatter).
+Last refreshed 2026-05-25 (post-suspension-surface).
 
 ---
 
 ## Recently shipped
 
+- **Suspension tuning surface upgrade** — commits `d5f2550` +
+  `a6b167f` + `4b53332`. Three-part build addressing the most
+  community-used (and hardest to read) part of tuning:
+  (1) **Real-time damper velocity per corner** on `CornerPanel` —
+  signed mm/s readout derived in `CornerView` from frame-to-frame
+  `suspensionMeters` deltas with pause-edge guards; color reflects
+  the pro-tool zone convention (slow / medium / fast).
+  (2) **Damper velocity histogram per corner over a whole lap** —
+  the pro-tool standard view. New pure module
+  `app/utils/damper-velocity.ts` (16 unit tests), new
+  `SuspensionHistogram.vue` (2×2 grid, 12% target line, zone-time-
+  share row). Reads as a symmetric cone near 0 mm/s — wide = damper
+  too soft, narrow = too stiff, asymmetry = unbalanced bump/rebound.
+  Mounted on the replay player (whole-lap aggregate) and on the
+  `/tune/dampers` slug page (last 5 laps, server-precomputed so raw
+  frames stay on the server via `/api/tune-data`).
+  (3) **A vs B histograms on `/compare`** — chassis-behavior diff
+  between two tunes at a glance, mounted between TrackMap and the
+  sector/apex tables.
+  Validated end-to-end against session 19's real data: 7080 samples
+  per corner, mean ≈ 0, expected bump-vs-rebound asymmetry, peaks
+  at ~16-19 % in the near-zero bin. Driven by community research,
+  not a pre-existing wishlist item — but consumes the natural
+  next-step for both the `/tune/dampers` data panel and the
+  `/replay` per-lap-summary surface.
 - **G-G scatter envelope on `/live`** — commit `c7e8d75`. The chassis
   G-G dot in `CenterPanel` now renders ~20 s of history as a fading
   amber scatter (200 samples, decimated to ~10 Hz) instead of a
@@ -211,6 +236,12 @@ prescriptive coaching layer.
   Sum-of-best-sectors footer under the predicted/last/best row.
   Session-scoped only; not yet a column in the lap table — separate
   iteration if that becomes useful.
+- **Ride-height histogram** on `/tune/ride-height` — reuses the
+  `computeHistogram()` machinery from `a6b167f`, fed
+  `suspensionMeters` instead of damper velocity. Single-pass swap;
+  ~30 LOC. Surfaces how much time the chassis spends at each ride-
+  height band over a session — pairs with the bottoming-percent
+  number already on the page.
 
 ### Bigger lifts
 
@@ -220,6 +251,11 @@ prescriptive coaching layer.
   `dafd0b4` (moved to top of stack at 2× height). Pairs with the new
   sector-delta and apex-speed tables on `/compare` for the
   "where time leaks" picture.
+- **Damper velocity scatter** (position-vs-velocity X-Y plot) — the
+  next-most-useful pro-tool suspension view after the histogram
+  (`a6b167f`). Suspension position on X, velocity on Y; a "C" shape
+  reveals imbalanced damping that the histogram alone can't surface.
+  Same velocity calc as the histogram, new visualization.
 - **Whole-lap G-G scatter on `/replay` and `/compare`** — `/live`'s
   G-G dot now shows the rolling ~20 s envelope (`c7e8d75`). What's
   still open: render every frame of a completed lap as a faded dot so
