@@ -161,54 +161,20 @@ useHead({
             />
           </UDropdownMenu>
           <nav class="hidden items-center gap-1 sm:flex">
+            <!-- Iterates NAV_ITEMS so adding a new route requires only
+                 one edit (in app/utils/nav.ts). `exact: true` routes
+                 use `exact-active-class`; everything else uses
+                 `active-class` so nested paths keep the parent highlighted
+                 (e.g. /tune/dampers lights the "Tune" tab). -->
             <NuxtLink
-              to="/live"
-              exact-active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
+              v-for="item in NAV_ITEMS"
+              :key="item.to"
+              :to="item.to"
+              :active-class="item.exact ? '' : 'border-zinc-600 bg-zinc-900 text-zinc-100'"
+              :exact-active-class="item.exact ? 'border-zinc-600 bg-zinc-900 text-zinc-100' : ''"
               class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
             >
-              Live
-            </NuxtLink>
-            <NuxtLink
-              to="/dyno"
-              active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
-              class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
-            >
-              Dyno
-            </NuxtLink>
-            <NuxtLink
-              to="/cars"
-              active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
-              class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
-            >
-              Cars
-            </NuxtLink>
-            <NuxtLink
-              to="/events"
-              active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
-              class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
-            >
-              Events
-            </NuxtLink>
-            <NuxtLink
-              to="/tune"
-              active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
-              class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
-            >
-              Tune
-            </NuxtLink>
-            <NuxtLink
-              to="/upgrade"
-              active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
-              class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
-            >
-              Upgrade
-            </NuxtLink>
-            <NuxtLink
-              to="/settings"
-              active-class="border-zinc-600 bg-zinc-900 text-zinc-100"
-              class="rounded-sm border border-transparent px-2.5 py-1 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100"
-            >
-              Settings
+              {{ item.label }}
             </NuxtLink>
           </nav>
         </div>
