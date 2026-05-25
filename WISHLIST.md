@@ -6,12 +6,26 @@ personal tuning instrument; **measurement-not-prescription**; player-centric
 language; build and tune as separate layers; the loop is tune-and-measure
 with `/tune/*` and `/upgrade/*` as the only prescriptive surfaces.
 
-Last refreshed 2026-05-25 (post-suspension-surface).
+Last refreshed 2026-05-25 (post-manual).
 
 ---
 
 ## Recently shipped
 
+- **Per-surface manual at `/manual/*`** — commit `a51dfaf`. Reading
+  guide for every visualization the tool ships, organized by where
+  it lives: one page per surface (`/manual/live`, `/manual/replay`,
+  `/manual/compare`, `/manual/hotlap`), each with context-appropriate
+  "what / how / shape interpretations" entries for the graphs on
+  that surface. New reusable `ManualEntry.vue` (title + where +
+  intro / how / shapes / seeAlso slots) keeps each page consistent
+  without duplicating markup. Context-local "manual" links land on
+  every surface: floating top-right on `/live`, in the bottom
+  metadata strip on `/hotlap`, in the PageHeader breadcrumb on
+  `/compare`, and inside the player header on `ReplayPlayer`. The
+  global-nav entry routes to the `/manual` index. Driven by an
+  observation about the visualization sprawl, not a pre-existing
+  wishlist item.
 - **Suspension tuning surface upgrade** — commits `d5f2550` +
   `a6b167f` + `4b53332`. Three-part build addressing the most
   community-used (and hardest to read) part of tuning:
