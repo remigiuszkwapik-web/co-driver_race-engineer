@@ -269,6 +269,18 @@ const diffRows = computed<SetupDiffRow[]>(() => {
         </NuxtLink>
         <span class="text-zinc-700">/</span>
         <span class="text-zinc-300">Compare</span>
+        <span class="text-zinc-700">·</span>
+        <NuxtLink
+          to="/manual/compare"
+          class="inline-flex items-center gap-1 text-zinc-500 hover:text-green-300"
+          title="How to read the graphs on this page"
+        >
+          <UIcon
+            name="i-lucide-book-open"
+            class="h-3.5 w-3.5"
+          />
+          <span>manual</span>
+        </NuxtLink>
       </template>
       <template #actions>
         <div

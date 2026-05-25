@@ -303,18 +303,31 @@ function formatRaceTime(s: number): string {
       />
 
       <!-- Bottom metadata strip — borrows the compare.vue dense-info row. -->
-      <div class="-mx-4 border-y border-zinc-800/80 bg-zinc-950/40 px-4 py-2 font-mono text-xs text-zinc-300 sm:-mx-6 sm:px-6">
-        <template v-if="car">
-          <span class="text-zinc-500">[{{ car.classLetter }}]</span>
-          {{ car.displayName }}
-          <span class="text-zinc-500">·</span>
-          PI {{ car.pi }}
-          <span class="text-zinc-500">·</span>
-          {{ car.tuneLabel }}
-        </template>
-        <template v-else>
-          <span class="text-zinc-500">no car identified</span>
-        </template>
+      <div class="-mx-4 flex items-center justify-between gap-3 border-y border-zinc-800/80 bg-zinc-950/40 px-4 py-2 font-mono text-xs text-zinc-300 sm:-mx-6 sm:px-6">
+        <span>
+          <template v-if="car">
+            <span class="text-zinc-500">[{{ car.classLetter }}]</span>
+            {{ car.displayName }}
+            <span class="text-zinc-500">·</span>
+            PI {{ car.pi }}
+            <span class="text-zinc-500">·</span>
+            {{ car.tuneLabel }}
+          </template>
+          <template v-else>
+            <span class="text-zinc-500">no car identified</span>
+          </template>
+        </span>
+        <NuxtLink
+          to="/manual/hotlap"
+          class="inline-flex items-center gap-1 text-zinc-500 hover:text-green-300"
+          title="How to read the graphs on this page"
+        >
+          <UIcon
+            name="i-lucide-book-open"
+            class="h-3 w-3"
+          />
+          <span>manual</span>
+        </NuxtLink>
       </div>
     </div>
   </div>

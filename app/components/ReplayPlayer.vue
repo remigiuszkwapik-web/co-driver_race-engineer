@@ -195,7 +195,20 @@ const trailBrakingBandsReplay = computed(() => {
 <template>
   <div class="card p-4">
     <header class="mb-3 flex items-center justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-      <span>Replay · {{ frames.length }} frames</span>
+      <span class="flex items-center gap-3">
+        <span>Replay · {{ frames.length }} frames</span>
+        <NuxtLink
+          to="/manual/replay"
+          class="inline-flex items-center gap-1 normal-case tracking-normal hover:text-green-300"
+          title="How to read the graphs on this page"
+        >
+          <UIcon
+            name="i-lucide-book-open"
+            class="h-3 w-3"
+          />
+          <span>manual</span>
+        </NuxtLink>
+      </span>
       <span class="tabular-nums text-zinc-300">
         {{ formatTime(elapsedMs) }} / {{ formatTime(totalMs) }}
       </span>

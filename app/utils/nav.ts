@@ -13,5 +13,6 @@ export const NAV_ITEMS: DropdownMenuItem[] = [
   { label: 'Events', to: '/events' },
   { label: 'Tune', to: '/tune' },
   { label: 'Upgrade', to: '/upgrade' },
+  { label: 'Manual', to: '/manual' },
   { label: 'Settings', to: '/settings' }
 ]

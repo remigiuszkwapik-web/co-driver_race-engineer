@@ -111,6 +111,21 @@ watch(() => {
       />
     </UDropdownMenu>
 
+    <!-- Floating manual link — context-aware deep link to /manual/live.
+         Sits in the top-right so it doesn't compete with the hamburger
+         and is out of the way of the telemetry stack on landscape phones. -->
+    <NuxtLink
+      to="/manual/live"
+      class="fixed top-1 right-1 z-40 inline-flex items-center gap-1 rounded-md bg-zinc-950/70 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400 backdrop-blur-sm transition-colors hover:text-green-300"
+      title="How to read the graphs on this page"
+    >
+      <UIcon
+        name="i-lucide-book-open"
+        class="h-3 w-3"
+      />
+      <span class="hidden sm:inline">manual</span>
+    </NuxtLink>
+
     <!-- Waiting state — never received a frame yet -->
     <div
       v-if="!hasReceivedFrame"
