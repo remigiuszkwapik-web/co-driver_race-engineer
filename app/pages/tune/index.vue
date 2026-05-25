@@ -25,7 +25,7 @@ const PHASE_LABEL: Record<typeof DIAGNOSES[number]['phase'], string> = {
         changes in the car, which telemetry signal it leaves a fingerprint on, and
         what to reach for when the car does the wrong thing. Distilled from years
         of FH community knowledge and updated for FH6's caster sensitivity, fixed
-        brake-bias slider, aero-balance slider, and narrower diff ranges.
+        brake-bias slider, and narrower diff ranges.
       </template>
     </PageHeader>
 

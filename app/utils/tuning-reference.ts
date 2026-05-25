@@ -4,8 +4,8 @@
  * Distilled from years of FH4/FH5 community knowledge (ForzaTune, simracingsetup,
  * Forza forums, Diamond Lobby, GAMES.GG, Sportskeeda) and updated for the FH6
  * physics/UI changes (caster sensitivity, fixed brake-bias slider direction,
- * new aero-balance slider, tighter differential default ranges, tire-width /
- * track-width as first-class build levers, R-Class).
+ * tighter differential default ranges, tire-width / track-width as first-class
+ * build levers, R-Class).
  *
  * Tied to the telemetry signals this app decodes from the Car Dash packet —
  * each entry tells the user *which trace to look at* before reaching for the
@@ -362,13 +362,12 @@ export const TUNE_CATEGORIES: TuneCategory[] = [
       'Aero only matters above ~100 km/h, and grip from downforce scales with the square of speed. At 200 km/h, downforce is 4× what it was at 100 km/h. Below 80 km/h, you might as well not have a wing.',
       'Front aero: run it high. More front downforce means more high-speed turn-in grip. The cost (top speed) is small for the front splitter; the gain (cornering) is large. Default to max front for most circuits.',
       'Rear aero: run as little as you can get away with. Rear wing drag is huge — drop it as far as you can without the rear stepping out in high-speed corners. If the rear feels loose only above 150 km/h, that\'s a rear-wing problem.',
-      'FH6 adds an **aero balance** slider on top of the per-axle wing values — a single % that shifts the front/rear split without re-tuning both ends. Use balance for fine corrections; use the individual sliders to set the absolute level of grip and drag. Widebody kits in FH6 unlock front-axle downforce on cars that previously couldn\'t adjust it.',
+      'Widebody kits in FH6 unlock front-axle downforce on cars that previously couldn\'t adjust it.',
       'Some cars don\'t have adjustable aero. Some have aero only at one end. Mods/upgrade slots unlock it.'
     ],
     controls: [
       { name: 'Front downforce', range: 'Usually run at max for road and circuit; lower for top-speed builds', raises: 'more high-speed turn-in grip; small top-speed loss', lowers: 'better top speed; high-speed understeer creeps in' },
-      { name: 'Rear downforce', range: 'Start at minimum; raise only if rear unsticks in fast corners', raises: 'high-speed rear stability; significant top-speed loss', lowers: 'big top-speed gain; fast-corner oversteer if too low' },
-      { name: 'Aero balance (% front) — FH6', range: '45–55% typical; shifts the existing front/rear downforce split', raises: 'more front grip relative to rear — fixes high-speed understeer', lowers: 'more rear grip relative to front — fixes high-speed oversteer' }
+      { name: 'Rear downforce', range: 'Start at minimum; raise only if rear unsticks in fast corners', raises: 'high-speed rear stability; significant top-speed loss', lowers: 'big top-speed gain; fast-corner oversteer if too low' }
     ],
     signals: [
       { key: 'slipAngle', look: 'High-speed corner only: rear slip-angle spike at 180+ km/h but fine at 100 km/h = rear aero too low' },

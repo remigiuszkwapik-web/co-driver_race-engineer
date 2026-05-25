@@ -190,17 +190,52 @@ describe('computeAutoTune — required-field gating', () => {
     expect(tune.brakeBalance).toBeDefined()
   })
 
-  it('omits aero balance when build has no aero', () => {
+  it('omits aero values when build has no aero', () => {
     const { tune } = computeAutoTune({
       build: { ...RWD_S2_BUILD, aero: 'none' },
       dials
     })
-    expect(tune.aeroBalance).toBeUndefined()
+    expect(tune.aeroFront).toBeUndefined()
+    expect(tune.aeroRear).toBeUndefined()
   })
 
-  it('emits aero balance when build has aero', () => {
+  it('emits rear aero only when build has wing only', () => {
+    const { tune } = computeAutoTune({
+      build: { ...RWD_S2_BUILD, aero: 'wing' },
+      dials
+    })
+    expect(tune.aeroFront).toBeUndefined()
+    expect(tune.aeroRear).toBeGreaterThan(0)
+  })
+
+  it('emits front aero only when build has splitter only', () => {
+    const { tune } = computeAutoTune({
+      build: { ...RWD_S2_BUILD, aero: 'splitter' },
+      dials
+    })
+    expect(tune.aeroFront).toBeGreaterThan(0)
+    expect(tune.aeroRear).toBeUndefined()
+  })
+
+  it('emits front + rear when build has both', () => {
+    const { tune } = computeAutoTune({
+      build: { ...RWD_S2_BUILD, aero: 'both' },
+      dials
+    })
+    expect(tune.aeroFront).toBeGreaterThan(0)
+    expect(tune.aeroRear).toBeGreaterThan(0)
+  })
+
+  it('balance dial shifts aero front-rear distribution', () => {
+    const loose = computeAutoTune({ build: { ...RWD_S2_BUILD, aero: 'both' }, dials: { ...dials, balance: 'loose' } }).tune
+    const tight = computeAutoTune({ build: { ...RWD_S2_BUILD, aero: 'both' }, dials: { ...dials, balance: 'tight' } }).tune
+    expect(tight.aeroFront).toBeGreaterThan(loose.aeroFront as number)
+    expect(tight.aeroRear).toBeLessThan(loose.aeroRear as number)
+  })
+
+  it('never emits a legacy aeroBalance field', () => {
     const { tune } = computeAutoTune({ build: RWD_S2_BUILD, dials })
-    expect(tune.aeroBalance).toBeDefined()
+    expect((tune as Record<string, unknown>).aeroBalance).toBeUndefined()
   })
 })
 

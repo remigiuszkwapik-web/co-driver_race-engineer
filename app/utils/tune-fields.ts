@@ -121,7 +121,6 @@ export const TUNE_FIELDS: readonly TuneField[] = [
   // Aero — downforce stored in lb (Forza native); displayed via unit pref
   { id: 'aeroFront', label: 'Front aero', section: 'aero', kind: 'number', unitCategory: 'downforce', tuneRef: 'aero' },
   { id: 'aeroRear', label: 'Rear aero', section: 'aero', kind: 'number', unitCategory: 'downforce', tuneRef: 'aero' },
-  { id: 'aeroBalance', label: 'Aero balance', section: 'aero', kind: 'number', unit: '% front', tuneRef: 'aero' },
 
   // Gearing — final drive only in v1; per-gear ratios deferred.
   { id: 'finalDrive', label: 'Final drive', section: 'gears', kind: 'number', tuneRef: 'gearing' },

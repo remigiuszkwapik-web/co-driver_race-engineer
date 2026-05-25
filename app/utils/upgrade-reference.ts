@@ -349,7 +349,7 @@ export const UPGRADE_CATEGORIES: UpgradeCategory[] = [
     summary: 'Cornering grip at the cost of top speed. Front aero is usually free; rear wing is the expensive half.',
     tuneRef: 'aero',
     what: [
-      'Aero upgrades work in pairs with the tuning sliders they unlock. The Race front bumper enables the front downforce slider; the Race rear wing enables the rear. Without the part, the slider is grey. FH6 added an aero balance slider on top of the per-axle values — but you need at least one aero part installed for it to do anything.',
+      'Aero upgrades work in pairs with the tuning sliders they unlock. The Race front bumper enables the front downforce slider; the Race rear wing enables the rear. Without the part, the slider is grey.',
       'Front aero is usually cheap PI and worth installing on any road build above B-class. Rear aero is the expensive half — significant drag cost on top speed, only justified if the rear unhooks in fast corners (which becomes more common at S1/S2/R).',
       'Widebody kits unlock wider tire fitment and sometimes additional aero adjustability. They cost real PI *and* add drag — only install them if you\'re actually using the wider tires or the unlocked aero. Cosmetic widebody is a PI waste.',
       'Race hoods and bumpers also act as weight reduction (5–15 kg on the hood, more on combined kits). Stacks usefully with the main Race weight reduction part.'
@@ -371,7 +371,7 @@ export const UPGRADE_CATEGORIES: UpgradeCategory[] = [
     ],
     traps: [
       { trap: 'Widebody for the look on a tight PI budget', why: 'You pay drag and PI for cosmetic visual change', instead: 'Skip widebody unless the wider tires actually save lap time' },
-      { trap: 'Rear wing on a speed-circuit build', why: 'Top-speed loss outweighs the cornering gain when most of the lap is straight', instead: 'Front splitter only; tune aero balance forward' }
+      { trap: 'Rear wing on a speed-circuit build', why: 'Top-speed loss outweighs the cornering gain when most of the lap is straight', instead: 'Front splitter only; keep rear downforce off' }
     ],
     related: ['tires', 'weight']
   },

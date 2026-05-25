@@ -14,7 +14,7 @@ interface UnitPrefs {
   pressure: 'psi' | 'bar' | 'kpa'
   /** Picks mm/m/km vs in/ft/mi contextually by magnitude. */
   distance: 'metric' | 'imperial'
-  springRate: 'lbin' | 'kgmm'
+  springRate: 'lbin' | 'nmm'
   downforce: 'lb' | 'kgf'
   power: 'hp' | 'kw' | 'ps'
   torque: 'lbft' | 'nm'
@@ -41,7 +41,7 @@ const METRIC_PRESET: UnitPrefs = {
   temperature: 'c',
   pressure: 'bar',
   distance: 'metric',
-  springRate: 'kgmm',
+  springRate: 'nmm',
   downforce: 'kgf',
   power: 'kw',
   torque: 'nm',
@@ -68,7 +68,11 @@ const PSI_TO_BAR = 0.0689476
 const PSI_TO_KPA = 6.89476
 const M_TO_FT = 3.28084
 const M_TO_MI = 0.000621371
-const LBIN_TO_KGMM = 0.0178579
+// FH6's metric spring-rate slider reads in N/mm (newton-per-millimetre). The
+// older "kgf/mm" label that some sim guides use is off by a factor of g
+// (≈ 9.80665): 1 lb/in × 0.0178579 ≈ kgf/mm; 1 lb/in × 0.175127 = N/mm.
+// Sanity check: 240 lb/in = 42 N/mm, matching the bottom of the FH6 slider.
+const LBIN_TO_NMM = 0.175127
 const LB_TO_KGF = 0.453592
 const KW_TO_HP = 1.34102
 const KW_TO_PS = 1.35962
@@ -97,6 +101,14 @@ export function useUnits() {
     mergeDefaults: true
   })
 
+  // Legacy migration: the old metric spring-rate value 'kgmm' was mislabeled —
+  // it stored kgf/mm-magnitude numbers, but FH6's slider is in N/mm (= kgf/mm × g).
+  // Anything still set to 'kgmm' in localStorage gets bumped to the corrected
+  // 'nmm' so the UI shows the right unit and conversion.
+  if ((prefs.value.springRate as string) === 'kgmm') {
+    prefs.value = { ...prefs.value, springRate: 'nmm' }
+  }
+
   // --- unit labels --------------------------------------------------------
 
   const unitLabel = reactive({
@@ -108,8 +120,9 @@ export function useUnits() {
       return 'psi'
     }),
     /** Bare suffix for tune-form inputs (short distance — ride height etc.) */
-    distanceShort: computed(() => prefs.value.distance === 'imperial' ? 'in' : 'mm'),
-    springRate: computed(() => prefs.value.springRate === 'kgmm' ? 'kg/mm' : 'lb/in'),
+    distanceShort: computed(() => prefs.value.distance === 'imperial' ? 'in' : 'cm'),
+    springRate: computed(() => prefs.value.springRate === 'nmm' ? 'N/mm' : 'lb/in'),
+    // ride height: cm in metric (FH6 displays cm), in/ in imperial.
     downforce: computed(() => prefs.value.downforce === 'kgf' ? 'kgf' : 'lb'),
     power: computed(() => {
       if (prefs.value.power === 'hp') return 'hp'
@@ -165,15 +178,18 @@ export function useUnits() {
       }
       return `${meters.toFixed(smartDecimals(meters, 0))} m`
     },
-    /** Short distance with explicit precision (tune-form-friendly). */
+    /** Short distance with explicit precision (tune-form-friendly). FH6
+     *  shows ride height in cm with 0.1 cm steps; we keep 2 decimals so
+     *  imperial-canonical values (multiples of 0.0254 cm) round-trip
+     *  without losing precision. */
     distanceShort(meters: number): string {
       if (prefs.value.distance === 'imperial') {
-        return `${(meters * M_TO_FT * 12).toFixed(1)} in`
+        return `${(meters * M_TO_FT * 12).toFixed(2)} in`
       }
-      return `${(meters * 1000).toFixed(0)} mm`
+      return `${(meters * 100).toFixed(2)} cm`
     },
     springRate(lbPerIn: number): string {
-      if (prefs.value.springRate === 'kgmm') return `${(lbPerIn * LBIN_TO_KGMM).toFixed(2)} kg/mm`
+      if (prefs.value.springRate === 'nmm') return `${(lbPerIn * LBIN_TO_NMM).toFixed(2)} N/mm`
       return `${Math.round(lbPerIn)} lb/in`
     },
     downforce(lb: number): string {
@@ -218,14 +234,15 @@ export function useUnits() {
       return psi
     },
     springRate(lbPerIn: number): number {
-      if (prefs.value.springRate === 'kgmm') return Number((lbPerIn * LBIN_TO_KGMM).toFixed(2))
+      if (prefs.value.springRate === 'nmm') return Number((lbPerIn * LBIN_TO_NMM).toFixed(2))
       return lbPerIn
     },
-    /** Stored field is in inches (Forza native ride-height unit). */
+    /** Stored field is in inches (Forza native ride-height unit). Metric
+     *  display is cm (FH6 convention) with 2-decimal precision. */
     distanceShortIn(inches: number): number {
-      if (prefs.value.distance === 'imperial') return inches
-      // metric → mm
-      return Math.round(inches * 25.4 * 10) / 10
+      if (prefs.value.distance === 'imperial') return Number(inches.toFixed(2))
+      // inches → cm (2.54 cm per inch)
+      return Number((inches * 2.54).toFixed(2))
     },
     downforce(lb: number): number {
       if (prefs.value.downforce === 'kgf') return Math.round(lb * LB_TO_KGF)
@@ -251,13 +268,13 @@ export function useUnits() {
       return v
     },
     springRate(v: number): number {
-      if (prefs.value.springRate === 'kgmm') return Math.round(v / LBIN_TO_KGMM)
+      if (prefs.value.springRate === 'nmm') return Math.round(v / LBIN_TO_NMM)
       return v
     },
     distanceShortIn(v: number): number {
       if (prefs.value.distance === 'imperial') return v
-      // mm → inches, store at 2dp resolution
-      return Number((v / 25.4).toFixed(2))
+      // cm → inches (store at 2dp resolution)
+      return Number((v / 2.54).toFixed(2))
     },
     downforce(v: number): number {
       if (prefs.value.downforce === 'kgf') return Math.round(v / LB_TO_KGF)

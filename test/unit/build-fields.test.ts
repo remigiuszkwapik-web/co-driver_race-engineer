@@ -76,9 +76,10 @@ describe('formatFieldValue', () => {
     expect(formatFieldValue(f, 612)).toBe('612 HP')
   })
 
-  it('renders fractional numbers with one decimal', () => {
+  it('renders fractional numbers with two decimals', () => {
     const f = field({ unit: ' kg' })
-    expect(formatFieldValue(f, 1320.4)).toBe('1320.4 kg')
+    expect(formatFieldValue(f, 1320.4)).toBe('1320.40 kg')
+    expect(formatFieldValue(f, -1.8)).toBe('-1.80 kg')
   })
 
   it('falls back to "—" for non-numeric in number fields', () => {

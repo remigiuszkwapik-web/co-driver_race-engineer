@@ -7,9 +7,11 @@
  * damper / load / G-G diagnostics, and refine from there.
  *
  * Storage units are Forza-canonical throughout (lb/in springs, psi pressure,
- * inches ride height, lb downforce, degrees, % for diff/brake/aero-balance,
- * 1–20 dampers, 1–65 ARB). The frequency-method spring formula goes through
- * N/mm internally; everything else is dimensionless or already canonical.
+ * inches ride height, lb downforce, degrees, % for diff/brake, 1–20 dampers,
+ * 1–65 ARB). FH6's metric spring slider reads in N/mm and the metric aero
+ * slider in kgf — the unit composable handles the display conversion. The
+ * frequency-method spring formula goes through N/mm internally; everything
+ * else is dimensionless or already canonical.
  *
  * The constants in the CALIBRATION section are starting estimates from
  * suspension physics + community norms. They need verification against the
@@ -100,6 +102,12 @@ const TOE_REAR_BASE = 0.15 // slight rear toe-in for stability
 
 const BRAKE_BALANCE_BASE = 52 // % front
 const BRAKE_PRESSURE = 100
+
+// Aero — values are stored in lb (Forza-canonical); metric display is kgf.
+// FH6 sliders are per-car so absolute max varies; these are conservative
+// mid-range defaults for an aero-equipped circuit build.
+const AERO_FRONT_BASE_LB = 150
+const AERO_REAR_BASE_LB = 250
 
 // --- HELPERS --------------------------------------------------------------
 
@@ -204,10 +212,10 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
   tune.rideHeightFront = rh
   tune.rideHeightRear = rh
 
-  // Alignment.
+  // Alignment — 2-decimal precision so balance/surface scaling stays visible.
   const camberF = CAMBER_FRONT_BASE[dials.surface]
-  tune.camberFront = Number(camberF.toFixed(1))
-  tune.camberRear = Number((camberF + CAMBER_REAR_OFFSET).toFixed(1))
+  tune.camberFront = Number(camberF.toFixed(2))
+  tune.camberRear = Number((camberF + CAMBER_REAR_OFFSET).toFixed(2))
   tune.casterFront = CASTER_DEG
   tune.toeFront = 0.0
   // Tight ⇒ more rear toe-in for stability; loose ⇒ less.
@@ -240,13 +248,15 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
   tune.brakeBalance = clamp(Math.round(BRAKE_BALANCE_BASE + 2 * bal), 30, 70)
   tune.brakePressure = BRAKE_PRESSURE
 
-  // Aero — absolute downforce values depend on each car's max slider, which we
-  // don't know. Emit only aeroBalance % and leave the F/R sliders for the
-  // player to set against their car's range. See /tune/aero for guidance.
+  // Aero — emit per-axle absolute downforce (lb canonical; displays as kgf
+  // in metric). Per-car maxes vary so these are mid-range defaults the user
+  // can dial to their car's slider range. Balance pref shifts ±20 lb F/R.
   const aero = typeof build.aero === 'string' ? build.aero : 'none'
-  if (aero !== 'none') {
-    // Rear-bias default (more stable); tight shifts forward.
-    tune.aeroBalance = clamp(Math.round(40 + 5 * bal), 20, 80)
+  if (aero === 'splitter' || aero === 'both') {
+    tune.aeroFront = Math.max(0, Math.round(AERO_FRONT_BASE_LB + 20 * bal))
+  }
+  if (aero === 'wing' || aero === 'both') {
+    tune.aeroRear = Math.max(0, Math.round(AERO_REAR_BASE_LB - 20 * bal))
   }
 
   tune.notes = `Auto-baseline · ${dials.stiffness}/${dials.balance}/${dials.surface}. Seed for /tune diagnostics — drive it and refine.`
