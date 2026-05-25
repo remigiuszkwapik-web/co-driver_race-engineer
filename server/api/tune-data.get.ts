@@ -3,6 +3,7 @@ import { gunzipSync } from 'node:zlib'
 import { db, schema } from 'hub:db'
 import type { Telemetry } from '~~/server/utils/decode'
 import { summarizeFrames, type FrameAggregates } from '~~/app/utils/tune-signals'
+import { damperHistogramsForLap, type DamperHistogram } from '~~/app/utils/damper-velocity'
 import type { BuildSettings } from '~~/app/utils/build-fields'
 
 /**
@@ -162,6 +163,10 @@ export default defineEventHandler(async (event) => {
 
   const lapCount = lapRows.filter(l => l.timeMs > 0 && l.framesBlob).length
   const signals = summarizeFrames(allFrames)
+  // Per-corner damper velocity histograms over the same N-lap window the
+  // signals are computed over. null when there aren't enough usable
+  // frame transitions (e.g. an empty bundle).
+  const damperHistograms = damperHistogramsForLap(allFrames)
 
   return {
     car: carOrdinal !== null
@@ -171,7 +176,8 @@ export default defineEventHandler(async (event) => {
     drivetrain,
     lapCount,
     frameCount: allFrames.length,
-    signals
+    signals,
+    damperHistograms
   }
 })
 
@@ -196,6 +202,7 @@ function emptyBundle(
   lapCount: 0
   frameCount: 0
   signals: FrameAggregates
+  damperHistograms: { fl: DamperHistogram, fr: DamperHistogram, rl: DamperHistogram, rr: DamperHistogram } | null
 } {
   return {
     car: carOrdinal !== null
@@ -205,6 +212,7 @@ function emptyBundle(
     drivetrain: null,
     lapCount: 0,
     frameCount: 0,
-    signals: summarizeFrames([])
+    signals: summarizeFrames([]),
+    damperHistograms: null
   }
 }

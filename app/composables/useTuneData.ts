@@ -1,5 +1,6 @@
 import type { FrameAggregates } from '~/utils/tune-signals'
 import type { Drivetrain } from '~/utils/tune-data-bindings'
+import type { DamperHistogram } from '~/utils/damper-velocity'
 
 export interface TuneDataResponse {
   car: { ordinal: number, displayName: string | null, class: number | null } | null
@@ -8,6 +9,12 @@ export interface TuneDataResponse {
   lapCount: number
   frameCount: number
   signals: FrameAggregates
+  damperHistograms: {
+    fl: DamperHistogram
+    fr: DamperHistogram
+    rl: DamperHistogram
+    rr: DamperHistogram
+  } | null
 }
 
 /**

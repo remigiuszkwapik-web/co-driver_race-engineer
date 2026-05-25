@@ -5,6 +5,7 @@ import { INPUT_TRACE_LINES, motorTraceLines } from '~/utils/trace-lines'
 import { binFrames } from '~/utils/dyno'
 import { pointsFromFrames } from '~/utils/track-map'
 import { detectTrailBraking, trailBrakingBands } from '~/utils/trail-braking'
+import { damperHistogramsForLap } from '~/utils/damper-velocity'
 
 const { format } = useUnits()
 
@@ -171,6 +172,11 @@ function onMapSeek(point: { x: number, z: number }) {
   seekToIndex(bestIdx)
 }
 
+// Per-corner damper velocity histograms — whole-lap aggregate. Computed once
+// from props.frames (no scrub interaction); the histogram shape *is* the
+// measurement, so it stays static while the rest of the panel scrubs.
+const damperHistograms = computed(() => damperHistogramsForLap(props.frames))
+
 // Trail-braking bands across the full lap. The replay-strip "history" is a
 // sliding window of the full lap; the bands need to be remapped from full-
 // lap indices into history-window indices each render.
@@ -229,6 +235,10 @@ const trailBrakingBandsReplay = computed(() => {
       <DynoCurve
         :curve="dynoCurve"
         title="dyno · this lap so far"
+      />
+      <SuspensionHistogram
+        :histograms="damperHistograms"
+        title="damper velocity · whole lap"
       />
       <TrackMap
         :points="trackPoints"

@@ -17,6 +17,12 @@ if (!cat) {
 
 useHead({ title: `${cat.title} · tuning reference` })
 
+// Damper velocity histograms — only the /tune/dampers page surfaces them
+// (it's the page that exists to interpret the shape). They ride the same
+// useTuneData() data path as YourDataPanel below: same N-lap window, same
+// car/build resolution. Component handles the null case internally.
+const tuneData = slug === 'dampers' ? useTuneData() : null
+
 const relatedCats = computed(() =>
   (cat!.related ?? [])
     .map(s => TUNE_CATEGORIES.find(c => c.slug === s))
@@ -53,6 +59,17 @@ const relevantDiagnoses = computed(() =>
     </PageHeader>
 
     <YourDataPanel :slug="slug" />
+
+    <section
+      v-if="slug === 'dampers' && tuneData?.data.value?.damperHistograms"
+      class="mb-10"
+    >
+      <SuspensionHistogram
+        :histograms="tuneData.data.value.damperHistograms"
+        title="damper velocity"
+        :subtitle="`last ${tuneData.data.value.lapCount} lap${tuneData.data.value.lapCount === 1 ? '' : 's'}`"
+      />
+    </section>
 
     <section class="mb-10">
       <h2 class="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-zinc-400">
