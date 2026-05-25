@@ -60,11 +60,21 @@ const BALANCE_VAL: Record<Balance, number> = {
 const UNSPRUNG_RATIO = 0.13
 
 /** Front suspension frequency (Hz) at neutral dials, by surface. Rear gets
- *  +FREQ_REAR_OFFSET for "flat-ride" tuning (rear settles faster than front). */
+ *  +FREQ_REAR_OFFSET for "flat-ride" tuning (rear settles faster than front).
+ *
+ *  Calibration anchors (2026-05-25):
+ *    - GT Honda NSX Type R '02 (1051 kg, 40/60): 8.8/13.2 kgf/mm = 493/754 lb/in
+ *    - Our output for NSX-R 1992 (1035 kg, 44F) at road/stiff: 462/682 lb/in
+ *      → within ~10 % of the GT reference, well above FH6's documented
+ *      slider min (240 lb/in / 42 N/mm in useUnits.ts).
+ *    - Penske Shocks industry guidance for non-aero race: 1.5-2.5 Hz;
+ *      moderate downforce: 2.5-3.5 Hz. 2.8 Hz sits at the boundary,
+ *      appropriate for Forza-tuned cars (race-tuned, not stock-lowered).
+ *  See WISHLIST → Auto baseline tune for the ForzaTune-capture refit plan. */
 const FREQ_FRONT_BASE: Record<Surface, number> = {
-  'road': 2.0,
-  'dirt': 1.6,
-  'cross-country': 1.4
+  'road': 2.8,
+  'dirt': 2.2,
+  'cross-country': 1.9
 }
 const FREQ_REAR_OFFSET = 0.2
 
