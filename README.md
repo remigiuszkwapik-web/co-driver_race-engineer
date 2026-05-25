@@ -2,27 +2,29 @@
 
 [![Source](https://img.shields.io/badge/source-github.com%2FOjansen%2Fco--driver-181717?logo=github)](https://github.com/Ojansen/co-driver) [![Docker Pulls](https://img.shields.io/docker/pulls/obedbj/co-driver)](https://hub.docker.com/r/obedbj/co-driver) [![License](https://img.shields.io/github/license/Ojansen/co-driver)](https://github.com/Ojansen/co-driver/blob/main/LICENSE)
 
-Self-hosted telemetry and tuning tool for **Forza Horizon 6**. Listens for the game's UDP "Data Out" packets on your own machine and turns them into a per-corner instrument, a lap recorder, and a tune-aware workflow. No accounts, no cloud, no third-party telemetry.
+Your own telemetry workspace for **Forza Horizon 6**. Runs on your laptop or a mini PC, reads the data Forza already broadcasts, and turns it into a second-screen dashboard, a hotlap timer, a dyno and a tune workbench. No accounts, no cloud, no leaderboards reading your laps.
 
 > Measurement, not prescription. The tool shows you what the car actually did — you decide what to change.
 
-## What it does
+## What you get
 
-**Live telemetry**
-- Per-corner readout: suspension travel, slip ratio + angle, tire temperatures banded cold / optimal / hot
-- Bottoming indicator when normalized suspension travel saturates
-- 10 s rolling input trace — throttle, brake, steering, yaw — drawn with uPlot at the full UDP packet rate
-- Connection-status watchdog so you can see the moment the stream drops
+**A live dashboard for the second screen.**
+Prop a phone or tablet next to the TV. Each corner of the car becomes its own instrument — suspension, tire temperatures, slip, damper motion. A 10‑second input trace shows throttle, brake, steering and yaw at the full game rate, with trail‑braking automatically highlighted. A live G‑G plot fades the last ~20 seconds so you can see how round your traction circle really is. Pause and scrub the last few seconds without leaving the page.
 
-**Session and lap analysis**
-- Lap recorder with per-sector deltas against your personal best
-- Persistent car identity, surfaced in a sticky session banner so the active car and recording state stay visible across laps
-- Point-to-point buffering preserved across finish-line transitions
+**A hotlap delta you'd recognise from real motorsport.**
+Live delta to your session best, per‑sector PBs in green/purple, predicted and theoretical lap, and a track map that shows you exactly where the time is going.
 
-**Tune and upgrade workflow**
-- Per-car "your data" panels next to every tune and upgrade page, so each adjustment is read against the telemetry the car actually produced
-- Diagnose view that surfaces measurement-driven observations, not prescriptive scores
-- A car library + event browser for organising sessions
+**A dyno you actually understand.**
+Plot your engine's power, torque and boost across the rev range. Pick units that match how you think — bar, psi or atm — and tune gear ratios against the powerband you actually have.
+
+**A tune workbench built around your data.**
+Springs, dampers, anti‑roll bars, tire pressures and brake bias each sit next to the telemetry that justifies the change. The auto‑baseline calculator gives you an FH6‑correct starting point, build‑aware so it adapts to your upgrades. Damper velocity histograms tell you whether your low‑speed and high‑speed bump/rebound are doing their job. Build and tune are kept as separate layers, so you never confuse "the car can't do this" with "the setup isn't there yet."
+
+**A garage that remembers, and laps you can compare.**
+Cars, builds, tunes and sessions stay organised across the workspace. Compare any two laps side by side — overlay routes, scrub through synchronised traces, read the apex‑speed table, the sector splits and the tune diff that explain the gap.
+
+**Built‑in manuals.**
+Every heavy view links to a short page that explains what to read and what to look for, so the tool teaches itself.
 
 ## Install
 
