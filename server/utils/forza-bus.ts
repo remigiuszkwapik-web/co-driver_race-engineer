@@ -45,7 +45,7 @@ export interface ForzaStatus {
  * each reading to the same x-axis the trace strip renders against.
  */
 export interface MeasurementEvent {
-  name: 'tb_rolling'
+  name: 'tb_rolling' | 'time_coast'
   /** 0..1, or NaN when the window had no qualifying frames (e.g. no braking). */
   value: number
   startMs: number

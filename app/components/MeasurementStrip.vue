@@ -2,25 +2,38 @@
 import type { MeasurementSample } from '~/composables/useTelemetry'
 
 /**
- * Lightweight rolling-value strip — renders a single line of server-computed
- * measurements over the same x-axis horizon as TraceStrip, so the freshest
- * reading sits at the right edge directly below the freshest trace sample.
+ * Lightweight rolling-value strip — renders one or more lines of server-
+ * computed measurements over the same x-axis horizon as TraceStrip, so the
+ * freshest readings sit at the right edge directly below the freshest trace
+ * sample.
  *
- * No uPlot — a single SVG path is cheap and lets us match the trace strip's
- * plot area pixel-for-pixel via `w-full` + viewBox without any axis padding.
+ * Multi-series shape mirrors TraceStrip's `lines` prop: the caller passes an
+ * array of `{ samples, color, pillLabel, fmt }` and the strip renders one
+ * path + one right-edge pill per entry. Single-line mounts just pass an
+ * array of length 1.
+ *
+ * No uPlot — a single SVG path per series is cheap and lets us match the
+ * trace strip's plot area pixel-for-pixel via `w-full` + viewBox without any
+ * axis padding.
  */
 
-const props = defineProps<{
+export interface MeasurementSeries {
   /** Recent readings in chronological order. */
-  series: MeasurementSample[]
+  samples: MeasurementSample[]
+  /** Line stroke and pill colour. */
+  color: string
+  /** Short label shown in the per-series legend (multi-series only), e.g. "TB%" or "CST". */
+  pillLabel: string
+  /** Formatter applied to the most recent value for the right-edge pill. */
+  fmt: (v: number) => string
+}
+
+const props = defineProps<{
+  series: MeasurementSeries[]
   /** X-axis width in game time, e.g. 30 000 ms to match a 30 s trace strip. */
   windowMs: number
-  /** Header text — typically "TB% · 30 s". */
+  /** Header text — typically "TB% · 30 s" or "time-in-state · 30 s". */
   label: string
-  /** Line stroke / pill colour. */
-  color: string
-  /** Right-edge pill formatter; receives the most recent value. */
-  fmt: (v: number) => string
   /** Game-clock ms of the right edge. Pass `history[last].t` so this strip
    *  freezes in sync with the trace strip when the live feed pauses. */
   latestT: number
@@ -29,45 +42,44 @@ const props = defineProps<{
 const STRIP_HEIGHT = 40
 const VIEW_WIDTH = 1000 // logical SVG width; preserveAspectRatio="none" stretches to container
 
-const latest = computed<MeasurementSample | null>(() => {
-  const s = props.series
-  return s.length > 0 ? (s[s.length - 1] ?? null) : null
-})
+interface SeriesView {
+  color: string
+  pillLabel: string
+  pathD: string
+  latestText: string
+}
 
-const latestText = computed<string>(() => {
-  const l = latest.value
-  if (!l || Number.isNaN(l.value)) return '—'
-  return props.fmt(l.value)
-})
-
-const pathD = computed<string>(() => {
-  const s = props.series
+const seriesViews = computed<SeriesView[]>(() => {
   const windowMs = props.windowMs
   const endT = props.latestT
-  if (s.length === 0 || windowMs <= 0 || endT <= 0) return ''
   const startT = endT - windowMs
-
-  let d = ''
-  let needMove = true
-  for (let i = 0; i < s.length; i++) {
-    const sample = s[i]!
-    if (sample.endMs < startT || sample.endMs > endT) {
-      needMove = true
-      continue
+  return props.series.map((s) => {
+    let pathD = ''
+    if (s.samples.length > 0 && windowMs > 0 && endT > 0) {
+      let needMove = true
+      for (let i = 0; i < s.samples.length; i++) {
+        const sample = s.samples[i]!
+        if (sample.endMs < startT || sample.endMs > endT) {
+          needMove = true
+          continue
+        }
+        if (Number.isNaN(sample.value)) {
+          // Break the path on undefined readings so the line doesn't
+          // pretend to be continuous through a gap.
+          needMove = true
+          continue
+        }
+        const x = ((sample.endMs - startT) / windowMs) * VIEW_WIDTH
+        const v = Math.max(0, Math.min(1, sample.value))
+        const y = (1 - v) * STRIP_HEIGHT
+        pathD += `${needMove ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)} `
+        needMove = false
+      }
     }
-    if (Number.isNaN(sample.value)) {
-      // Break the path on undefined readings (no braking in window) so
-      // the line doesn't pretend to be continuous through a gap.
-      needMove = true
-      continue
-    }
-    const x = ((sample.endMs - startT) / windowMs) * VIEW_WIDTH
-    const v = Math.max(0, Math.min(1, sample.value))
-    const y = (1 - v) * STRIP_HEIGHT
-    d += `${needMove ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)} `
-    needMove = false
-  }
-  return d
+    const latest = s.samples.length > 0 ? (s.samples[s.samples.length - 1] ?? null) : null
+    const latestText = !latest || Number.isNaN(latest.value) ? '—' : s.fmt(latest.value)
+    return { color: s.color, pillLabel: s.pillLabel, pathD, latestText }
+  })
 })
 
 const windowSeconds = computed<number>(() => Math.round(props.windowMs / 1000))
@@ -77,11 +89,21 @@ const windowSeconds = computed<number>(() => Math.round(props.windowMs / 1000))
   <section class="panel p-4 font-mono text-zinc-100 backdrop-blur">
     <header class="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-zinc-400">
       <span>{{ label }}</span>
-      <span class="flex items-center gap-1.5">
-        <span
-          class="inline-block h-1.5 w-3"
-          :style="{ background: color }"
-        />
+      <span class="flex items-center gap-3">
+        <!-- Per-series legend (only when more than one line — otherwise the
+             section label + right-edge pill already identify the line). -->
+        <template v-if="series.length > 1">
+          <span
+            v-for="(s, i) in series"
+            :key="i"
+            class="flex items-center gap-1.5"
+          >
+            <span
+              class="inline-block h-1.5 w-3"
+              :style="{ background: s.color }"
+            />{{ s.pillLabel.toLowerCase() }}
+          </span>
+        </template>
         <span class="text-zinc-500 normal-case tracking-normal">last {{ windowSeconds }} s</span>
       </span>
     </header>
@@ -111,20 +133,26 @@ const windowSeconds = computed<number>(() => Math.round(props.windowMs / 1000))
           stroke-width="0.5"
         />
         <path
-          :d="pathD"
+          v-for="(v, i) in seriesViews"
+          :key="i"
+          :d="v.pathD"
           fill="none"
-          :stroke="color"
+          :stroke="v.color"
           stroke-width="1.5"
           vector-effect="non-scaling-stroke"
         />
       </svg>
+      <!-- Stacked right-edge value pills, one per series (matches TraceStrip's
+           per-line pill column). -->
       <div
-        class="pointer-events-none absolute top-0 right-0 flex h-full items-center pr-1 text-[10px] tabular-nums"
+        class="pointer-events-none absolute top-0 right-0 flex h-full flex-col justify-around pr-1 text-[10px] tabular-nums"
       >
         <span
+          v-for="(v, i) in seriesViews"
+          :key="i"
           class="rounded px-1.5 py-0.5"
-          :style="{ background: color + '20', color: color }"
-        >{{ latestText }}</span>
+          :style="{ background: v.color + '20', color: v.color }"
+        >{{ v.latestText }}</span>
       </div>
     </div>
   </section>

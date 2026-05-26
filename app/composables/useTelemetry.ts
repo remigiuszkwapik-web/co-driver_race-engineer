@@ -75,7 +75,10 @@ const _state = {
   // Bounded ring of recent rolling-measurement readings, keyed by name. New
   // measurements drop in here as the server emits them; consumers read by
   // name and render the series however they like (sparkline, badge, etc.).
-  measurements: shallowRef<{ tbRolling: MeasurementSample[] }>({ tbRolling: [] }),
+  measurements: shallowRef<{
+    tbRolling: MeasurementSample[]
+    timeCoast: MeasurementSample[]
+  }>({ tbRolling: [], timeCoast: [] }),
   lastError: ref<string | null>(null),
   ws: null as WebSocket | null,
   refCount: 0,
@@ -104,7 +107,7 @@ function attachVisibilityListener() {
       _state.history.value = []
       _state.framesBuffer.value = []
       _state.scrubIndex.value = null
-      _state.measurements.value = { tbRolling: [] }
+      _state.measurements.value = { tbRolling: [], timeCoast: [] }
       const ws = _state.ws
       if (ws) {
         _state.ws = null
@@ -241,8 +244,10 @@ function connect() {
       // array mutation triggers reactivity exactly once per push.
       const m = msg.m
       const bucket = _state.measurements.value
-      if (m.name === 'tb_rolling') {
-        const ring = bucket.tbRolling
+      let ring: MeasurementSample[] | null = null
+      if (m.name === 'tb_rolling') ring = bucket.tbRolling
+      else if (m.name === 'time_coast') ring = bucket.timeCoast
+      if (ring) {
         ring.push({ value: m.value, startMs: m.startMs, endMs: m.endMs })
         while (ring.length > MEASUREMENT_BUFFER_SIZE) ring.shift()
         triggerRef(_state.measurements)

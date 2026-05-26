@@ -33,7 +33,7 @@ const tracesRightEdgeT = computed<number>(() => {
 
 const TRACE_WINDOW_MS = (TRACE_BUFFER_SIZE / 60) * 1000
 
-function fmtTbPct(v: number): string {
+function fmtPct(v: number): string {
   return Math.round(v * 100) + '%'
 }
 
@@ -173,11 +173,15 @@ const dvrSeconds = computed<number | null>(() => {
           @scrub="setScrub"
         />
         <MeasurementStrip
-          :series="measurements.tbRolling"
+          :series="[{ samples: measurements.tbRolling, color: '#a78bfa', pillLabel: 'TB%', fmt: fmtPct }]"
           :window-ms="TRACE_WINDOW_MS"
           label="TB% · 30 s"
-          color="#a78bfa"
-          :fmt="fmtTbPct"
+          :latest-t="tracesRightEdgeT"
+        />
+        <MeasurementStrip
+          :series="[{ samples: measurements.timeCoast, color: '#a1a1aa', pillLabel: 'CST', fmt: fmtPct }]"
+          :window-ms="TRACE_WINDOW_MS"
+          label="coast · 30 s"
           :latest-t="tracesRightEdgeT"
         />
         <button

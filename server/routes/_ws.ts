@@ -1,8 +1,10 @@
 import { forzaBus, getForzaStatus, type DebugFrame, type ForzaStatus, type MeasurementEvent, type RecordingState, type TunePrompt } from '../utils/forza-bus'
 import { recorder } from '../utils/recorder'
-// Side-effect import: instantiating the singleton subscribes it to the bus
-// so rolling TB% starts computing as soon as any WS client connects.
+// Side-effect imports: instantiating the singletons subscribes them to the
+// bus so rolling measurements start computing as soon as any WS client
+// connects.
 import '../utils/rolling-tb-percent'
+import '../utils/rolling-coast-time'
 import type { Telemetry } from '../utils/decode'
 
 interface StartMessage {
