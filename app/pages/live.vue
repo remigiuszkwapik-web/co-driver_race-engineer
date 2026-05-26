@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { INPUT_TRACE_LINES } from '~/utils/trace-lines'
-import { detectTrailBraking, trailBrakingBands } from '~/utils/trail-braking'
 
 definePageMeta({
   // Drop the site header on narrow viewports so a phone propped next to the
@@ -60,33 +59,6 @@ const dvrSeconds = computed<number | null>(() => {
   const at = h[idx]
   if (!last || !at) return null
   return Math.max(0, (last.t - at.t) / 1000)
-})
-
-// Reusable buffer for the trail-braking detector input — avoids ~600
-// object allocations per push at full buffer.
-const detectorBuf: Array<{ timestampMs: number, brake: number, steer: number }> = []
-
-const trailBrakingBandsLive = shallowRef<Array<{ startIdx: number, endIdx: number, color?: string }>>([])
-
-watch(() => {
-  const h = history.value
-  return h.length > 0 ? h[h.length - 1]!.t : -1
-}, () => {
-  const h = history.value
-  if (h.length < 2) {
-    if (trailBrakingBandsLive.value.length > 0) trailBrakingBandsLive.value = []
-    return
-  }
-  while (detectorBuf.length > h.length) detectorBuf.pop()
-  while (detectorBuf.length < h.length) detectorBuf.push({ timestampMs: 0, brake: 0, steer: 0 })
-  for (let i = 0; i < h.length; i++) {
-    const s = h[i]!
-    const f = detectorBuf[i]!
-    f.timestampMs = s.t
-    f.brake = s.brake
-    f.steer = s.steer
-  }
-  trailBrakingBandsLive.value = trailBrakingBands(detectTrailBraking(detectorBuf))
 })
 </script>
 
@@ -181,7 +153,6 @@ watch(() => {
           :scrubbable="true"
           :scrub-index="scrubIndex"
           :buffer-length="history.length"
-          :bands="trailBrakingBandsLive"
           @toggle-pause="onTogglePause"
           @scrub="setScrub"
         />

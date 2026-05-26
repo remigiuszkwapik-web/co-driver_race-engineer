@@ -46,27 +46,97 @@ const STRIP_HEIGHT = 160
 const WINDOW_SECONDS = TRACE_BUFFER_SIZE / 60 // 10 s @ 60 Hz fan-out
 
 // --- uPlot data assembly --------------------------------------------------
-// uPlot wants column-major aligned data: [xs, ys_line0, ys_line1, …].
-// We pre-normalize each value into 0..1 using the LineDef's existing
-// `norm()` and flip it so 1 = top of strip (uPlot's y axis is bottom-up).
-function buildData(): uPlot.AlignedData {
-  const h = props.history
+// uPlot wants column-major aligned data: [xs, ys_line0, ys_line1, …]. To
+// avoid allocating fresh typed arrays + walking all 600 samples on every
+// 60 Hz push, we keep a ring buffer of pre-normalized values internally:
+//
+//   write side  → one slot per new sample (O(1) at 60 Hz)
+//   read side   → unroll the ring once per setData via typed-array .set()
+//
+// `props.history` stays the source of truth for everything else (overlays,
+// scrub math, latest-pill); the ring is private and only exists so the
+// data uPlot reads on each redraw is cheap to produce.
+const CAPACITY = TRACE_BUFFER_SIZE
+const xsBuf = new Float64Array(CAPACITY)
+const xsView = new Float64Array(CAPACITY)
+let seriesBuf: Float64Array[] = []
+let seriesView: Float64Array[] = []
+let lineKeys: Array<keyof TraceSample> = []
+let lineNorms: Array<(v: number) => number> = []
+let head = 0 // next write slot in [0, CAPACITY)
+let count = 0 // valid samples in [0, CAPACITY]
+let lastSeenT = -1 // timestamp of the most recently synced sample
+let lastHistoryRef: TraceSample[] | null = null
+
+function syncLineMeta(): void {
   const lines = props.lines
-  const xs = new Float64Array(h.length)
-  const series: Float64Array[] = lines.map(() => new Float64Array(h.length))
-  for (let i = 0; i < h.length; i++) {
-    const s = h[i]!
-    xs[i] = s.t / 1000 // seconds
-    for (let li = 0; li < lines.length; li++) {
-      const line = lines[li]!
-      const raw = s[line.key]
-      const v = typeof raw === 'number' ? raw : 0
-      // line.norm returns 0..1 in SVG-y (0 = top); uPlot is bottom-up,
-      // so invert.
-      series[li]![i] = 1 - line.norm(v)
-    }
+  lineKeys = lines.map(l => l.key)
+  lineNorms = lines.map(l => l.norm)
+  if (seriesBuf.length !== lines.length) {
+    seriesBuf = lines.map(() => new Float64Array(CAPACITY))
+    seriesView = lines.map(() => new Float64Array(CAPACITY))
   }
-  return [xs, ...series] as unknown as uPlot.AlignedData
+}
+
+function writeSlot(i: number, s: TraceSample): void {
+  xsBuf[i] = s.t / 1000
+  for (let li = 0; li < lineKeys.length; li++) {
+    const raw = s[lineKeys[li]!]
+    const v = typeof raw === 'number' ? raw : 0
+    // line.norm returns 0..1 in SVG-y (0 = top); uPlot is bottom-up,
+    // so invert.
+    seriesBuf[li]![i] = 1 - lineNorms[li]!(v)
+  }
+}
+
+function seedFromHistory(): void {
+  const h = props.history
+  const n = Math.min(h.length, CAPACITY)
+  for (let i = 0; i < n; i++) {
+    writeSlot(i, h[h.length - n + i]!)
+  }
+  head = n % CAPACITY
+  count = n
+  lastSeenT = n > 0 ? h[h.length - 1]!.t : -1
+  lastHistoryRef = props.history
+}
+
+function appendToRing(s: TraceSample): void {
+  writeSlot(head, s)
+  head = (head + 1) % CAPACITY
+  if (count < CAPACITY) count++
+  lastSeenT = s.t
+}
+
+function viewData(): uPlot.AlignedData {
+  if (count === 0) {
+    return [
+      xsBuf.subarray(0, 0),
+      ...seriesBuf.map(b => b.subarray(0, 0))
+    ] as unknown as uPlot.AlignedData
+  }
+  if (count < CAPACITY) {
+    // Fill phase: ring slots [0, count) are already chronological.
+    return [
+      xsBuf.subarray(0, count),
+      ...seriesBuf.map(b => b.subarray(0, count))
+    ] as unknown as uPlot.AlignedData
+  }
+  if (head === 0) {
+    // Ring is full and head wrapped exactly to 0 — buf is already
+    // chronological end-to-end.
+    return [xsBuf, ...seriesBuf] as unknown as uPlot.AlignedData
+  }
+  // Steady state, ring wrapped: unroll [head..end, 0..head) into view via
+  // two typed-array .set() calls per buffer (native memcpy).
+  const tail = CAPACITY - head
+  xsView.set(xsBuf.subarray(head), 0)
+  xsView.set(xsBuf.subarray(0, head), tail)
+  for (let li = 0; li < seriesBuf.length; li++) {
+    seriesView[li]!.set(seriesBuf[li]!.subarray(head), 0)
+    seriesView[li]!.set(seriesBuf[li]!.subarray(0, head), tail)
+  }
+  return [xsView, ...seriesView] as unknown as uPlot.AlignedData
 }
 
 // --- Live anchor + scrub state -------------------------------------------
@@ -274,8 +344,10 @@ function drawOverlays(u: uPlot): void {
 
 onMounted(() => {
   if (!plotEl.value) return
+  syncLineMeta()
+  seedFromHistory()
   const w = plotEl.value.clientWidth || 1000
-  plot = new uPlot(buildOpts(w), buildData(), plotEl.value)
+  plot = new uPlot(buildOpts(w), viewData(), plotEl.value)
 
   // Re-size with the container; debouncing isn't worth it for the small
   // panel widths we deal with.
@@ -298,8 +370,24 @@ onBeforeUnmount(() => {
 watch(() => {
   const h = props.history
   return h.length > 0 ? h[h.length - 1]!.t : -1
-}, () => {
-  plot?.setData(buildData())
+}, (newT) => {
+  if (!plot) return
+  const h = props.history
+  // Append fast-path: same history array reference + previous-latest sample
+  // sits exactly one slot back from end. /live keeps the same array ref
+  // and push+shift always preserves this invariant; /replay swaps the
+  // array on lap change, falling through to the full reseed below.
+  if (
+    props.history === lastHistoryRef
+    && h.length >= 2
+    && h[h.length - 2]!.t === lastSeenT
+    && newT !== lastSeenT
+  ) {
+    appendToRing(h[h.length - 1]!)
+  } else {
+    seedFromHistory()
+  }
+  plot.setData(viewData())
 })
 // Watch a signature, not the array identity — a parent passing a freshly-
 // allocated lines array on every push (motor strip's running-max output)
@@ -314,9 +402,11 @@ watch(() => linesSig(props.lines), () => {
   // Series colours, count and labels are baked into uPlot options at
   // construction, so a real change in the line set requires a rebuild.
   if (!plot || !plotEl.value) return
+  syncLineMeta()
+  seedFromHistory()
   const w = plotEl.value.clientWidth || 1000
   plot.destroy()
-  plot = new uPlot(buildOpts(w), buildData(), plotEl.value)
+  plot = new uPlot(buildOpts(w), viewData(), plotEl.value)
 })
 // Scrub or anchor change → no data change, just an overlay redraw.
 watch([() => props.scrubIndex, () => props.bands, anchorT], () => {
