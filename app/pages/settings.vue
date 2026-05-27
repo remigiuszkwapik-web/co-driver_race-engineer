@@ -6,6 +6,7 @@ useHead({ title: 'Settings · co-driver' })
 
 const { prefs, applyPreset } = useUnits()
 const { prefs: displayPrefs } = useDisplayPrefs()
+const { gameId, games, setGame } = useGame()
 
 const CLUSTER_OPTIONS: { value: ClusterStyle, label: string, hint: string }[] = [
   { value: 'twin', label: 'Twin dial', hint: 'analog · tach + speedo' },
@@ -126,6 +127,41 @@ function setValue<K extends keyof UnitPrefs>(key: K, value: UnitPrefs[K]) {
         kW, Nm, meters) — only display and form-input conversion changes.
       </template>
     </PageHeader>
+
+    <section class="card mb-6 p-4 font-mono">
+      <div class="mb-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+        Game
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Active game"
+        class="flex flex-wrap gap-1.5"
+      >
+        <button
+          v-for="g in games"
+          :key="g.id"
+          type="button"
+          role="radio"
+          :aria-checked="gameId === g.id"
+          class="rounded-sm border px-2.5 py-1 text-xs tabular-nums transition-colors"
+          :class="gameId === g.id
+            ? 'border-green-500/60 bg-green-500/10 text-green-200'
+            : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500 hover:text-zinc-100'"
+          @click="setGame(g.id)"
+        >
+          <span>{{ g.label }}</span>
+          <span
+            v-if="!g.telemetry"
+            class="ml-1.5 text-[10px] uppercase tracking-[0.15em] text-amber-400/80"
+          >telemetry soon</span>
+        </button>
+      </div>
+      <p class="mt-2 text-[11px] text-zinc-500">
+        Switches which game the app is set up for. Tuning, builds and events
+        are Forza-Horizon-specific and hide for other games — telemetry
+        dashboards stay available.
+      </p>
+    </section>
 
     <section class="card mb-6 p-4 font-mono">
       <div class="mb-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">

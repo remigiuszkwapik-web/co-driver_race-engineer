@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CAR_DASH_PACKET_BYTES, decodeCarDash } from '../../server/utils/decode'
+import { CAR_DASH_PACKET_BYTES, decodeFh6 } from '../../server/adapters/fh6'
 
 function buildPacket(): Buffer {
   const buf = Buffer.alloc(CAR_DASH_PACKET_BYTES)
@@ -79,14 +79,14 @@ function buildPacket(): Buffer {
   return buf
 }
 
-describe('decodeCarDash', () => {
+describe('decodeFh6', () => {
   it('returns null for under-sized packets', () => {
-    expect(decodeCarDash(Buffer.alloc(232))).toBeNull()
-    expect(decodeCarDash(Buffer.alloc(100))).toBeNull()
+    expect(decodeFh6(Buffer.alloc(232))).toBeNull()
+    expect(decodeFh6(Buffer.alloc(100))).toBeNull()
   })
 
   it('decodes the basic race-state fields', () => {
-    const t = decodeCarDash(buildPacket())!
+    const t = decodeFh6(buildPacket())!
     expect(t.isRaceOn).toBe(true)
     expect(t.timestampMs).toBe(123456)
     expect(t.rpm).toBe(6400)
@@ -95,12 +95,12 @@ describe('decodeCarDash', () => {
   })
 
   it('converts m/s to km/h for speed', () => {
-    const t = decodeCarDash(buildPacket())!
+    const t = decodeFh6(buildPacket())!
     expect(t.speedKmh).toBeCloseTo(144, 1) // 40 m/s
   })
 
   it('converts Fahrenheit tire temps to Celsius', () => {
-    const t = decodeCarDash(buildPacket())!
+    const t = decodeFh6(buildPacket())!
     // 176 °F = 80 °C
     expect(t.tireTempC.fl).toBeCloseTo(80, 1)
     expect(t.tireTempC.fr).toBeCloseTo(80, 1)
@@ -109,14 +109,14 @@ describe('decodeCarDash', () => {
   })
 
   it('decodes suspension travel and flags bottoming', () => {
-    const t = decodeCarDash(buildPacket())!
+    const t = decodeFh6(buildPacket())!
     expect(t.suspension.fl).toBeCloseTo(0.97, 5)
     expect(t.suspension.fr).toBeCloseTo(0.42, 5)
     expect(t.suspension.fl > 0.95).toBe(true) // bottoming threshold
   })
 
   it('decodes wheel-on-rumble booleans', () => {
-    const t = decodeCarDash(buildPacket())!
+    const t = decodeFh6(buildPacket())!
     expect(t.rumble.fl).toBe(false)
     expect(t.rumble.fr).toBe(true)
     expect(t.rumble.rl).toBe(false)
@@ -124,7 +124,7 @@ describe('decodeCarDash', () => {
   })
 
   it('decodes inputs into 0..1 floats and steering into -1..1', () => {
-    const t = decodeCarDash(buildPacket())!
+    const t = decodeFh6(buildPacket())!
     expect(t.throttle).toBe(1)
     expect(t.brake).toBe(0)
     expect(t.steer).toBeCloseTo(64 / 127, 4)
@@ -132,7 +132,7 @@ describe('decodeCarDash', () => {
   })
 
   it('decodes lap state', () => {
-    const t = decodeCarDash(buildPacket())!
+    const t = decodeFh6(buildPacket())!
     expect(t.lap.number).toBe(3)
     expect(t.lap.best).toBeCloseTo(85.123, 3)
     expect(t.lap.current).toBeCloseTo(42.1, 3)
@@ -141,7 +141,7 @@ describe('decodeCarDash', () => {
   it('still decodes when isRaceOn=0 — filtering is done by the caller', () => {
     const buf = buildPacket()
     buf.writeInt32LE(0, 0)
-    const t = decodeCarDash(buf)
+    const t = decodeFh6(buf)
     expect(t).not.toBeNull()
     expect(t!.isRaceOn).toBe(false)
   })

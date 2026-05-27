@@ -106,7 +106,7 @@ watch(() => props.frame, (f) => {
       :slip-angle="frame?.slipAngle.fl ?? 0"
       :combined-slip="frame?.combinedSlip.fl ?? 0"
       :temp-c="frame?.tireTempC.fl ?? 0"
-      :rumble="frame?.rumble.fl ?? false"
+      :rumble="frame?.rumble?.fl ?? false"
       :understeer="understeer"
     />
     <CenterPanel
@@ -138,7 +138,7 @@ watch(() => props.frame, (f) => {
       :slip-angle="frame?.slipAngle.fr ?? 0"
       :combined-slip="frame?.combinedSlip.fr ?? 0"
       :temp-c="frame?.tireTempC.fr ?? 0"
-      :rumble="frame?.rumble.fr ?? false"
+      :rumble="frame?.rumble?.fr ?? false"
       :understeer="understeer"
     />
     <CornerPanel
@@ -151,7 +151,7 @@ watch(() => props.frame, (f) => {
       :slip-angle="frame?.slipAngle.rl ?? 0"
       :combined-slip="frame?.combinedSlip.rl ?? 0"
       :temp-c="frame?.tireTempC.rl ?? 0"
-      :rumble="frame?.rumble.rl ?? false"
+      :rumble="frame?.rumble?.rl ?? false"
       :oversteer="oversteer"
     />
     <CornerPanel
@@ -164,7 +164,7 @@ watch(() => props.frame, (f) => {
       :slip-angle="frame?.slipAngle.rr ?? 0"
       :combined-slip="frame?.combinedSlip.rr ?? 0"
       :temp-c="frame?.tireTempC.rr ?? 0"
-      :rumble="frame?.rumble.rr ?? false"
+      :rumble="frame?.rumble?.rr ?? false"
       :oversteer="oversteer"
     />
 

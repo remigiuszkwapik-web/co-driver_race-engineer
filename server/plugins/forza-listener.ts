@@ -1,5 +1,5 @@
 import dgram from 'node:dgram'
-import { decodeCarDash } from '../utils/decode'
+import { getActiveAdapter } from '../adapters'
 import { forzaBus, getForzaStatus, setForzaStatus, bumpForzaLastPacket } from '../utils/forza-bus'
 
 // Connection watchdog: Forza UDP is connectionless, so "connected" means
@@ -25,7 +25,8 @@ function installRejectionGuard() {
 export default defineNitroPlugin(() => {
   installRejectionGuard()
 
-  const port = Number(process.env.FORZA_PORT ?? 5300)
+  const adapter = getActiveAdapter()
+  const port = Number(process.env.FORZA_PORT ?? adapter.transport.defaultPort)
   const bind = process.env.FORZA_BIND ?? '0.0.0.0'
 
   const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true })
@@ -49,10 +50,10 @@ export default defineNitroPlugin(() => {
       tailHex: buf.subarray(Math.max(0, buf.length - 8)).toString('hex')
     })
 
-    const t = decodeCarDash(buf)
+    const t = adapter.decode(buf)
     if (!t) {
       if (!warnedShort) {
-        console.warn(`[forza] received ${buf.length}-byte packet; expected 324 (Car Dash). Check in-game format.`)
+        console.warn(`[forza] received ${buf.length}-byte packet; ${adapter.id} adapter rejected it. Check in-game format.`)
         warnedShort = true
       }
       return

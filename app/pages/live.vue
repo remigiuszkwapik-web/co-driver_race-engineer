@@ -2,6 +2,9 @@
 import { INPUT_TRACE_LINES } from '~/utils/trace-lines'
 import { TRACE_BUFFER_SIZE } from '~/utils/trace'
 
+const { capabilities } = useGame()
+const navItems = computed(() => navForGame(capabilities.value))
+
 definePageMeta({
   // Drop the site header on narrow viewports so a phone propped next to the
   // TV gets the full screen for telemetry. Recording banner still shows.
@@ -86,7 +89,7 @@ const dvrSeconds = computed<number | null>(() => {
          consistent across pages. Visibility class mirrors the header-hide
          media query exactly. -->
     <UDropdownMenu
-      :items="NAV_ITEMS"
+      :items="navItems"
       class="fixed top-1 left-1 z-40 hidden max-sm:block [@media(max-height:500px)]:block"
     >
       <UButton

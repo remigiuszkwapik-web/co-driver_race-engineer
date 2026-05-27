@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { NAV_ITEMS } from '~/utils/nav'
+import { navForGame } from '~/utils/nav'
 import { formatLap, formatDelta } from '~/utils/format'
 
 useHead({ title: 'Hotlap · co-driver' })
+
+const { capabilities } = useGame()
+const navItems = computed(() => navForGame(capabilities.value))
 
 definePageMeta({
   // Phone-propped-next-to-TV use case, same as /live — drop the site
@@ -126,7 +129,7 @@ function formatRaceTime(s: number): string {
     <!-- Floating hamburger — only nav chrome when the site header is hidden
          on phone-sized viewports. Mirrors the /live page. -->
     <UDropdownMenu
-      :items="NAV_ITEMS"
+      :items="navItems"
       class="fixed top-1 left-1 z-40 hidden max-sm:block [@media(max-height:500px)]:block"
     >
       <UButton

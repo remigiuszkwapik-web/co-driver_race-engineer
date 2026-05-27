@@ -355,7 +355,7 @@ export function rumbleContactPct(frames: Telemetry[]): number {
   if (frames.length === 0) return 0
   let n = 0
   for (const f of frames) {
-    if (f.rumble.fl || f.rumble.fr || f.rumble.rl || f.rumble.rr) n++
+    if (f.rumble?.fl || f.rumble?.fr || f.rumble?.rl || f.rumble?.rr) n++
   }
   return n / frames.length
 }

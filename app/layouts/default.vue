@@ -1,7 +1,12 @@
 <script setup lang="ts">
 const { telemetry, connected, forzaConnected, hasReceivedFrame } = useTelemetry()
 const { recording, stopRecording } = useRecording()
+const { capabilities } = useGame()
 const route = useRoute()
+
+// Nav adapts to the active game: FH6-only sections (tuning) drop out when a
+// game without that capability is selected, leaving the telemetry routes.
+const navItems = computed(() => navForGame(capabilities.value))
 
 // Pages opt out of the header on narrow viewports via
 // `definePageMeta({ hideHeaderOnMobile: true })` — used by /live so a phone
@@ -149,7 +154,7 @@ useHead({
                handles sm+ viewports. UDropdownMenu auto-closes on selection
                via the Link items, so no manual open state needed. -->
           <UDropdownMenu
-            :items="NAV_ITEMS"
+            :items="navItems"
             class="sm:hidden"
           >
             <UButton
@@ -167,7 +172,7 @@ useHead({
                  `active-class` so nested paths keep the parent highlighted
                  (e.g. /tune/dampers lights the "Tune" tab). -->
             <NuxtLink
-              v-for="item in NAV_ITEMS"
+              v-for="item in navItems"
               :key="item.to"
               :to="item.to"
               :active-class="item.exact ? '' : 'border-zinc-600 bg-zinc-900 text-zinc-100'"

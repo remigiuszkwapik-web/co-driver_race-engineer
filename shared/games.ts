@@ -1,0 +1,60 @@
+/**
+ * Game registry — the core of the multi-game (ports & adapters) design.
+ *
+ * Every supported game is described once here: a stable id, a display label,
+ * whether a live telemetry decoder (adapter) is wired, and its capability
+ * flags. This registry is the single source of truth shared by the client
+ * (nav gating + the game switcher) and the server (adapter selection).
+ *
+ * Adding a game is: one entry here, plus — for live data — one adapter under
+ * `server/adapters/<id>.ts` mapping that game's wire format onto the canonical
+ * `Telemetry` model.
+ */
+
+export type GameId = 'fh6' | 'fm'
+
+/**
+ * Feature areas that vary by game. The tuning stack (builds, tunes, events,
+ * dyno, upgrade, manual, plus session recording) is Forza-Horizon-specific
+ * numerics, so it gates on `tuning`. Telemetry visualisation needs no
+ * capability — any game with a wired decoder gets the live dashboards.
+ */
+export interface GameCapabilities {
+  /** Builds / tunes / events / dyno / upgrade / manual + session recording. */
+  tuning: boolean
+}
+
+export interface GameDef {
+  id: GameId
+  label: string
+  /** A live telemetry decoder (server/adapters/<id>) is wired for this game.
+   *  When false the game is selectable so the frontend adapts (nav gating),
+   *  but live packets won't decode until its adapter lands. */
+  telemetry: boolean
+  capabilities: GameCapabilities
+}
+
+export const GAMES: readonly GameDef[] = [
+  {
+    id: 'fh6',
+    label: 'Forza Horizon 6',
+    telemetry: true,
+    capabilities: { tuning: true }
+  },
+  {
+    id: 'fm',
+    label: 'Forza Motorsport',
+    telemetry: false,
+    capabilities: { tuning: false }
+  }
+] as const
+
+export const DEFAULT_GAME_ID: GameId = 'fh6'
+
+export function getGame(id: GameId): GameDef {
+  return GAMES.find(g => g.id === id) ?? GAMES[0]!
+}
+
+export function isGameId(value: unknown): value is GameId {
+  return typeof value === 'string' && GAMES.some(g => g.id === value)
+}
