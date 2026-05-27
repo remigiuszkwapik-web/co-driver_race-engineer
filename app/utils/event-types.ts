@@ -1,7 +1,7 @@
 // Mirror of server/db/schema.ts eventType — duplicated to keep the app bundle free
 // of drizzle/sqlite imports. Keep these in sync.
 
-export const eventType = ['rally', 'race', 'street_race', 'touge', 'cross_country', 'drag', 'freeroam'] as const
+export const eventType = ['rally', 'race', 'street_race', 'touge', 'cross_country', 'drag', 'custom', 'freeroam'] as const
 export type EventType = typeof eventType[number]
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -11,6 +11,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   touge: 'Touge',
   cross_country: 'Cross Country',
   drag: 'Drag',
+  custom: 'Event Lab',
   freeroam: 'Free Roam'
 }
 
@@ -21,6 +22,7 @@ export const EVENT_TYPE_ORDER: readonly EventType[] = [
   'rally',
   'cross_country',
   'drag',
+  'custom',
   'freeroam'
 ]
 

@@ -67,7 +67,7 @@ interface TrailBrakingResponse {
 
 // Skip trail-braking UI entirely for non-lap-based event types — drag and
 // freeroam don't have meaningful corner-entry phases to detect.
-const SECTOR_LIKE_TYPES: readonly EventType[] = ['race', 'street_race', 'touge', 'rally', 'cross_country']
+const SECTOR_LIKE_TYPES: readonly EventType[] = ['race', 'street_race', 'touge', 'rally', 'cross_country', 'custom']
 const hasTrailBraking = SECTOR_LIKE_TYPES.includes(eventTypeKey)
 
 const { data: trailBrakingData } = hasTrailBraking

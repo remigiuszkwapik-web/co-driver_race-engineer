@@ -125,7 +125,7 @@ const { forzaBus } = await import('../../server/utils/forza-bus')
 const { Recorder } = await import('../../server/utils/recorder')
 
 const ALL_EVENT_TYPES: readonly EventType[] = [
-  'race', 'street_race', 'touge', 'rally', 'cross_country', 'drag', 'freeroam'
+  'race', 'street_race', 'touge', 'rally', 'cross_country', 'drag', 'custom', 'freeroam'
 ]
 
 interface FrameOpts {

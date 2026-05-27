@@ -35,6 +35,7 @@ const PLACEHOLDERS: Record<EventType, string> = {
   rally: 'e.g. Sierra Nueva Sprint',
   cross_country: 'e.g. Quad Crossing',
   drag: 'e.g. Airfield 1/4 mile',
+  custom: 'e.g. My Eventlab Circuit',
   freeroam: 'e.g. Mulege coastal run'
 }
 const placeholder = computed(() => PLACEHOLDERS[eventTypeKey])
