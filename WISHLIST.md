@@ -316,6 +316,37 @@ prescriptive coaching layer.
   ~30 LOC. Surfaces how much time the chassis spends at each ride-
   height band over a session — pairs with the bottoming-percent
   number already on the page.
+- **Steering-to-yaw-rate balance** — kinematic understeer/oversteer
+  angle from chassis motion: compare measured `angularVelocity.y`
+  against the yaw rate the steer input would produce at the current
+  speed (`expected = accelLat / speed`, or the Ackermann form
+  `wheelbase · accelLat / speed² − steer_at_wheels`). Complements
+  the wishlisted slip-angle-balance channel — that one reads tire
+  deformation; this one reads chassis kinematics. *(pro-tool standard
+  — MoTeC i2 "Oversteer" math channel.)*
+- **Body slip angle (β)** — chassis heading vs. direction of travel,
+  `atan2(lateral_body_velocity, longitudinal_body_velocity)` after
+  rotating world `velocity` by `−yaw`. The car-sideways-ness reading
+  rally engineers watch directly. *(pro-tool standard — MoTeC SDMotec
+  "Side Slip Angle"; Milliken vehicle dynamics.)*
+- **Longitudinal wheel slip** — drive-wheel rotational speed (picked
+  by `drivetrain`) × tire circumference, compared to chassis speed
+  magnitude. Reads as a single signed channel — positive = drive
+  wheels spinning faster than the ground (acceleration phase),
+  negative = ground moving faster than the wheels (braking phase).
+  Rally and circuit drivers both watch it, for opposite reasons.
+  *(pro-tool standard — Pi Toolbox wheel-slip channels.)*
+- **Cross-axle wheel-speed delta** — `wheelRotationSpeed.fl −
+  wheelRotationSpeed.fr` and the equivalent rear pair. The rotational-
+  split signal diff engineers read to understand differential
+  behavior through a corner — neutral magnitude, no "lock too low /
+  too high" framing. *(pro-tool standard — AutomotivePapers
+  differential analysis.)*
+- **Pedal overlap channel** — `min(throttle, brake)` per frame; non-
+  zero only when both pedals are applied. The left-foot-braking
+  signal — distinct from trail-braking, which is brake-then-steer.
+  Pairs nicely with the existing TB% measurement on `/live`.
+  *(pro-tool standard — MoTeC SDMotec driver-input math.)*
 
 ### Bigger lifts
 
@@ -358,6 +389,26 @@ prescriptive coaching layer.
   generalise.
 - **Race-stats aggregates** — sessions per car, hours per event, best by
   build/tune. Query work + cards. Independent of the map.
+- **Steering reversal density per corner** — count of sign changes
+  in `d(steer)/dt` per corner or per lap, optionally weighted by
+  steer-rate magnitude so small flutters don't count the same as
+  large corrections. The mid-corner-correction-density signal —
+  surface as a per-corner count, let the player read it as steady-
+  state cornering or active rotation depending on event type. Needs
+  the curvature-based corner enumeration item (below) to land first
+  for per-corner buckets; the per-lap aggregate is shippable
+  immediately. *(pro-tool standard — MoTeC SDMotec, AutomotivePapers
+  driver-input.)*
+- **Tire-load index per corner from suspension travel** —
+  `(suspensionMeters[corner] − rest_baseline[corner]) × spring_rate`,
+  with `spring_rate` read from the active tune artifact and
+  `rest_baseline` auto-calibrated from frames at near-zero combined-G
+  with `isRaceOn = true`. A direct read of how vertical load shifts
+  across the four corners through a lap — weight-transfer without
+  needing load cells. Multi-corner together gives the dynamic
+  weight-distribution shape. *(pro-tool standard — ChassisSim vehicle
+  dynamics, MoTeC FSAE seminar.)* Needs the rest-baseline auto-
+  calibration to land first.
 
 ### Newly possible — unlocked by the track map
 
@@ -432,19 +483,35 @@ user-facing copy.
   our anti-niche)
 - [Racing View] — FM telemetry + strategy app with dyno insights
 - [ForzaTune Pro] — calculator-based, 1500+ cars, tune library
+- [forza.tools] — FH6 setup-sheet aggregator; links most tune-side
+  community guides (ForzaTune, ForzaFire, GamingProMax mechanical-
+  balance, etc.) — useful for auto-tune calibration refits, not for
+  telemetry-side measurements
 - [SimHub] — HUD overlay ecosystem
 - [HorizonPlus] — Forza Horizon SimHub dashboard
 - [MoTeC i2 + AiM-style analysis][motec]
 - [Coach Dave Academy Delta][delta]
 - [LMU Telemetry Lab][lmu]
 - [FH6 Data Out docs][fh6dataout]
+- [MoTeC SDMotec workspace][sdmotec] — open-source road-racing math-channel
+  pack; source for the kinematic understeer angle, β slip-angle,
+  driver-input math
+- [ChassisSim][chassissim] — vehicle dynamics simulation; source for
+  the tire-load-from-suspension-travel approach
+- [AutomotivePapers math channels][autopapers] — multi-part series
+  documenting common pro-tool math channels (USOS angle, body slip,
+  cross-axle wheel speed, steering rate)
 
 [Tune It Yourself]: https://www.tuneityourself.co.uk/
 [Racing View]: https://www.racingview.app/
 [ForzaTune Pro]: https://forzatune.com/
+[forza.tools]: http://forza.tools
 [SimHub]: https://www.simhubdash.com/community-2/dashboard-templates/
 [HorizonPlus]: https://github.com/Sappytron/HorizonPlus
 [motec]: https://www.fullgripmotorsport.com/telemetry
 [delta]: https://coachdaveacademy.com/announcements/delta-data-telemetry-tool/
 [lmu]: https://github.com/rabbit20031225/LMU-Telemetry-Lab
 [fh6dataout]: https://support.forza.net/hc/en-us/articles/51744149102611-Forza-Horizon-6-Data-Out-Documentation
+[sdmotec]: https://github.com/stevendaniluk/SDMotecWorkspace
+[chassissim]: https://www.chassissim.com/
+[autopapers]: https://automotivepapers.com/2023/10/08/the-main-math-channels-created-for-data-analysis-part-5/
