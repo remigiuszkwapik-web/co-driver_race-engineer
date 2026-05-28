@@ -5,7 +5,9 @@ import { INPUT_TRACE_LINES, motorTraceLines } from '~/utils/trace-lines'
 import { binFrames } from '~/utils/dyno'
 import { pointsFromFrames } from '~/utils/track-map'
 import { detectTrailBraking, trailBrakingBands } from '~/utils/trail-braking'
-import { damperHistogramsForLap } from '~/utils/damper-velocity'
+import { damperHistogramsForLap, damperScatterForLap } from '~/utils/damper-velocity'
+import { rideHeightHistogramsForLap } from '~/utils/ride-height'
+import { rpmDistribution, slipAngleBalanceDistribution } from '~/utils/channel-distributions'
 
 const { format } = useUnits()
 
@@ -177,6 +179,18 @@ function onMapSeek(point: { x: number, z: number }) {
 // measurement, so it stays static while the rest of the panel scrubs.
 const damperHistograms = computed(() => damperHistogramsForLap(props.frames))
 
+// Position-domain suspension companions, same whole-lap aggregate: where the
+// chassis sits (ride-height histogram) and how bump/rebound couples with travel
+// (damper position×velocity scatter).
+const rideHeightHistograms = computed(() => rideHeightHistogramsForLap(props.frames))
+const damperScatter = computed(() => damperScatterForLap(props.frames))
+
+// Engine and chassis-balance distributions over the whole lap. RPM pairs with
+// the dyno (engine output × where time was spent); slip-angle balance is the
+// lap-scale understeer/oversteer read no per-frame view answers.
+const rpmHistogram = computed(() => rpmDistribution(props.frames))
+const slipAngleBalance = computed(() => slipAngleBalanceDistribution(props.frames))
+
 // Trail-braking bands across the full lap. The replay-strip "history" is a
 // sliding window of the full lap; the bands need to be remapped from full-
 // lap indices into history-window indices each render.
@@ -248,10 +262,34 @@ const trailBrakingBandsReplay = computed(() => {
       <DynoCurve
         :curve="dynoCurve"
         title="dyno · this lap so far"
+        mode="detailed"
+        :current-rpm="currentFrame?.rpm ?? 0"
+      />
+      <ChannelHistogram
+        :histogram="rpmHistogram"
+        title="time at rpm · whole lap"
+        unit="rpm"
       />
       <SuspensionHistogram
         :histograms="damperHistograms"
         title="damper velocity · whole lap"
+      />
+      <DamperScatter
+        :scatter="damperScatter"
+        title="damper position × velocity · whole lap"
+      />
+      <RideHeightHistogram
+        :histograms="rideHeightHistograms"
+        title="ride height · whole lap"
+      />
+      <ChannelHistogram
+        :histogram="slipAngleBalance"
+        title="balance · front − rear slip angle · whole lap"
+        subtitle="cornering only"
+        unit="°"
+        :signed="true"
+        left-label="oversteer"
+        right-label="understeer"
       />
       <TrackMap
         :points="trackPoints"

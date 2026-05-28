@@ -164,6 +164,277 @@ useHead({ title: 'Manual · Replay' })
     </ManualEntry>
 
     <ManualEntry
+      id="damper-scatter"
+      title="Damper position × velocity scatter"
+      where="Below the damper histogram in the replay player · also on /tune/dampers and on /compare (A vs B)"
+    >
+      <template #intro>
+        <p>
+          Four scatter plots (FL · FR · RL · RR), one dot per sampled frame,
+          plotting <em>where</em> the suspension sat against <em>how fast</em>
+          it was moving at that instant. The histogram tells you how often a
+          velocity was hit; this tells you how that velocity couples with
+          travel — the next pro-tool view after the histogram.
+        </p>
+      </template>
+      <template #how>
+        <ul class="list-disc space-y-1.5 pl-5">
+          <li>
+            <span class="font-mono text-zinc-100">X axis</span> — suspension
+            travel, <em>droop</em> (left — spring fully extended, wheel
+            hanging, no load) → <em>bottomed</em> (right — spring fully
+            compressed, out of travel). Dashed vertical line marks the 0.95
+            bottoming threshold.
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Y axis</span> — damper
+            velocity, ±250 mm/s. Above the centerline = bump (compression),
+            below = rebound (extension).
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Dots</span> — faint and
+            overlapping; density is the signal. The cloud is decimated to a
+            representative sample, not every frame.
+          </li>
+        </ul>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Symmetric blob around the center
+              </td>
+              <td class="py-2 text-zinc-400">
+                Bump and rebound are balanced through the travel range.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                "C" shape leaning to one side
+              </td>
+              <td class="py-2 text-zinc-400">
+                Bump/rebound coupling differs across travel — the imbalance
+                the histogram alone can't surface.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Cloud shifted to the right
+              </td>
+              <td class="py-2 text-zinc-400">
+                Car spends its time low in the travel range — near the
+                bottoming line.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Tall vertical spread at one position
+              </td>
+              <td class="py-2 text-zinc-400">
+                Fast events (kerbs, bumps) at that ride height.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/manual/replay#damper-histogram"
+          class="text-green-300 hover:underline"
+        >the damper histogram</NuxtLink>
+        is the distribution of this plot's Y axis; together they cover
+        <NuxtLink
+          to="/tune/dampers"
+          class="text-green-300 hover:underline"
+        >/tune/dampers</NuxtLink>.
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
+      id="ride-height-histogram"
+      title="Ride-height histogram"
+      where="Below the damper scatter in the replay player · also on /tune/ride-height (last 5 laps) and on /compare (A vs B)"
+    >
+      <template #intro>
+        <p>
+          Four histograms (FL · FR · RL · RR) showing how much of the lap each
+          corner spent at each <em>suspension-travel band</em> — i.e. where the
+          chassis sat. The position-domain companion to the damper histogram.
+        </p>
+      </template>
+      <template #how>
+        <ul class="list-disc space-y-1.5 pl-5">
+          <li>
+            <span class="font-mono text-zinc-100">X axis</span> — normalized
+            travel, <em>droop</em> (left — spring fully extended, wheel
+            hanging, no load) → <em>bottomed</em> (right — spring fully
+            compressed, out of travel). Dashed vertical line marks the 0.95
+            bottoming threshold.
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Y axis</span> — % of lap
+            frames in that band (auto-scaled per chart).
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Band row below each chart</span>
+            — time-share split into
+            <span class="font-mono">droop</span> (≤25 %),
+            <span class="font-mono">mid</span> (25-75 %),
+            <span class="font-mono">comp</span> (75-95 %),
+            <span class="font-mono">bottom</span> (&gt;95 %). The
+            <span class="font-mono">bottom</span> figure matches the bottoming
+            % on /tune/ride-height.
+          </li>
+        </ul>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Bars piled to the left
+              </td>
+              <td class="py-2 text-zinc-400">
+                Car rides high / lightly loaded.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Bars piled to the right, into the bottoming band
+              </td>
+              <td class="py-2 text-zinc-400">
+                Car rides low — the aero platform is near the floor.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                FL vs FR (or RL vs RR) distributions differ
+              </td>
+              <td class="py-2 text-zinc-400">
+                Left/right load asymmetry.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Fronts sit deeper than rears
+              </td>
+              <td class="py-2 text-zinc-400">
+                Forward load bias — pairs with the front/rear travel averages.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/tune/ride-height"
+          class="text-green-300 hover:underline"
+        >/tune/ride-height</NuxtLink>
+        ·
+        <NuxtLink
+          to="/tune/springs"
+          class="text-green-300 hover:underline"
+        >/tune/springs</NuxtLink>
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
+      id="slip-angle-balance"
+      title="Slip-angle balance (understeer / oversteer)"
+      where="Below the ride-height histogram on the replay player · also on /tune/anti-roll-bars and on /compare (A vs B)"
+    >
+      <template #intro>
+        <p>
+          A signed histogram of (front − rear) absolute slip-angle magnitude
+          per frame, in degrees. Lap-scale chassis balance read — answers
+          <em>did this lap lean understeery or oversteery overall</em>, no
+          per-frame view does.
+        </p>
+        <p class="mt-2 text-zinc-400">
+          Cornering-only: frames with lateral acceleration under 2 m/s²
+          (~0.2 g) are dropped so straight-line "everything near zero" doesn't
+          swamp the center.
+        </p>
+      </template>
+      <template #how>
+        <ul class="list-disc space-y-1.5 pl-5">
+          <li>
+            <span class="font-mono text-zinc-100">X axis</span> — front−rear
+            slip angle, signed degrees. Symmetric range −12° to +12°.
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">0 divider</span> — splits
+            <span style="color:#38bdf8">oversteer (left, sky)</span>
+            from
+            <span style="color:#fbbf24">understeer (right, amber)</span>.
+            Sign convention: front slipping more than rear = positive =
+            understeer.
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Y axis</span> — % of
+            cornering frames in that band (auto-scaled).
+          </li>
+        </ul>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Tall peak right at 0
+              </td>
+              <td class="py-2 text-zinc-400">
+                Chassis is balanced through the lap.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Bars piled right of 0
+              </td>
+              <td class="py-2 text-zinc-400">
+                Lap leaned understeery — fronts working harder than rears.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Bars piled left of 0
+              </td>
+              <td class="py-2 text-zinc-400">
+                Lap leaned oversteery — rears working harder than fronts.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Wide spread either side
+              </td>
+              <td class="py-2 text-zinc-400">
+                Balance shifts through corners — entry vs mid vs exit
+                behaving differently.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/tune/anti-roll-bars"
+          class="text-green-300 hover:underline"
+        >/tune/anti-roll-bars</NuxtLink>
+        ·
+        <NuxtLink
+          to="/tune/alignment"
+          class="text-green-300 hover:underline"
+        >/tune/alignment</NuxtLink>
+        ·
+        <NuxtLink
+          to="/tune/springs"
+          class="text-green-300 hover:underline"
+        >/tune/springs</NuxtLink>
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
       id="track-map"
       title="Track map · single-trace mode"
       where="Bottom of the replay player"
@@ -288,6 +559,14 @@ useHead({ title: 'Manual · Replay' })
             — bins frames up to the current playback index. Late in the
             lap the curve is smoother because more samples fill the bins.
           </li>
+          <li>
+            <span class="font-mono text-zinc-100">Detailed mode (replay default)</span>
+            — adds a shaded powerband (RPM range within 90 % of peak
+            torque), a shift-point marker at the peak-power RPM, and a
+            live needle that tracks the scrub position. The needle's
+            position vs the powerband shading tells you whether you were
+            on or off the band at any given moment.
+          </li>
         </ul>
       </template>
       <template #seeAlso>
@@ -295,13 +574,99 @@ useHead({ title: 'Manual · Replay' })
           to="/dyno"
           class="text-green-300 hover:underline"
         >/dyno</NuxtLink>
-        for the session-wide version (more samples, smoother curve),
-        and
+        for the session-wide version (more samples, smoother curve), the
+        <a
+          href="#rpm-histogram"
+          class="text-green-300 hover:underline"
+        >RPM histogram</a>
+        below for where time was actually spent, and
         <NuxtLink
           to="/tune/gearing"
           class="text-green-300 hover:underline"
         >/tune/gearing</NuxtLink>
         for what to do with the powerband shape.
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
+      id="rpm-histogram"
+      title="RPM distribution"
+      where="Below the dyno on the replay player · also on /tune/gearing (last 5 laps)"
+    >
+      <template #intro>
+        <p>
+          Where the engine spent its time over the lap. The dyno shows what
+          the engine <em>can produce</em> at each RPM; this shows where you
+          actually <em>were</em>. Together they answer the gearing question.
+        </p>
+      </template>
+      <template #how>
+        <ul class="list-disc space-y-1.5 pl-5">
+          <li>
+            <span class="font-mono text-zinc-100">X axis</span> — RPM, 0 to
+            the redline rounded up to the next 1000. Twelve even bins.
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Y axis</span> — % of lap
+            frames in that band (auto-scaled).
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Pairs with the dyno above</span>
+            — eyeball the histogram peak against where the dyno's powerband
+            sits.
+          </li>
+        </ul>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Peak roughly aligned with the dyno's peak-torque band
+              </td>
+              <td class="py-2 text-zinc-400">
+                Gearing is matched to the engine.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Bars piled well below the powerband
+              </td>
+              <td class="py-2 text-zinc-400">
+                Engine spends time under-revved — gearing tall or shifts
+                early.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Bars stacked at the redline
+              </td>
+              <td class="py-2 text-zinc-400">
+                Bouncing off the limiter — gearing short or shifts late.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Bimodal (two peaks)
+              </td>
+              <td class="py-2 text-zinc-400">
+                Cruising in one gear and accelerating in another for big
+                stretches of the lap.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <a
+          href="#dyno-curve"
+          class="text-green-300 hover:underline"
+        >Dyno curve above</a>
+        ·
+        <NuxtLink
+          to="/tune/gearing"
+          class="text-green-300 hover:underline"
+        >/tune/gearing</NuxtLink>
       </template>
     </ManualEntry>
 

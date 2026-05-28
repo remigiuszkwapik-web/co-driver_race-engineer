@@ -26,14 +26,14 @@ const surfaces: Surface[] = [
     title: 'Replay',
     page: 'session detail → "Replay"',
     blurb: 'Scrub a finished lap frame-by-frame. Everything live shows, plus whole-lap aggregates.',
-    graphs: ['Damper velocity histogram (whole lap)', 'Dyno curve (this lap so far)', 'Track map + cursor', 'Trace strips (inputs + motor)']
+    graphs: ['Damper velocity histogram (whole lap)', 'Damper position × velocity scatter', 'Ride-height histogram', 'RPM distribution', 'Slip-angle balance (understeer / oversteer)', 'Dyno curve (detailed mode, scrub needle)', 'Track map + cursor', 'Trace strips (inputs + motor)']
   },
   {
     slug: 'compare',
     title: 'Compare',
     page: '/events/<type>/<id>/compare',
     blurb: 'Side-by-side two laps from the same event. The glass-box "what changed" view.',
-    graphs: ['Δ TIME (continuous delta-time vs distance)', 'Track map overlay (A · B)', 'A vs B damper histograms', 'Sector times + min-speed tables', 'Setup diff']
+    graphs: ['Δ TIME (continuous delta-time vs distance)', 'Track map overlay (A · B)', 'A vs B damper histograms', 'A vs B damper scatter', 'A vs B ride-height histograms', 'A vs B dyno curves', 'A vs B slip-angle balance', 'A vs B tire temperature', 'Sector times + min-speed tables', 'Setup diff']
   },
   {
     slug: 'hotlap',

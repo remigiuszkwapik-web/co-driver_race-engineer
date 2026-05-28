@@ -3,7 +3,10 @@ import { EVENT_TYPE_LABELS, isEventType, type EventType } from '~/utils/event-ty
 import { formatLap, formatDelta } from '~/utils/format'
 import { pointsFromFrames } from '~/utils/track-map'
 import { computeSectorTimes, minSpeedPerSector } from '~/utils/sectors'
-import { damperHistogramsForLap } from '~/utils/damper-velocity'
+import { damperHistogramsForLap, damperScatterForLap } from '~/utils/damper-velocity'
+import { rideHeightHistogramsForLap } from '~/utils/ride-height'
+import { slipAngleBalanceDistribution, tireTempDistributions } from '~/utils/channel-distributions'
+import { binFrames } from '~/utils/dyno'
 import { diffSetup, SOURCE_LABEL, type SetupDiffRow } from '~/utils/setup-diff'
 import type { BuildSettings } from '~/utils/build-fields'
 import type { TuneSettings } from '~/utils/tune-fields'
@@ -167,6 +170,40 @@ const damperHistogramsA = computed(() =>
 )
 const damperHistogramsB = computed(() =>
   lapB.value ? damperHistogramsForLap(lapB.value.frames) : null
+)
+
+// Position-domain suspension companions — ride-height distribution and the
+// damper position×velocity scatter — same A vs B framing.
+const rideHeightHistogramsA = computed(() =>
+  lapA.value ? rideHeightHistogramsForLap(lapA.value.frames) : null
+)
+const rideHeightHistogramsB = computed(() =>
+  lapB.value ? rideHeightHistogramsForLap(lapB.value.frames) : null
+)
+const damperScatterA = computed(() =>
+  lapA.value ? damperScatterForLap(lapA.value.frames) : null
+)
+const damperScatterB = computed(() =>
+  lapB.value ? damperScatterForLap(lapB.value.frames) : null
+)
+
+// Engine output (dyno) + chassis-balance + tire-temp distributions, A vs B.
+// DynoCurve fills the biggest gap — there's no power-curve view on Compare
+// otherwise. Slip-angle balance and tire temp pair with ARB / alignment /
+// tire-pressure changes on the setup diff.
+const dynoCurveA = computed(() => lapA.value ? binFrames(lapA.value.frames) : null)
+const dynoCurveB = computed(() => lapB.value ? binFrames(lapB.value.frames) : null)
+const slipAngleBalanceA = computed(() =>
+  lapA.value ? slipAngleBalanceDistribution(lapA.value.frames) : null
+)
+const slipAngleBalanceB = computed(() =>
+  lapB.value ? slipAngleBalanceDistribution(lapB.value.frames) : null
+)
+const tireTempA = computed(() =>
+  lapA.value ? tireTempDistributions(lapA.value.frames) : null
+)
+const tireTempB = computed(() =>
+  lapB.value ? tireTempDistributions(lapB.value.frames) : null
 )
 
 // --- Sector + apex tables ------------------------------------------------
@@ -443,6 +480,96 @@ const diffRows = computed<SetupDiffRow[]>(() => {
         :histograms="damperHistogramsB"
         title="B · damper velocity"
         subtitle="whole lap"
+      />
+    </section>
+
+    <!-- Damper position × velocity — A vs B. The "C" shape exposes bump/
+         rebound coupling the histogram can't. -->
+    <section class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <DamperScatter
+        :scatter="damperScatterA"
+        title="A · damper position × velocity"
+        subtitle="whole lap"
+      />
+      <DamperScatter
+        :scatter="damperScatterB"
+        title="B · damper position × velocity"
+        subtitle="whole lap"
+      />
+    </section>
+
+    <!-- Ride-height distribution — A vs B. Where the platform sits over the
+         lap; watch the bottoming band and front/rear asymmetry. -->
+    <section class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <RideHeightHistogram
+        :histograms="rideHeightHistogramsA"
+        title="A · ride height"
+        subtitle="whole lap"
+      />
+      <RideHeightHistogram
+        :histograms="rideHeightHistogramsB"
+        title="B · ride height"
+        subtitle="whole lap"
+      />
+    </section>
+
+    <!-- Engine output — A vs B. Build-side changes (engine swap, aspiration,
+         displacement) show here; tune-side changes leave both curves the same. -->
+    <section
+      v-if="(dynoCurveA && dynoCurveA.buckets.length) || (dynoCurveB && dynoCurveB.buckets.length)"
+      class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2"
+    >
+      <DynoCurve
+        v-if="dynoCurveA"
+        :curve="dynoCurveA"
+        title="A · dyno"
+        subtitle="whole lap"
+      />
+      <DynoCurve
+        v-if="dynoCurveB"
+        :curve="dynoCurveB"
+        title="B · dyno"
+        subtitle="whole lap"
+      />
+    </section>
+
+    <!-- Chassis balance distribution — A vs B. Did the chassis lean more
+         understeery / oversteery overall between these two tunes? -->
+    <section class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <ChannelHistogram
+        :histogram="slipAngleBalanceA"
+        title="A · balance · front − rear slip angle"
+        subtitle="cornering only"
+        unit="°"
+        :signed="true"
+        left-label="oversteer"
+        right-label="understeer"
+      />
+      <ChannelHistogram
+        :histogram="slipAngleBalanceB"
+        title="B · balance · front − rear slip angle"
+        subtitle="cornering only"
+        unit="°"
+        :signed="true"
+        left-label="oversteer"
+        right-label="understeer"
+      />
+    </section>
+
+    <!-- Tire temperature distribution — A vs B per corner. Alignment and
+         tire-pressure changes show here as heat-pattern shifts. -->
+    <section class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <QuadHistogram
+        :histograms="tireTempA"
+        title="A · tire temperature"
+        subtitle="whole lap"
+        unit="°C"
+      />
+      <QuadHistogram
+        :histograms="tireTempB"
+        title="B · tire temperature"
+        subtitle="whole lap"
+        unit="°C"
       />
     </section>
 

@@ -299,6 +299,306 @@ useHead({ title: 'Manual · Compare' })
     </ManualEntry>
 
     <ManualEntry
+      id="damper-scatter"
+      title="A vs B damper position × velocity"
+      where="Below the damper histograms"
+    >
+      <template #intro>
+        <p>
+          The two
+          <NuxtLink
+            to="/manual/replay#damper-scatter"
+            class="text-green-300 hover:underline"
+          >position×velocity scatters</NuxtLink>
+          side by side. Reading is identical to the /replay version; here the
+          question is whether the bump/rebound coupling — the "C" lean —
+          changed between the two tunes.
+        </p>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                B's cloud leans into a "C", A's is symmetric
+              </td>
+              <td class="py-2 text-zinc-400">
+                A damper change introduced bump/rebound imbalance — pair with
+                the
+                <a
+                  href="#setup-diff"
+                  class="text-green-300 hover:underline"
+                >setup diff</a>.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                B's cloud shifted right vs A
+              </td>
+              <td class="py-2 text-zinc-400">
+                B rides lower through the lap — check the ride-height
+                histograms below.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/manual/replay#damper-scatter"
+          class="text-green-300 hover:underline"
+        >Full reading guide on /replay</NuxtLink>
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
+      id="ride-height-histograms"
+      title="A vs B ride-height histograms"
+      where="Below the damper scatters"
+    >
+      <template #intro>
+        <p>
+          Two
+          <NuxtLink
+            to="/manual/replay#ride-height-histogram"
+            class="text-green-300 hover:underline"
+          >ride-height histograms</NuxtLink>
+          side by side — where each lap's chassis sat over the travel range.
+          The direct read of how a spring / ride-height / aero change moved the
+          platform.
+        </p>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                B's bars shifted right vs A
+              </td>
+              <td class="py-2 text-zinc-400">
+                B rides lower — softer springs, lower ride height, or more
+                downforce loading the platform.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                B's bottoming band grew vs A
+              </td>
+              <td class="py-2 text-zinc-400">
+                B runs out of travel more often — pair with the
+                <a
+                  href="#setup-diff"
+                  class="text-green-300 hover:underline"
+                >setup diff</a>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/manual/replay#ride-height-histogram"
+          class="text-green-300 hover:underline"
+        >Full reading guide on /replay</NuxtLink>
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
+      id="dyno-curves"
+      title="A vs B dyno curves"
+      where="Below the ride-height histograms"
+    >
+      <template #intro>
+        <p>
+          Two
+          <NuxtLink
+            to="/manual/replay#dyno-curve"
+            class="text-green-300 hover:underline"
+          >dyno curves</NuxtLink>
+          side by side — engine torque, power, and boost (when applicable)
+          vs RPM. Compare's only power-curve view; fills the gap when the
+          <a
+            href="#setup-diff"
+            class="text-green-300 hover:underline"
+          >setup diff</a>
+          contains build-side changes (engine swap, aspiration,
+          displacement) that move the curve.
+        </p>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Curves overlap closely
+              </td>
+              <td class="py-2 text-zinc-400">
+                Same engine package; differences are tune-side or driving.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                B's peak power higher / further right
+              </td>
+              <td class="py-2 text-zinc-400">
+                Build change moved the engine — pair with the
+                <a
+                  href="#setup-diff"
+                  class="text-green-300 hover:underline"
+                >setup diff</a>.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                One curve missing the boost line
+              </td>
+              <td class="py-2 text-zinc-400">
+                Aspiration changed between builds (N/A ↔ turbo / SC).
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/manual/replay#dyno-curve"
+          class="text-green-300 hover:underline"
+        >Full dyno reading guide on /replay</NuxtLink>
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
+      id="slip-angle-balance"
+      title="A vs B slip-angle balance"
+      where="Below the dyno curves"
+    >
+      <template #intro>
+        <p>
+          Two
+          <NuxtLink
+            to="/manual/replay#slip-angle-balance"
+            class="text-green-300 hover:underline"
+          >slip-angle balance histograms</NuxtLink>
+          side by side. The cleanest read of <em>did chassis balance shift
+            between these two tunes</em> — pair with ARB, spring, and
+          alignment rows on the
+          <a
+            href="#setup-diff"
+            class="text-green-300 hover:underline"
+          >setup diff</a>.
+        </p>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                A peak at 0, B shifted right (positive)
+              </td>
+              <td class="py-2 text-zinc-400">
+                B leans understeery — fronts working harder than on A.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                A peak at 0, B shifted left (negative)
+              </td>
+              <td class="py-2 text-zinc-400">
+                B leans oversteery — rears working harder than on A.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                B's spread is wider than A's
+              </td>
+              <td class="py-2 text-zinc-400">
+                B's balance varies more through corners — less consistent.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/manual/replay#slip-angle-balance"
+          class="text-green-300 hover:underline"
+        >Full balance reading guide on /replay</NuxtLink>
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
+      id="tire-temp"
+      title="A vs B tire temperature distribution"
+      where="Below the balance histograms"
+    >
+      <template #intro>
+        <p>
+          Per-corner (FL · FR · RL · RR) temperature distributions, A vs B.
+          Diagnoses alignment and tire-pressure changes — they move heat
+          patterns. Optimal grip band sits around 85-100 °C; well below =
+          tire under-loaded, well above = overworked or under-inflated.
+        </p>
+      </template>
+      <template #how>
+        <ul class="list-disc space-y-1.5 pl-5">
+          <li>
+            <span class="font-mono text-zinc-100">X axis</span> — tire
+            temperature, fixed 40-130 °C scale (out-of-range temps clamp
+            into the end bins).
+          </li>
+          <li>
+            <span class="font-mono text-zinc-100">Y axis</span> — % of lap
+            frames at that temp (auto-scaled per corner).
+          </li>
+        </ul>
+      </template>
+      <template #shapes>
+        <table class="w-full text-sm">
+          <tbody class="divide-y divide-zinc-800/60">
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                B's bars shifted right vs A on one corner
+              </td>
+              <td class="py-2 text-zinc-400">
+                That tire is running hotter — typically more camber, lower
+                pressure, or more cornering load on B.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                FL ≠ FR (or RL ≠ RR) shape within a build
+              </td>
+              <td class="py-2 text-zinc-400">
+                Left/right asymmetry — track-direction bias, camber/toe
+                imbalance, or alignment difference between sides.
+              </td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-zinc-100">
+                Fronts much hotter than rears (or vice versa)
+              </td>
+              <td class="py-2 text-zinc-400">
+                Forward/rearward load bias — pair with balance histogram
+                above and ARB / spring rows on the setup diff.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template #seeAlso>
+        <NuxtLink
+          to="/tune/tire-pressure"
+          class="text-green-300 hover:underline"
+        >/tune/tire-pressure</NuxtLink>
+        ·
+        <NuxtLink
+          to="/tune/alignment"
+          class="text-green-300 hover:underline"
+        >/tune/alignment</NuxtLink>
+      </template>
+    </ManualEntry>
+
+    <ManualEntry
       id="sector-times"
       title="Sector times table"
       where="Below the histograms, paired with min speed per sector"
