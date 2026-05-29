@@ -7,8 +7,8 @@
  * holds the selection and exposes the strongly-typed current GameDef.
  */
 
-import type { GameId } from '../../shared/games'
-import { DEFAULT_GAME_ID, GAMES, getGame, isGameId } from '../../shared/games'
+import type { GameId } from '#shared/games'
+import { DEFAULT_GAME_ID, GAMES, getGame, isGameId } from '#shared/games'
 
 export function useGame() {
   const gameId = useLocalStorage<GameId>('co-driver:game', DEFAULT_GAME_ID)

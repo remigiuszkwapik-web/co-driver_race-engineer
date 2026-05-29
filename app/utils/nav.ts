@@ -1,5 +1,5 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { GameCapabilities } from '../../shared/games'
+import type { GameCapabilities } from '#shared/games'
 
 // Single source of truth for the global nav. Used by the default-layout's
 // horizontal nav row (desktop) AND its mobile-portrait hamburger

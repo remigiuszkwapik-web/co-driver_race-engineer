@@ -1,5 +1,5 @@
-import type { GameId } from '../../shared/games'
-import { DEFAULT_GAME_ID, isGameId } from '../../shared/games'
+import type { GameId } from '#shared/games'
+import { DEFAULT_GAME_ID, isGameId } from '#shared/games'
 import { fh5Adapter } from './fh5'
 import { fh6Adapter } from './fh6'
 import type { TelemetryAdapter } from './types'

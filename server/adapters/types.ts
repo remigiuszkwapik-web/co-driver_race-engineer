@@ -1,4 +1,4 @@
-import type { GameId } from '../../shared/games'
+import type { GameId } from '#shared/games'
 import type { Telemetry } from '../utils/decode'
 
 /**
