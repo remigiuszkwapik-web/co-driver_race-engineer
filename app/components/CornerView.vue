@@ -38,6 +38,13 @@ const oversteer = useSustained(
 // Computed from frame-to-frame `suspensionMeters` delta. dt > 100 ms is
 // treated as a seek / pause edge and the value held — this avoids one
 // huge spike after a pause skews the live readout.
+//
+// The raw single-frame derivative is noisy — differentiating a 60 Hz position
+// signal amplifies road texture, tyre patter, and feed jitter — so the live
+// readout is run through a light EMA. Cosmetic for the live gauge only; the
+// recorder and per-lap histograms (SuspensionHistogram / DamperScatter) use
+// the raw signal.
+const DAMPER_EMA_ALPHA = 0.25
 interface DamperVelocity { fl: number, fr: number, rl: number, rr: number }
 interface PrevSusp {
   ts: number
@@ -62,11 +69,13 @@ watch(() => props.frame, (f) => {
   if (p) {
     const dtSec = (cur.ts - p.ts) / 1000
     if (dtSec > 0 && dtSec < 0.1) {
+      const a = DAMPER_EMA_ALPHA
+      const d = damperVelocity.value
       damperVelocity.value = {
-        fl: (cur.fl - p.fl) / dtSec * 1000,
-        fr: (cur.fr - p.fr) / dtSec * 1000,
-        rl: (cur.rl - p.rl) / dtSec * 1000,
-        rr: (cur.rr - p.rr) / dtSec * 1000
+        fl: d.fl + a * ((cur.fl - p.fl) / dtSec * 1000 - d.fl),
+        fr: d.fr + a * ((cur.fr - p.fr) / dtSec * 1000 - d.fr),
+        rl: d.rl + a * ((cur.rl - p.rl) / dtSec * 1000 - d.rl),
+        rr: d.rr + a * ((cur.rr - p.rr) / dtSec * 1000 - d.rr)
       }
     }
   }
