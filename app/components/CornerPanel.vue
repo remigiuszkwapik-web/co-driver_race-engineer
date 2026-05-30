@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { suspColor, tempColor, slipColor, combColor, SUSPENSION_BOTTOMING } from '~/utils/tuning'
+import { tempColor, slipColor, combColor, SUSPENSION_BOTTOMING } from '~/utils/tuning'
 import { useSustained } from '~/composables/useSustained'
 
-const { format, unitLabel } = useUnits()
+const { unitLabel } = useUnits()
 
 const props = withDefaults(defineProps<{
   label: string
@@ -29,31 +29,11 @@ const props = withDefaults(defineProps<{
 })
 
 const bottoming = computed(() => props.suspension > SUSPENSION_BOTTOMING)
-const susp = computed(() => suspColor(props.suspension))
 const temp = computed(() => tempColor(props.tempC))
 const ratioColor = computed(() => slipColor(Math.abs(props.slipRatio)))
 const angleColor = computed(() => slipColor(Math.abs(props.slipAngle)))
 const combinedColor = computed(() => combColor(props.combinedSlip))
 const align = computed(() => props.side === 'left' ? 'text-left' : 'text-right')
-
-// Damper velocity readout — pro-tool zone convention:
-//   |v| < 25 mm/s  → slow (normal cornering / smooth surface)
-//   25..50 mm/s    → medium
-//   |v| > 50 mm/s  → fast (kerb hits, rapid weight transfer — damper is working)
-// Color reflects which zone you're in so the eye picks out the fast bumps
-// without needing to read the number.
-const damperVelocityClass = computed(() => {
-  const abs = Math.abs(props.damperVelocityMmS)
-  if (abs >= 50) return 'text-amber-300'
-  if (abs >= 25) return 'text-zinc-200'
-  return 'text-zinc-500'
-})
-
-const damperVelocityText = computed(() => {
-  const v = Math.round(props.damperVelocityMmS)
-  const sign = v > 0 ? '+' : ''
-  return `${sign}${v}`
-})
 
 // --- Diagnostic chips ------------------------------------------------------
 // Each chip is a single threshold rule, sustained briefly to kill transients.
@@ -164,195 +144,157 @@ const trailPath = computed(() => {
       </NuxtLink>
     </div>
 
-    <!-- Suspension bar -->
-    <div class="mt-3">
-      <div class="flex items-center justify-between text-sm text-zinc-400">
-        <NuxtLink
-          to="/tune/springs"
-          class="group inline-flex items-center gap-1 transition-colors hover:text-green-300"
-        >
-          <span>SUSP</span>
-          <UIcon
-            name="i-lucide-arrow-up-right"
-            class="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70"
-          />
-        </NuxtLink>
-        <span class="tabular-nums">
-          <span
-            :class="damperVelocityClass"
-            :title="'Damper velocity: +ve compression, -ve rebound · |v|>50 mm/s is the fast zone'"
-          >{{ damperVelocityText }}<span class="ml-0.5 text-zinc-600">mm/s</span></span>
-          <span class="ml-2 text-zinc-500">{{ format.distanceShort(suspensionMeters) }}</span>
-          <span class="ml-2 text-base text-zinc-200">{{ suspension.toFixed(2) }}</span>
-        </span>
-      </div>
-      <svg
-        viewBox="0 0 100 6"
-        class="mt-1 w-full"
-        preserveAspectRatio="none"
-      >
-        <rect
-          x="0"
-          y="0"
-          width="100"
-          height="6"
-          rx="1"
-          fill="#27272a"
-        />
-        <rect
-          x="0"
-          y="0"
-          :width="Math.min(suspension * 100, 100)"
-          height="6"
-          rx="1"
-          :fill="susp"
-          :class="{ 'animate-pulse': bottoming }"
-        />
-        <line
-          x1="95"
-          y1="0"
-          x2="95"
-          y2="6"
-          stroke="#71717a"
-          stroke-width="0.5"
-          stroke-dasharray="1,1"
-        />
-      </svg>
-    </div>
-
-    <!-- Slip ratio + angle -->
-    <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-      <div :class="align">
-        <div class="text-zinc-400">
-          SLIP R
-        </div>
-        <div
-          class="text-2xl leading-none tabular-nums"
-          :style="{ color: ratioColor }"
-        >
-          {{ slipRatio >= 0 ? '+' : '' }}{{ slipRatio.toFixed(2) }}
-        </div>
-      </div>
-      <div :class="align">
-        <div class="text-zinc-400">
-          SLIP A
-        </div>
-        <div
-          class="text-2xl leading-none tabular-nums"
-          :style="{ color: angleColor }"
-        >
-          {{ slipAngle >= 0 ? '+' : '' }}{{ slipAngle.toFixed(2) }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Friction circle — dot positioned at (slipAngle, slipRatio) inside the
-         grip limit (outer ring = 1.0). Working-zone ring is dashed at 0.7. -->
-    <div class="mt-4">
-      <div class="flex items-center justify-between text-sm">
-        <NuxtLink
-          to="/tune/alignment"
-          class="group inline-flex items-center gap-1 text-zinc-400 transition-colors hover:text-green-300"
-        >
-          <span>FRICTION</span>
-          <UIcon
-            name="i-lucide-arrow-up-right"
-            class="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70"
-          />
-        </NuxtLink>
-        <span
-          class="text-base tabular-nums"
-          :style="{ color: combinedColor }"
-        >{{ combinedSlip.toFixed(2) }}</span>
-      </div>
-      <div class="mt-1.5 flex justify-center">
-        <svg
-          viewBox="0 0 100 100"
-          class="h-24 w-24"
-        >
-          <!-- backdrop -->
-          <circle
-            cx="50"
-            cy="50"
-            r="40"
-            fill="#18181b"
-          />
-          <!-- crosshair -->
-          <line
-            x1="50"
-            y1="6"
-            x2="50"
-            y2="94"
-            stroke="#3f3f46"
-            stroke-width="0.5"
-          />
-          <line
-            x1="6"
-            y1="50"
-            x2="94"
-            y2="50"
-            stroke="#3f3f46"
-            stroke-width="0.5"
-          />
-          <!-- working-zone ring (0.7) -->
-          <circle
-            cx="50"
-            cy="50"
-            :r="LIMIT_R * 0.7"
-            fill="none"
-            stroke="#3f3f46"
-            stroke-width="0.5"
-            stroke-dasharray="1.5,1.5"
-          />
-          <!-- friction-limit ring (1.0) — solid -->
-          <circle
-            cx="50"
-            cy="50"
-            :r="LIMIT_R"
-            fill="none"
-            stroke="#52525b"
-            stroke-width="0.7"
-          />
-          <!-- trail -->
-          <path
-            :d="trailPath"
-            fill="none"
-            stroke="#fbbf24"
-            stroke-width="1"
-            stroke-linejoin="round"
-            stroke-linecap="round"
-            opacity="0.55"
-          />
-          <!-- current point -->
-          <circle
-            :cx="dotPos.x"
-            :cy="dotPos.y"
-            r="3"
-            :fill="combinedColor"
-            stroke="#0f0f12"
-            stroke-width="0.5"
-          />
-        </svg>
-      </div>
-    </div>
-
-    <!-- Tire temp -->
-    <div class="mt-4 flex items-center gap-2">
-      <span
-        class="inline-block h-3.5 w-3.5 rounded-sm"
-        :style="{ background: temp }"
+    <!-- Two modules: suspension (coil + damper) outboard, tire grip inboard.
+         flex-row-reverse on the right wheels puts the spring on the outer
+         edge of the car in both columns. -->
+    <div
+      class="mt-3 flex gap-3"
+      :class="{ 'flex-row-reverse': side === 'right' }"
+    >
+      <SpringGauge
+        class="shrink-0"
+        :compression="suspension"
+        :damper-velocity-mm-s="damperVelocityMmS"
+        :suspension-meters="suspensionMeters"
+        :bottoming="bottoming"
       />
-      <span class="text-base tabular-nums">{{ unitLabel.temperature === '°F' ? (tempC * 9 / 5 + 32).toFixed(0) : tempC.toFixed(0) }}<span class="text-zinc-500 text-xs">{{ unitLabel.temperature }}</span></span>
-      <NuxtLink
-        to="/tune/tire-pressure"
-        class="group ml-auto inline-flex items-center gap-1 text-xs uppercase tracking-wider text-zinc-500 transition-colors hover:text-green-300"
-      >
-        <span>TIRE</span>
-        <UIcon
-          name="i-lucide-arrow-up-right"
-          class="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70"
-        />
-      </NuxtLink>
+
+      <div class="flex min-w-0 flex-1 flex-col gap-3">
+        <!-- Slip ratio + angle -->
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div :class="align">
+            <div class="text-zinc-400">
+              SLIP R
+            </div>
+            <div
+              class="text-2xl leading-none tabular-nums"
+              :style="{ color: ratioColor }"
+            >
+              {{ slipRatio >= 0 ? '+' : '' }}{{ slipRatio.toFixed(2) }}
+            </div>
+          </div>
+          <div :class="align">
+            <div class="text-zinc-400">
+              SLIP A
+            </div>
+            <div
+              class="text-2xl leading-none tabular-nums"
+              :style="{ color: angleColor }"
+            >
+              {{ slipAngle >= 0 ? '+' : '' }}{{ slipAngle.toFixed(2) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Friction circle — dot positioned at (slipAngle, slipRatio) inside the
+         grip limit (outer ring = 1.0). Working-zone ring is dashed at 0.7. -->
+        <div>
+          <div class="flex items-center justify-between text-sm">
+            <NuxtLink
+              to="/tune/alignment"
+              class="group inline-flex items-center gap-1 text-zinc-400 transition-colors hover:text-green-300"
+            >
+              <span>FRICTION</span>
+              <UIcon
+                name="i-lucide-arrow-up-right"
+                class="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70"
+              />
+            </NuxtLink>
+            <span
+              class="text-base tabular-nums"
+              :style="{ color: combinedColor }"
+            >{{ combinedSlip.toFixed(2) }}</span>
+          </div>
+          <div class="mt-1.5 flex justify-center">
+            <svg
+              viewBox="0 0 100 100"
+              class="aspect-square w-full max-w-24"
+            >
+              <!-- backdrop -->
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="#18181b"
+              />
+              <!-- crosshair -->
+              <line
+                x1="50"
+                y1="6"
+                x2="50"
+                y2="94"
+                stroke="#3f3f46"
+                stroke-width="0.5"
+              />
+              <line
+                x1="6"
+                y1="50"
+                x2="94"
+                y2="50"
+                stroke="#3f3f46"
+                stroke-width="0.5"
+              />
+              <!-- working-zone ring (0.7) -->
+              <circle
+                cx="50"
+                cy="50"
+                :r="LIMIT_R * 0.7"
+                fill="none"
+                stroke="#3f3f46"
+                stroke-width="0.5"
+                stroke-dasharray="1.5,1.5"
+              />
+              <!-- friction-limit ring (1.0) — solid -->
+              <circle
+                cx="50"
+                cy="50"
+                :r="LIMIT_R"
+                fill="none"
+                stroke="#52525b"
+                stroke-width="0.7"
+              />
+              <!-- trail -->
+              <path
+                :d="trailPath"
+                fill="none"
+                stroke="#fbbf24"
+                stroke-width="1"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+                opacity="0.55"
+              />
+              <!-- current point -->
+              <circle
+                :cx="dotPos.x"
+                :cy="dotPos.y"
+                r="3"
+                :fill="combinedColor"
+                stroke="#0f0f12"
+                stroke-width="0.5"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Tire temp -->
+        <div class="flex items-center gap-2">
+          <span
+            class="inline-block h-3.5 w-3.5 rounded-sm"
+            :style="{ background: temp }"
+          />
+          <span class="text-base tabular-nums">{{ unitLabel.temperature === '°F' ? (tempC * 9 / 5 + 32).toFixed(0) : tempC.toFixed(0) }}<span class="text-zinc-500 text-xs">{{ unitLabel.temperature }}</span></span>
+          <NuxtLink
+            to="/tune/tire-pressure"
+            class="group ml-auto inline-flex items-center gap-1 text-xs uppercase tracking-wider text-zinc-500 transition-colors hover:text-green-300"
+          >
+            <span>TIRE</span>
+            <UIcon
+              name="i-lucide-arrow-up-right"
+              class="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-70"
+            />
+          </NuxtLink>
+        </div>
+      </div>
     </div>
   </div>
 </template>

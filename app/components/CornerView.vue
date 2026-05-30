@@ -93,10 +93,41 @@ watch(() => props.frame, (f) => {
 
 <template>
   <main
-    class="relative grid gap-4 px-6 py-6"
-    style="grid-template-columns: 1fr 1.4fr 1fr; grid-template-rows: 1fr 1fr;"
+    class="relative grid grid-cols-1 gap-4 px-3 py-4 md:grid-cols-[1fr_1.6fr_1fr] md:grid-rows-[auto_1fr_1fr] md:px-6 md:py-6"
   >
+    <CenterPanel
+      class="md:col-span-3"
+      :rpm="frame?.rpm ?? 0"
+      :rpm-max="frame?.rpmMax ?? 8000"
+      :rpm-idle="frame?.rpmIdle ?? 800"
+      :gear="frame?.gear ?? 1"
+      :speed-kmh="frame?.speedKmh ?? 0"
+      :boost="frame?.boost ?? 0"
+      :has-boost="hasBoost"
+    />
+    <!-- Center column: inputs + attitude/power readouts on top, G-G dot below.
+         Both visualize driver inputs and the resulting body movement / forces. -->
+    <div class="flex min-h-0 flex-col gap-4 md:col-start-2 md:row-span-2 md:row-start-2">
+      <div class="panel flex-1 p-3 backdrop-blur sm:p-4">
+        <InputsReadouts
+          :throttle="frame?.throttle ?? 0"
+          :brake="frame?.brake ?? 0"
+          :steer="frame?.steer ?? 0"
+          :roll="frame?.roll ?? 0"
+          :pitch="frame?.pitch ?? 0"
+          :yaw-rate="frame?.angularVelocity.y ?? 0"
+          :power="frame?.power ?? 0"
+        />
+      </div>
+      <div class="panel p-3 backdrop-blur sm:p-4">
+        <GgDot
+          :accel-long="frame?.acceleration.z ?? 0"
+          :accel-lat="frame?.acceleration.x ?? 0"
+        />
+      </div>
+    </div>
     <CornerPanel
+      class="md:col-start-1 md:row-start-2"
       label="FRONT LEFT"
       side="left"
       :suspension="frame?.suspension.fl ?? 0"
@@ -109,26 +140,8 @@ watch(() => props.frame, (f) => {
       :rumble="frame?.rumble?.fl ?? false"
       :understeer="understeer"
     />
-    <CenterPanel
-      class="row-span-2"
-      :rpm="frame?.rpm ?? 0"
-      :rpm-max="frame?.rpmMax ?? 8000"
-      :rpm-idle="frame?.rpmIdle ?? 800"
-      :gear="frame?.gear ?? 1"
-      :speed-kmh="frame?.speedKmh ?? 0"
-      :throttle="frame?.throttle ?? 0"
-      :brake="frame?.brake ?? 0"
-      :steer="frame?.steer ?? 0"
-      :boost="frame?.boost ?? 0"
-      :has-boost="hasBoost"
-      :power="frame?.power ?? 0"
-      :accel-long="frame?.acceleration.z ?? 0"
-      :accel-lat="frame?.acceleration.x ?? 0"
-      :roll="frame?.roll ?? 0"
-      :pitch="frame?.pitch ?? 0"
-      :yaw-rate="frame?.angularVelocity.y ?? 0"
-    />
     <CornerPanel
+      class="md:col-start-3 md:row-start-2"
       label="FRONT RIGHT"
       side="right"
       :suspension="frame?.suspension.fr ?? 0"
@@ -142,6 +155,7 @@ watch(() => props.frame, (f) => {
       :understeer="understeer"
     />
     <CornerPanel
+      class="md:col-start-1 md:row-start-3"
       label="REAR LEFT"
       side="left"
       :suspension="frame?.suspension.rl ?? 0"
@@ -155,6 +169,7 @@ watch(() => props.frame, (f) => {
       :oversteer="oversteer"
     />
     <CornerPanel
+      class="md:col-start-3 md:row-start-3"
       label="REAR RIGHT"
       side="right"
       :suspension="frame?.suspension.rr ?? 0"

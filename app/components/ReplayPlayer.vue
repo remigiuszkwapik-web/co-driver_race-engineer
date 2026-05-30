@@ -234,6 +234,12 @@ const trailBrakingBandsReplay = computed(() => {
     />
 
     <section class="space-y-3 px-6 pb-2">
+      <!-- 3D chassis attitude — replay-only because the WebGL canvas is the
+           heavy visualization in this set. CornerView's center column shows
+           inputs + attitude readouts and the G-G dot instead. -->
+      <div class="card aspect-[16/10] overflow-hidden p-2 sm:p-3">
+        <CarAttitude3D :frame="currentFrame" />
+      </div>
       <TraceStrip
         :history="history"
         :lines="INPUT_TRACE_LINES"
@@ -300,7 +306,7 @@ const trailBrakingBandsReplay = computed(() => {
       />
     </section>
 
-    <div class="mt-2 flex items-center gap-3 px-6">
+    <div class="sticky bottom-0 z-10 -mx-4 -mb-4 mt-2 flex items-center gap-3 border-t border-zinc-800 bg-zinc-950/90 px-6 py-3 backdrop-blur">
       <button
         type="button"
         class="rounded-sm border border-zinc-700 bg-zinc-900 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-green-500/60 hover:text-green-300"
