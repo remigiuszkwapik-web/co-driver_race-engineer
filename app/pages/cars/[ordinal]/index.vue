@@ -115,32 +115,33 @@ function carClassLetter(c: number): string {
 
     <div class="mb-8 flex items-baseline gap-3">
       <template v-if="editingName">
-        <input
+        <UInput
           v-model="nameDraft"
-          type="text"
           :placeholder="`#${ordinal}`"
-          class="min-w-0 flex-1 rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-1 font-mono text-2xl text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none"
           :disabled="savingName"
           autofocus
+          class="min-w-0 flex-1"
+          :ui="{ base: 'text-2xl' }"
           @keydown.enter.prevent="saveName"
           @keydown.escape.prevent="cancelEditName"
-        >
-        <button
-          type="button"
-          class="rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-green-500/60 hover:text-green-300 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+        <UButton
+          :label="savingName ? 'Saving…' : 'Save'"
+          color="primary"
+          variant="outline"
+          :loading="savingName"
           :disabled="savingName"
+          class="font-mono text-[11px] uppercase tracking-[0.2em]"
           @click="saveName"
-        >
-          {{ savingName ? 'Saving…' : 'Save' }}
-        </button>
-        <button
-          type="button"
-          class="rounded-sm border border-zinc-800 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="ghost"
           :disabled="savingName"
+          class="font-mono text-[11px] uppercase tracking-[0.2em]"
           @click="cancelEditName"
-        >
-          Cancel
-        </button>
+        />
       </template>
       <template v-else>
         <h1 class="font-mono text-3xl text-zinc-100">
@@ -150,13 +151,14 @@ function carClassLetter(c: number): string {
           v-if="car"
           class="font-mono text-sm text-zinc-500"
         >[{{ carClassLetter(car.class) }}]</span>
-        <button
-          type="button"
-          class="ml-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600 transition-colors hover:text-zinc-300"
+        <UButton
+          label="rename"
+          color="neutral"
+          variant="link"
+          size="xs"
+          class="ml-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-zinc-300"
           @click="startEditName"
-        >
-          rename
-        </button>
+        />
       </template>
     </div>
     <div
@@ -174,20 +176,22 @@ function carClassLetter(c: number): string {
         class="flex gap-2"
         @submit.prevent="createBuild"
       >
-        <input
+        <UInput
           v-model="newName"
-          type="text"
           placeholder="e.g. S2 race trim"
-          class="flex-1 rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none"
           :disabled="creating"
-        >
-        <button
+          class="flex-1"
+          :ui="{ base: 'text-sm' }"
+        />
+        <UButton
           type="submit"
-          class="rounded-sm border border-zinc-700 bg-zinc-900 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-green-500/60 hover:text-green-300 disabled:cursor-not-allowed disabled:opacity-50"
+          :label="creating ? 'Creating…' : 'Create'"
+          color="primary"
+          variant="outline"
+          :loading="creating"
           :disabled="creating || !newName.trim()"
-        >
-          {{ creating ? 'Creating…' : 'Create' }}
-        </button>
+          class="font-mono text-[11px] uppercase tracking-[0.2em]"
+        />
       </form>
       <div
         v-if="errorMessage"
@@ -223,11 +227,12 @@ function carClassLetter(c: number): string {
         </NuxtLink>
       </li>
     </ul>
-    <div
+    <UEmpty
       v-else
-      class="card-dashed p-8 text-center font-mono text-sm text-zinc-500"
-    >
-      No builds yet. Create one above.
-    </div>
+      icon="i-lucide-wrench"
+      title="No builds yet"
+      description="Create one above."
+      class="card-dashed font-mono"
+    />
   </main>
 </template>
