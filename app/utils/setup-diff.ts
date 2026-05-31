@@ -10,7 +10,8 @@
 import {
   BUILD_FIELDS,
   formatFieldValue,
-  type BuildSettings
+  type BuildSettings,
+  type FieldKind
 } from './build-fields'
 import {
   TUNE_FIELDS,
@@ -29,6 +30,10 @@ export interface SetupDiffRow {
   /** Already-formatted value strings. */
   currentValue: string
   priorValue: string
+  /** Raw numeric values for number fields (null for enum/text or non-finite).
+   *  Lets a consumer render a signed delta in whichever direction it wants. */
+  currentNum: number | null
+  priorNum: number | null
 }
 
 /** Section labels rendered for the diff row prefix. */
@@ -56,6 +61,13 @@ function equals(a: unknown, b: unknown): boolean {
   return na === nb
 }
 
+/** Raw number for a `number`-kind field, else null. */
+function numFor(field: { kind: FieldKind }, value: unknown): number | null {
+  if (field.kind !== 'number') return null
+  const n = Number(normalize(value))
+  return Number.isFinite(n) ? n : null
+}
+
 export function diffSetup(
   current: { build: BuildSettings | null, tune: TuneSettings | null },
   prior: { build: BuildSettings | null, tune: TuneSettings | null }
@@ -73,7 +85,9 @@ export function diffSetup(
       fieldLabel: field.label,
       fieldId: field.id,
       currentValue: formatFieldValue(field, c),
-      priorValue: formatFieldValue(field, p)
+      priorValue: formatFieldValue(field, p),
+      currentNum: numFor(field, c),
+      priorNum: numFor(field, p)
     })
   }
 
@@ -88,7 +102,9 @@ export function diffSetup(
       fieldLabel: field.label,
       fieldId: field.id,
       currentValue: formatFieldValue(field, c),
-      priorValue: formatFieldValue(field, p)
+      priorValue: formatFieldValue(field, p),
+      currentNum: numFor(field, c),
+      priorNum: numFor(field, p)
     })
   }
 

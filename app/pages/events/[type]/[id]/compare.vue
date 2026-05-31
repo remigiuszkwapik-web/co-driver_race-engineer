@@ -363,6 +363,18 @@ const diffRows = computed<SetupDiffRow[]>(() => {
     { build: b.buildSnapshot, tune: b.tuneSnapshot }
   )
 })
+
+// Signed numeric change expressed as focus relative to ref (currentNum=ref,
+// priorNum=focus): ref 10 → focus 13 reads "+3". Null for enum/text rows.
+function diffDelta(row: SetupDiffRow): string | null {
+  if (row.currentNum === null || row.priorNum === null) return null
+  const d = row.priorNum - row.currentNum
+  if (d === 0) return null
+  const sign = d > 0 ? '+' : '−'
+  const mag = Math.abs(d)
+  const num = Number.isInteger(mag) ? String(mag) : Number(mag.toFixed(2)).toString()
+  return `${sign}${num}`
+}
 </script>
 
 <template>
@@ -781,7 +793,7 @@ const diffRows = computed<SetupDiffRow[]>(() => {
         <li
           v-for="row in diffRows"
           :key="`${row.source}:${row.fieldId}`"
-          class="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-3 tabular-nums"
+          class="grid grid-cols-[auto_1fr_auto_auto] items-baseline gap-x-3 tabular-nums"
         >
           <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
             {{ SOURCE_LABEL[row.source] }} · {{ row.section }}
@@ -793,6 +805,11 @@ const diffRows = computed<SetupDiffRow[]>(() => {
             <span class="text-zinc-500">ref:</span> {{ row.currentValue }}
             <span class="ml-2 text-zinc-500">focus:</span> {{ row.priorValue }}
           </span>
+          <span
+            class="w-14 text-right"
+            :class="diffDelta(row) ? 'text-green-300' : 'text-zinc-700'"
+            title="focus − ref"
+          >{{ diffDelta(row) ?? '—' }}</span>
         </li>
       </ul>
     </section>
