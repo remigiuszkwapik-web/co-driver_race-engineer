@@ -18,6 +18,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Package manager is **bun**. Do not use npm, yarn, or pnpm.
 
+## Git remotes
+
+This repo has **two** push targets:
+
+- **`origin`** — self-hosted: `ssh://git@mainframe.bass-salak.ts.net:2222/obe/forza-data.git`
+- **`github`** — GitHub mirror: `git@github.com:Ojansen/co-driver.git`
+
+Push to both when publishing `main`:
+
+```bash
+git push origin main
+git push github main
+```
+
 ## Architecture
 
 This is a **Nuxt 4** app using the Nuxt 4 directory structure (`app/` directory for client code). Key modules:
