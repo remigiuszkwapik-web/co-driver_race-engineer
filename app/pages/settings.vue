@@ -137,16 +137,16 @@ function setValue<K extends keyof UnitPrefs>(key: K, value: UnitPrefs[K]) {
         aria-label="Active game"
         class="flex flex-wrap gap-1.5"
       >
-        <button
+        <UButton
           v-for="g in games"
           :key="g.id"
           type="button"
           role="radio"
           :aria-checked="gameId === g.id"
-          class="rounded-sm border px-2.5 py-1 text-xs tabular-nums transition-colors"
-          :class="gameId === g.id
-            ? 'border-green-500/60 bg-green-500/10 text-green-200'
-            : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500 hover:text-zinc-100'"
+          :color="gameId === g.id ? 'primary' : 'neutral'"
+          :variant="gameId === g.id ? 'subtle' : 'outline'"
+          size="xs"
+          class="text-xs tabular-nums"
           @click="setGame(g.id)"
         >
           <span>{{ g.label }}</span>
@@ -154,7 +154,7 @@ function setValue<K extends keyof UnitPrefs>(key: K, value: UnitPrefs[K]) {
             v-if="!g.telemetry"
             class="ml-1.5 text-[10px] uppercase tracking-[0.15em] text-amber-400/80"
           >telemetry soon</span>
-        </button>
+        </UButton>
       </div>
       <p class="mt-2 text-[11px] text-zinc-500">
         Switches which game the app is set up for. Tuning, builds and events
@@ -172,21 +172,21 @@ function setValue<K extends keyof UnitPrefs>(key: K, value: UnitPrefs[K]) {
         aria-label="Instrument cluster style"
         class="flex flex-wrap gap-1.5"
       >
-        <button
+        <UButton
           v-for="opt in CLUSTER_OPTIONS"
           :key="opt.value"
           type="button"
           role="radio"
           :aria-checked="displayPrefs.cluster === opt.value"
-          class="rounded-sm border px-2.5 py-1 text-xs tabular-nums transition-colors"
-          :class="displayPrefs.cluster === opt.value
-            ? 'border-green-500/60 bg-green-500/10 text-green-200'
-            : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500 hover:text-zinc-100'"
+          :color="displayPrefs.cluster === opt.value ? 'primary' : 'neutral'"
+          :variant="displayPrefs.cluster === opt.value ? 'subtle' : 'outline'"
+          size="xs"
+          class="text-xs tabular-nums"
           @click="setCluster(opt.value)"
         >
           <span>{{ opt.label }}</span>
           <span class="ml-1.5 text-[10px] uppercase tracking-[0.15em] text-zinc-500">{{ opt.hint }}</span>
-        </button>
+        </UButton>
       </div>
     </section>
 
@@ -195,20 +195,22 @@ function setValue<K extends keyof UnitPrefs>(key: K, value: UnitPrefs[K]) {
         Presets
       </div>
       <div class="flex flex-wrap gap-2">
-        <button
-          type="button"
-          class="rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+        <UButton
+          label="Set all to metric"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          class="text-[11px] uppercase tracking-[0.2em]"
           @click="applyPreset('metric')"
-        >
-          Set all to metric
-        </button>
-        <button
-          type="button"
-          class="rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+        />
+        <UButton
+          label="Set all to imperial"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          class="text-[11px] uppercase tracking-[0.2em]"
           @click="applyPreset('imperial')"
-        >
-          Set all to imperial
-        </button>
+        />
       </div>
     </section>
 
@@ -230,16 +232,16 @@ function setValue<K extends keyof UnitPrefs>(key: K, value: UnitPrefs[K]) {
             :aria-label="cat.label"
             class="flex flex-wrap gap-1.5"
           >
-            <button
+            <UButton
               v-for="opt in cat.options"
               :key="String(opt.value)"
               type="button"
               role="radio"
               :aria-checked="prefs[cat.key] === opt.value"
-              class="rounded-sm border px-2.5 py-1 text-xs tabular-nums transition-colors"
-              :class="prefs[cat.key] === opt.value
-                ? 'border-green-500/60 bg-green-500/10 text-green-200'
-                : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500 hover:text-zinc-100'"
+              :color="prefs[cat.key] === opt.value ? 'primary' : 'neutral'"
+              :variant="prefs[cat.key] === opt.value ? 'subtle' : 'outline'"
+              size="xs"
+              class="text-xs tabular-nums"
               @click="setValue(cat.key, opt.value as UnitPrefs[typeof cat.key])"
             >
               <span>{{ opt.label }}</span>
@@ -247,7 +249,7 @@ function setValue<K extends keyof UnitPrefs>(key: K, value: UnitPrefs[K]) {
                 v-if="opt.hint"
                 class="ml-1.5 text-[10px] uppercase tracking-[0.15em] text-zinc-500"
               >{{ opt.hint }}</span>
-            </button>
+            </UButton>
           </dd>
         </div>
       </dl>

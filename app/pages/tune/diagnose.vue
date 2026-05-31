@@ -62,28 +62,28 @@ function catTitle(slug: string): string {
     </PageHeader>
 
     <div class="mb-6 flex flex-wrap items-center gap-1.5">
-      <button
+      <UButton
         type="button"
-        class="rounded-sm border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors"
-        :class="phaseFilter === 'all'
-          ? 'border-green-500/60 bg-green-500/10 text-green-300'
-          : 'border-zinc-700 bg-zinc-900/60 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'"
+        :color="phaseFilter === 'all' ? 'primary' : 'neutral'"
+        :variant="phaseFilter === 'all' ? 'subtle' : 'outline'"
+        size="xs"
+        class="font-mono text-[10px] uppercase tracking-[0.2em]"
         @click="phaseFilter = 'all'"
       >
         All <span class="ml-1.5 text-zinc-500">{{ DIAGNOSES.length }}</span>
-      </button>
-      <button
+      </UButton>
+      <UButton
         v-for="p in PHASE_ORDER"
         :key="p"
         type="button"
-        class="rounded-sm border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors"
-        :class="phaseFilter === p
-          ? 'border-green-500/60 bg-green-500/10 text-green-300'
-          : 'border-zinc-700 bg-zinc-900/60 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'"
+        :color="phaseFilter === p ? 'primary' : 'neutral'"
+        :variant="phaseFilter === p ? 'subtle' : 'outline'"
+        size="xs"
+        class="font-mono text-[10px] uppercase tracking-[0.2em]"
         @click="phaseFilter = p"
       >
         {{ PHASE_LABEL[p] }} <span class="ml-1.5 text-zinc-500">{{ phaseCounts[p] }}</span>
-      </button>
+      </UButton>
     </div>
 
     <ul class="space-y-3">
