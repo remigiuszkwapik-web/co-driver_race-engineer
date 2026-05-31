@@ -104,11 +104,6 @@ if (lapA.value.eventId !== eventId || lapB.value.eventId !== eventId) {
   throw createError({ statusCode: 400, statusMessage: 'lap does not belong to this event' })
 }
 
-const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'Y']
-function carClassLetter(c: number): string {
-  return CLASS_LETTERS[c] ?? '?'
-}
-
 function labelFor(l: LapResponse): string {
   return `${formatLap(l.timeMs)} · ${l.tuneLabel ?? 'untuned'}`
 }
@@ -354,7 +349,7 @@ const diffRows = computed<SetupDiffRow[]>(() => {
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-300">
           <span>
-            <span class="text-zinc-500">[{{ carClassLetter(lapA?.carClass ?? 0) }}]</span>
+            <span class="text-zinc-500">[{{ classForDisplay(lapA?.piAtStart, lapA?.carClass) }}]</span>
             {{ lapA?.carDisplayName ?? `#${lapA?.carOrdinal}` }}
           </span>
           <span class="text-zinc-500">·</span>
@@ -394,7 +389,7 @@ const diffRows = computed<SetupDiffRow[]>(() => {
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-300">
           <span>
-            <span class="text-zinc-500">[{{ carClassLetter(lapB?.carClass ?? 0) }}]</span>
+            <span class="text-zinc-500">[{{ classForDisplay(lapB?.piAtStart, lapB?.carClass) }}]</span>
             {{ lapB?.carDisplayName ?? `#${lapB?.carOrdinal}` }}
           </span>
           <span class="text-zinc-500">·</span>

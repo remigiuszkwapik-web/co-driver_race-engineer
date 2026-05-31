@@ -95,6 +95,18 @@ for (const f of BUILD_FIELDS) {
   }
 }
 
+// Class follows PI: editing the PI field re-derives the class letter so the
+// two stay consistent without manual bookkeeping. Stored/auto-seeded values
+// are left untouched on open (non-immediate) — a manual class override only
+// gets replaced once PI changes again. classFromPi never yields 'R', so an
+// R-class pick is preserved until PI is edited.
+watch(() => values.pi, (pi) => {
+  const n = Number(pi)
+  if (!Number.isFinite(n) || n <= 0) return
+  const letter = classFromPi(n)
+  if (letter !== '?') values.carClass = letter
+})
+
 const saving = ref(false)
 const error = ref<string | null>(null)
 

@@ -279,11 +279,6 @@ async function selectLap(lapId: number) {
   }
 }
 
-const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'Y']
-function carClassLetter(c: number): string {
-  return CLASS_LETTERS[c] ?? '?'
-}
-
 function formatDate(d: string | null): string {
   if (!d) return '—'
   return new Date(d).toLocaleString()
@@ -385,7 +380,7 @@ async function confirmDelete() {
           Car
         </div>
         <div class="mt-1 text-zinc-100">
-          <span class="text-zinc-400">[{{ carClassLetter(data?.session.carClass ?? 0) }}]</span>
+          <span class="text-zinc-400">[{{ classForDisplay(data?.session.piAtStart, data?.session.carClass) }}]</span>
           {{ data?.session.carDisplayName ?? `#${data?.session.carOrdinal}` }}
         </div>
       </div>

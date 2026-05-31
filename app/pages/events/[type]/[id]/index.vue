@@ -39,11 +39,6 @@ if (error.value || !data.value) {
 const { startRecording, recording, lastError } = useRecording()
 const isRecording = computed(() => recording.value.state === 'recording')
 
-const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'Y']
-function carClassLetter(c: number): string {
-  return CLASS_LETTERS[c] ?? '?'
-}
-
 function formatDate(d: number | string): string {
   const date = typeof d === 'string' ? new Date(d) : new Date(d * 1000)
   return date.toLocaleString()
@@ -256,7 +251,7 @@ async function confirmDelete() {
               {{ s.lapCount }}
             </td>
             <td class="px-3 py-2 text-zinc-200">
-              <span class="text-zinc-400">[{{ carClassLetter(s.carClass) }}]</span>
+              <span class="text-zinc-400">[{{ classForDisplay(s.piAtStart, s.carClass) }}]</span>
               {{ s.carDisplayName ?? `#${s.carOrdinal}` }}
             </td>
             <td class="px-3 py-2 text-zinc-300">

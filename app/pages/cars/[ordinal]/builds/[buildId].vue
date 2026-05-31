@@ -36,11 +36,6 @@ useHead({ title: () => `${build.value?.name ?? 'Build'} · ${build.value?.carDis
 
 const editingBuild = ref(false)
 
-const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'R']
-function carClassLetter(c: number): string {
-  return CLASS_LETTERS[c] ?? '?'
-}
-
 async function onBuildSaved() {
   editingBuild.value = false
   await refreshBuild()
@@ -216,7 +211,7 @@ async function confirmDeleteTune() {
         <span
           v-if="build"
           class="font-mono text-sm text-zinc-500"
-        >[{{ carClassLetter(build.carClass) }}] · {{ build.sessionCount }} session{{ build.sessionCount === 1 ? '' : 's' }}</span>
+        >[{{ classForDisplay(Number(build.settings.pi), build.carClass) }}] · {{ build.sessionCount }} session{{ build.sessionCount === 1 ? '' : 's' }}</span>
       </template>
     </PageHeader>
 

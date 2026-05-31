@@ -24,7 +24,6 @@ const lapsCompleted = computed(() =>
 
 // Picked-car validation data exposed in the banner so the driver can
 // sanity-check what's being recorded mid-session.
-const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'R']
 const recCarLabel = computed<string>(() => {
   const r = recording.value
   if (r.state !== 'recording') return ''
@@ -33,7 +32,7 @@ const recCarLabel = computed<string>(() => {
 const recClassLabel = computed<string>(() => {
   const r = recording.value
   if (r.state !== 'recording') return ''
-  return CLASS_LETTERS[r.carClass] ?? '?'
+  return classForDisplay(r.piAtStart, r.carClass)
 })
 const recPi = computed<number | null>(() => {
   const r = recording.value

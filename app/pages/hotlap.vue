@@ -37,13 +37,11 @@ const gear = computed(() => telemetry.value?.gear ?? 0)
 // Car identity for the metadata strip. Prefer the recording state since it
 // carries displayName + tune label; fall back to lastLiveCar, which survives
 // the pause-zeros that telemetry.car shows during menus.
-const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'Y']
-
 const car = computed(() => {
   const r = recording.value
   if (r.state === 'recording') {
     return {
-      classLetter: CLASS_LETTERS[r.carClass] ?? '?',
+      classLetter: classForDisplay(r.piAtStart, r.carClass),
       displayName: r.carDisplayName ?? `Car #${r.carOrdinal}`,
       pi: r.piAtStart,
       tuneLabel: r.tuneLabel ?? 'untuned'
@@ -52,7 +50,7 @@ const car = computed(() => {
   const live = lastLiveCar.value
   if (live) {
     return {
-      classLetter: CLASS_LETTERS[live.class] ?? '?',
+      classLetter: classForDisplay(live.pi, live.class),
       displayName: `Car #${live.ordinal}`,
       pi: live.pi,
       tuneLabel: 'not recording'
