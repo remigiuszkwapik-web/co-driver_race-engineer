@@ -85,20 +85,22 @@ async function createEvent() {
         class="flex gap-2"
         @submit.prevent="createEvent"
       >
-        <input
+        <UInput
           v-model="newName"
-          type="text"
           :placeholder="placeholder"
-          class="flex-1 rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none"
           :disabled="creating"
-        >
-        <button
+          class="flex-1"
+          :ui="{ base: 'text-sm' }"
+        />
+        <UButton
           type="submit"
-          class="rounded-sm border border-zinc-700 bg-zinc-900 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-green-500/60 hover:text-green-300 disabled:cursor-not-allowed disabled:opacity-50"
+          :label="creating ? 'Creating…' : 'Create'"
+          color="primary"
+          variant="outline"
+          :loading="creating"
           :disabled="creating || !newName.trim()"
-        >
-          {{ creating ? 'Creating…' : 'Create' }}
-        </button>
+          class="font-mono text-[11px] uppercase tracking-[0.2em]"
+        />
       </form>
       <div
         v-if="errorMessage"
@@ -119,11 +121,12 @@ async function createEvent() {
         :event-type-key="eventTypeKey"
       />
     </ul>
-    <div
+    <UEmpty
       v-else
-      class="card-dashed p-8 text-center font-mono text-sm text-zinc-500"
-    >
-      No {{ EVENT_TYPE_LABELS[eventTypeKey].toLowerCase() }} events yet. Create one above.
-    </div>
+      icon="i-lucide-flag"
+      :title="`No ${EVENT_TYPE_LABELS[eventTypeKey].toLowerCase()} events yet`"
+      description="Create one above."
+      class="card-dashed font-mono"
+    />
   </main>
 </template>

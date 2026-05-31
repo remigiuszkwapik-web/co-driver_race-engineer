@@ -51,13 +51,14 @@ function resetCurve() {
         Dyno
         <span class="ml-3 normal-case tracking-normal text-zinc-600">{{ carDisplay }}</span>
       </span>
-      <button
-        type="button"
-        class="rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1 text-zinc-200 transition-colors hover:border-amber-500/60 hover:text-amber-300"
+      <UButton
+        label="Reset curve"
+        color="neutral"
+        variant="outline"
+        size="xs"
+        class="font-mono text-[10px] uppercase tracking-[0.3em] hover:text-amber-300"
         @click="resetCurve"
-      >
-        Reset curve
-      </button>
+      />
     </div>
     <h1 class="mb-2 font-mono text-3xl text-zinc-100">
       Gear-tuning workbench
@@ -70,25 +71,23 @@ function resetCurve() {
       "stay-in-here" zone for gear spacing.
     </p>
 
-    <div
+    <UEmpty
       v-if="!hasReceivedFrame"
-      class="mb-6 card-dashed p-8 text-center font-mono text-sm text-zinc-500"
+      icon="i-lucide-radio"
+      title="Waiting for telemetry"
+      class="mb-6 card-dashed font-mono"
     >
-      <div class="text-[10px] uppercase tracking-[0.3em]">
-        Awaiting
-      </div>
-      <div class="mt-2 text-zinc-300">
-        Waiting for telemetry
-      </div>
-      <div class="mt-4 text-xs">
-        Enable Data Out in Forza and start a race / free-roam.
-        <span
-          class="ml-2 inline-block h-2 w-2 rounded-full align-middle"
-          :class="connected ? 'bg-green-400' : 'bg-zinc-600'"
-        />
-        {{ connected ? 'WS linked' : 'WS offline' }}
-      </div>
-    </div>
+      <template #description>
+        <div class="text-xs">
+          Enable Data Out in Forza and start a race / free-roam.
+          <span
+            class="ml-2 inline-block h-2 w-2 rounded-full align-middle"
+            :class="connected ? 'bg-green-400' : 'bg-zinc-600'"
+          />
+          {{ connected ? 'WS linked' : 'WS offline' }}
+        </div>
+      </template>
+    </UEmpty>
 
     <DynoCurve
       v-else
