@@ -93,6 +93,25 @@ ipconfig
 
 The listener binds UDP `5300` on `0.0.0.0` by default. If your OS firewall blocks it, allow inbound UDP `5300` from your LAN.
 
+### Start order: server before game (or apply the ICMP fix)
+
+If you start **Forza before co-driver is listening**, the stream can fail to connect and stay dead until you fully restart the game — no first packet ever arrives, even after the server comes up. This is not a bug in co-driver; it's a Windows networking quirk:
+
+While nothing is bound to UDP `5300`, the server's OS answers each of Forza's packets with an **ICMP port-unreachable**. Windows delivers that to Forza's Data Out socket as a connection reset and wedges it permanently — a Data Out toggle won't revive it, only relaunching the game does.
+
+Two ways to avoid it:
+
+- **Simplest:** start co-driver before turning on Data Out (or keep it running as an always-on service). Once the listener is up first, there's no rejection to wedge the game.
+- **Permanent fix (Linux server):** stop the host from sending that rejection, so Forza keeps streaming until co-driver binds and then attaches on the first packet:
+
+  ```bash
+  sudo iptables -A OUTPUT -p icmp --icmp-type port-unreachable -j DROP
+  # persist across reboots (Debian/Ubuntu):
+  sudo apt install -y iptables-persistent && sudo netfilter-persistent save
+  ```
+
+  The rule only matters during the no-listener window; it has no effect once co-driver is running.
+
 ## Environment variables
 
 | Var | Default | Purpose |
