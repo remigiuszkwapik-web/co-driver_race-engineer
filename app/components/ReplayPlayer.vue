@@ -4,7 +4,7 @@ import { TRACE_BUFFER_SIZE } from '~/utils/trace'
 import { INPUT_TRACE_LINES, motorTraceLines } from '~/utils/trace-lines'
 import { emptyDynoState, ingestFrame, snapshot, type DynoCurve as Curve } from '~/utils/dyno'
 import { pointsFromFrames } from '~/utils/track-map'
-import { detectTrailBraking, trailBrakingBands } from '~/utils/trail-braking'
+import { rollingCoastSeries, rollingOverlapSeries, rollingTb, seriesUpTo } from '~/utils/rolling-replay'
 import { damperHistogramsForLap, damperScatterForLap } from '~/utils/damper-velocity'
 import { rideHeightHistogramsForLap } from '~/utils/ride-height'
 import { rpmDistribution, slipAngleBalanceDistribution } from '~/utils/channel-distributions'
@@ -51,6 +51,35 @@ function onScrub(e: Event) {
   pause()
   seekToFraction(Number(target.value))
 }
+
+// Speed sparkline behind the scrubber: drag straight to a braking zone / slow
+// corner instead of hunting by time. Downsampled to a fixed point count and
+// drawn in a stretched viewBox (preserveAspectRatio=none); the elapsed portion
+// is clipped to a brighter stroke so the playhead reads at a glance.
+const SPARK_W = 1000
+const SPARK_H = 100
+const sparkUid = useId()
+const elapsedClipId = `scrub-elapsed-${sparkUid}`
+
+const speedSpark = computed(() => {
+  const f = props.frames
+  if (f.length < 2) return { line: '', area: '' }
+  let max = 1
+  for (const fr of f) if (fr.speedKmh > max) max = fr.speedKmh
+  const n = Math.min(300, f.length)
+  const pts: string[] = []
+  for (let i = 0; i < n; i++) {
+    const idx = Math.round((i / (n - 1)) * (f.length - 1))
+    const v = f[idx]?.speedKmh ?? 0
+    const x = (i / (n - 1)) * SPARK_W
+    const y = SPARK_H - (v / max) * (SPARK_H - 4) - 2
+    pts.push(`${x.toFixed(1)},${y.toFixed(1)}`)
+  }
+  const line = pts.join(' ')
+  return { line, area: `0,${SPARK_H} ${line} ${SPARK_W},${SPARK_H}` }
+})
+
+const playheadX = computed(() => scrubFraction.value * SPARK_W)
 
 // TraceStrip click maps to a lap-frame index. The strip's history is a
 // sliding window ending at currentIndex; sample N in the window corresponds
@@ -211,19 +240,29 @@ const damperScatter = computed(() => damperScatterForLap(props.frames))
 const rpmHistogram = computed(() => rpmDistribution(props.frames))
 const slipAngleBalance = computed(() => slipAngleBalanceDistribution(props.frames))
 
-// Trail-braking bands across the full lap. The replay-strip "history" is a
-// sliding window of the full lap; the bands need to be remapped from full-
-// lap indices into history-window indices each render.
-const trailBrakeFlagsFull = computed(() => detectTrailBraking(props.frames))
+// Rolling TB% / coast / pedal-overlap strips — the same measurements /live
+// streams from the server, batch-computed here over the whole lap (replay has
+// no live bus). Each full-lap series is computed once; the playhead window is
+// applied per-frame so the strip's right-edge pill reads the *current* rolling
+// value rather than the lap's last reading. TB% also carries its episode bands,
+// which replace the old trace-strip overlay.
+const TRACE_WINDOW_MS = (TRACE_BUFFER_SIZE / 60) * 1000
 
-const trailBrakingBandsReplay = computed(() => {
-  // The replay's history slice runs from `start = max(0, currentIndex+1 - BUFFER)`
-  // through `currentIndex`. Same math as `onTraceScrub` in this file.
-  const end = currentIndex.value + 1
-  const start = Math.max(0, end - TRACE_BUFFER_SIZE)
-  const sliced = trailBrakeFlagsFull.value.slice(start, end)
-  return trailBrakingBands(sliced)
-})
+function fmtPct(v: number): string {
+  return Math.round(v * 100) + '%'
+}
+
+// Right-edge of every strip in game-clock ms — the playhead frame's timestamp,
+// so the measurement strips track the trace strip as the lap scrubs.
+const latestT = computed<number>(() => currentFrame.value?.timestampMs ?? 0)
+
+const tbReplay = computed(() => rollingTb(props.frames))
+const coastSeriesFull = computed(() => rollingCoastSeries(props.frames))
+const overlapSeriesFull = computed(() => rollingOverlapSeries(props.frames))
+
+const tbSamples = computed(() => seriesUpTo(tbReplay.value.series, latestT.value))
+const coastSamples = computed(() => seriesUpTo(coastSeriesFull.value, latestT.value))
+const overlapSamples = computed(() => seriesUpTo(overlapSeriesFull.value, latestT.value))
 </script>
 
 <template>
@@ -269,9 +308,26 @@ const trailBrakingBandsReplay = computed(() => {
         :drag-scrub="false"
         :scrub-index="null"
         :buffer-length="history.length"
-        :bands="trailBrakingBandsReplay"
         @toggle-pause="toggle"
         @scrub="onTraceScrub"
+      />
+      <MeasurementStrip
+        :series="[{ samples: tbSamples, bands: tbReplay.bands, color: '#a78bfa', pillLabel: 'TB%', fmt: fmtPct }]"
+        :window-ms="TRACE_WINDOW_MS"
+        label="TB% · 30 s"
+        :latest-t="latestT"
+      />
+      <MeasurementStrip
+        :series="[{ samples: coastSamples, color: '#a1a1aa', pillLabel: 'CST', fmt: fmtPct }]"
+        :window-ms="TRACE_WINDOW_MS"
+        label="coast · 30 s"
+        :latest-t="latestT"
+      />
+      <MeasurementStrip
+        :series="[{ samples: overlapSamples, color: '#fb923c', pillLabel: 'OVL', fmt: fmtPct }]"
+        :window-ms="TRACE_WINDOW_MS"
+        label="pedal overlap · 30 s"
+        :latest-t="latestT"
       />
       <TraceStrip
         :history="history"
@@ -335,15 +391,68 @@ const trailBrakingBandsReplay = computed(() => {
         {{ playing ? '❚❚ Pause' : '▶ Play' }}
       </button>
       <div class="flex flex-1 flex-col gap-0.5">
-        <input
-          :value="scrubFraction"
-          type="range"
-          min="0"
-          max="1"
-          step="0.001"
-          class="w-full accent-green-400"
-          @input="onScrub"
-        >
+        <div class="relative h-9">
+          <!-- Speed shape behind the track: faint full line + brighter elapsed
+               portion (clipped to the playhead) + an area fill under it. -->
+          <svg
+            class="pointer-events-none absolute inset-0 h-full w-full"
+            :viewBox="`0 0 ${SPARK_W} ${SPARK_H}`"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <clipPath :id="elapsedClipId">
+                <rect
+                  x="0"
+                  y="0"
+                  :width="playheadX"
+                  :height="SPARK_H"
+                />
+              </clipPath>
+            </defs>
+            <polygon
+              v-if="speedSpark.area"
+              :points="speedSpark.area"
+              fill="#22c55e"
+              opacity="0.06"
+            />
+            <polyline
+              v-if="speedSpark.line"
+              :points="speedSpark.line"
+              fill="none"
+              stroke="#52525b"
+              stroke-width="1"
+              vector-effect="non-scaling-stroke"
+            />
+            <polyline
+              v-if="speedSpark.line"
+              :points="speedSpark.line"
+              fill="none"
+              stroke="#86efac"
+              stroke-width="1.25"
+              vector-effect="non-scaling-stroke"
+              :clip-path="`url(#${elapsedClipId})`"
+            />
+            <line
+              :x1="playheadX"
+              :x2="playheadX"
+              y1="0"
+              :y2="SPARK_H"
+              stroke="#4ade80"
+              stroke-width="1.5"
+              vector-effect="non-scaling-stroke"
+            />
+          </svg>
+          <input
+            :value="scrubFraction"
+            type="range"
+            min="0"
+            max="1"
+            step="0.001"
+            class="scrub-overlay absolute inset-0 h-full w-full"
+            aria-label="Seek through the lap"
+            @input="onScrub"
+          >
+        </div>
         <div
           v-if="timeTicks.length > 0"
           class="relative h-3 select-none font-mono text-[9px] tabular-nums text-zinc-500"
@@ -372,3 +481,40 @@ const trailBrakingBandsReplay = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* The scrubber is a transparent range input layered over the speed sparkline.
+   The visible playhead is the SVG line underneath; the native thumb is an
+   invisible grab target riding over it. Track is transparent so the sparkline
+   shows through; thumb height matches the h-9 (36px) container. */
+.scrub-overlay {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.scrub-overlay:focus {
+  outline: none;
+}
+.scrub-overlay::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 100%;
+}
+.scrub-overlay::-moz-range-track {
+  background: transparent;
+  height: 100%;
+}
+.scrub-overlay::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 36px;
+  background: transparent;
+}
+.scrub-overlay::-moz-range-thumb {
+  width: 10px;
+  height: 36px;
+  border: none;
+  background: transparent;
+}
+</style>
