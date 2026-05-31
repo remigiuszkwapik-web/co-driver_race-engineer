@@ -97,7 +97,8 @@ describe('computeAutoTune — dial response', () => {
     const loose = computeAutoTune({ build: RWD_S2_BUILD, dials: { stiffness: 'medium', balance: 'loose', surface: 'road' } }).tune
     const tight = computeAutoTune({ build: RWD_S2_BUILD, dials: { stiffness: 'medium', balance: 'tight', surface: 'road' } }).tune
     expect(tight.brakeBalance).toBeGreaterThan(loose.brakeBalance as number)
-    expect(tight.toeRear).toBeGreaterThan(loose.toeRear as number)
+    // FH6: toe-in is negative, so "more rear toe-in" = more negative toeRear.
+    expect(tight.toeRear).toBeLessThan(loose.toeRear as number)
   })
 
   it('dirt + cross-country raise ride height and drop tire pressure vs road', () => {

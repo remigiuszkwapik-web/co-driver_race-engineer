@@ -245,7 +245,10 @@ const CASTER_BY_WEIGHT_LB: [number, number][] = [
 const CASTER_CROSS_OFFSET = 0.3
 const KG_TO_LB = 2.20462
 
-const TOE_REAR_BASE = 0.15 // slight rear toe-in for stability
+// FH6 sign convention: toe-IN is NEGATIVE, toe-OUT is positive (inverted vs
+// real-world, verified in-game). Stabilizing rear toe-in is therefore a
+// negative value. Magnitude 0.15 ⇒ −0.1° at neutral after step1 rounding.
+const TOE_REAR_BASE = -0.15 // slight rear toe-in for stability (negative = in)
 
 const BRAKE_BALANCE_BASE = 52 // % front
 const BRAKE_PRESSURE = 100
@@ -491,7 +494,9 @@ export function computeAutoTune(opts: AutoTuneOptions): AutoTuneResult {
   const casterRaw = lerpTable(CASTER_BY_WEIGHT_LB, weightLb) - (isCrossCountry ? CASTER_CROSS_OFFSET : 0)
   tune.casterFront = step1(clamp(casterRaw, 1, 7))
   tune.toeFront = 0.0
-  // Tight ⇒ more rear toe-in for stability; loose ⇒ less.
+  // Tight ⇒ more rear toe-in for stability; loose ⇒ less. TOE_REAR_BASE is
+  // negative (FH6 toe-in sign), so a higher balance pushes toeRear MORE
+  // negative — i.e. further into toe-in.
   tune.toeRear = step1(clamp(TOE_REAR_BASE * (1 + 0.5 * bal), -5, 5))
 
   // Tire pressure — surface gives the baseline; per-axle scaling by

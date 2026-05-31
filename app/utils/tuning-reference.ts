@@ -224,14 +224,14 @@ export const TUNE_CATEGORIES: TuneCategory[] = [
     what: [
       'Camber is the inward tilt of the tire as viewed from the front. Negative camber tips the top of the tire inward; as the car rolls in a corner, the outside tire flattens onto the road. A common starting point is −1.0 to −2.0° fronts, −0.5 to −1.5° rears. Too much and you wear the inside in straight-line driving (and lose braking grip).',
       'Caster is only on the front: the tilt of the steering axis. Positive caster (almost always positive in Forza) increases self-centering and adds camber gain when steering — meaning more grip in slow corners without paying for it on the straights. FH6 is noticeably more sensitive to caster than older Horizon titles — values above ~6.0° feel snappy on turn-in. A safe FH6 range is 5.0–6.0°.',
-      'Toe is the angle of the tires viewed from above. Toe-in (toes pointing together) adds stability but hurts turn-in and adds drag. Toe-out adds turn-in response but makes the car twitchy. Most road/track tunes run zero or slight toe-in at the rear, slight toe-out at the front.'
+      'Toe is the angle of the tires viewed from above. Toe-in (toes pointing together) adds stability but hurts turn-in and adds drag. Toe-out adds turn-in response but makes the car twitchy. Most road/track tunes run zero or slight toe-in at the rear, slight toe-out at the front. FH6 sign convention is inverted from real-world: a NEGATIVE value is toe-in (stable), a POSITIVE value is toe-out (responsive) — so stabilizing rear toe-in is a negative number in-game.'
     ],
     controls: [
       { name: 'Front camber', range: '−0.5° to −3.0°', raises: '(toward 0°) more straight-line grip, less cornering grip', lowers: '(more negative) more cornering grip, hot inside edge in temps' },
       { name: 'Rear camber', range: '−0.5° to −2.0° (less than front)', raises: 'more rear straight-line grip — better launches', lowers: 'more rear cornering grip — less wheelspin under power on lateral load' },
       { name: 'Front caster', range: '5.0–6.0° in FH6 (above 6° gets twitchy on turn-in)', raises: 'faster centering, more camber gain in turns, heavier steering feel — snappy past 6°', lowers: 'lighter steering but less self-centering' },
-      { name: 'Front toe', range: '−0.2° (out) to +0.1° (in)', raises: '(toward toe-in) stability, dulls turn-in', lowers: '(toward toe-out) sharper turn-in, twitchy on straights' },
-      { name: 'Rear toe', range: '0° to +0.3° (in)', raises: 'more rear stability, more understeer', lowers: 'rotation aid; can make the rear nervous' }
+      { name: 'Front toe', range: '−0.1° (in) to +0.2° (out) — FH6: − is in, + is out', raises: '(toward +, toe-out) sharper turn-in, twitchy on straights', lowers: '(toward −, toe-in) stability, dulls turn-in' },
+      { name: 'Rear toe', range: '−0.3° (in) to 0° — FH6: − is in, + is out', raises: '(toward 0/+, toe-out) rotation aid; can make the rear nervous', lowers: '(more negative, toe-in) more rear stability, more understeer' }
     ],
     signals: [
       { key: 'tireTempC', look: 'Forza gives one temp per tire (not 3-point). Asymmetric F vs R on the same side hints at camber bias; hot fronts + cold rears = front-end pushing.' },
@@ -243,7 +243,7 @@ export const TUNE_CATEGORIES: TuneCategory[] = [
       { symptom: 'Outside edge runs hotter, car pushes mid-corner', likelyCause: 'Not enough negative camber — outside tire rolling onto its shoulder', fix: 'Add 0.3–0.5° negative camber' },
       { symptom: 'Twitchy on straights at speed', likelyCause: 'Too much front toe-out OR (FH6) too much caster above 6°', fix: 'Reduce front toe toward 0; if caster is already 6°+, drop it 0.5° rather than raising it' },
       { symptom: 'Car feels slow to turn but stable', likelyCause: 'Too much rear toe-in', fix: 'Reduce rear toe toward 0' },
-      { symptom: 'Rear wags after gear shifts / throttle stabs', likelyCause: 'Rear toe at 0 with stiff suspension', fix: 'Add 0.1–0.2° rear toe-in for stability' }
+      { symptom: 'Rear wags after gear shifts / throttle stabs', likelyCause: 'Rear toe at 0 with stiff suspension', fix: 'Add −0.1 to −0.2° rear toe-in for stability (negative = toe-in in FH6)' }
     ],
     related: ['tire-pressure', 'differential']
   },
@@ -471,7 +471,7 @@ export const DIAGNOSES: DiagnosisEntry[] = [
     ],
     investigate: [
       { slug: 'differential', note: 'Raise decel % — locks rear wheels together, more stable on engine braking' },
-      { slug: 'alignment', note: 'Add 0.1–0.2° rear toe-in for stability' },
+      { slug: 'alignment', note: 'Add −0.1 to −0.2° rear toe-in for stability (negative = toe-in in FH6)' },
       { slug: 'dampers', note: 'Soften front rebound to slow the front unloading on lift' }
     ]
   },
