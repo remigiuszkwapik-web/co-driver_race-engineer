@@ -1,9 +1,11 @@
 name: docker-publish
 
-# Cuts a release container on every `v*` tag push (e.g. `git tag v0.2 && git push --tags`).
-# Pushes linux/amd64 + linux/arm64 to Docker Hub as :vX.Y.Z, :vX.Y, and :latest,
-# mirrors README.md to the Docker Hub repo overview, and creates a matching
-# GitHub Release at the same version so the Docker and GitHub releases stay in sync.
+# Cuts a release container on every `v*` tag push (e.g. `git tag v0.3.0 && git push github v0.3.0`).
+# Tags MUST be full three-part semver (vX.Y.Z) — docker/metadata-action skips the
+# version tags for anything else (e.g. `v0.3`), leaving only `:latest`.
+# Pushes linux/amd64 + linux/arm64 to Docker Hub as :X.Y.Z, :X.Y, and :latest (the
+# metadata-action strips the leading `v`), mirrors README.md to the Docker Hub repo
+# overview, and creates a matching GitHub Release so Docker and GitHub stay in sync.
 #
 # Required repo secrets:
 #   DOCKERHUB_USERNAME  - Docker Hub login
