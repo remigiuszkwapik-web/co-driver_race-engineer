@@ -1,8 +1,9 @@
 name: docker-publish
 
 # Cuts a release container on every `v*` tag push (e.g. `git tag v0.2 && git push --tags`).
-# Pushes linux/amd64 + linux/arm64 to Docker Hub as :vX.Y.Z, :vX.Y, and :latest, and
-# mirrors README.md to the Docker Hub repo overview.
+# Pushes linux/amd64 + linux/arm64 to Docker Hub as :vX.Y.Z, :vX.Y, and :latest,
+# mirrors README.md to the Docker Hub repo overview, and creates a matching
+# GitHub Release at the same version so the Docker and GitHub releases stay in sync.
 #
 # Required repo secrets:
 #   DOCKERHUB_USERNAME  - Docker Hub login
@@ -20,7 +21,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,3 +69,15 @@ jobs:
           repository: ${{ env.IMAGE }}
           short-description: ${{ github.event.repository.description }}
           readme-filepath: ./README.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Same version as the Docker release: the GitHub Release uses the pushed
+          # tag (e.g. v0.3) and steps.meta.outputs.version is the matching Docker
+          # tag the metadata-action derived from it (e.g. 0.3).
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            Docker image: `${{ env.IMAGE }}:${{ steps.meta.outputs.version }}` (also tagged `latest`)
