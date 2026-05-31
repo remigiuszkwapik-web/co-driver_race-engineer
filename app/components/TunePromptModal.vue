@@ -55,6 +55,7 @@ function skip() {
 <template>
   <UiModal
     :open="!!tunePrompt"
+    title="Name this tune?"
     size="md"
     :dismissible="false"
   >
@@ -76,15 +77,15 @@ function skip() {
       class="space-y-3"
       @submit.prevent="save"
     >
-      <input
+      <UInput
         v-model="tuneLabel"
-        type="text"
         placeholder="e.g. race build v2"
         list="tune-suggestions"
         autofocus
         :disabled="saving"
-        class="w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
-      >
+        class="w-full"
+        :ui="{ base: 'text-sm' }"
+      />
       <datalist id="tune-suggestions">
         <option
           v-for="s in suggestions"
@@ -101,21 +102,24 @@ function skip() {
       </div>
 
       <div class="flex gap-2">
-        <button
+        <UButton
           type="submit"
+          :label="saving ? 'Saving…' : 'Save tune name'"
+          color="primary"
+          variant="subtle"
+          block
+          :loading="saving"
           :disabled="saving || !tuneLabel.trim()"
-          class="flex-1 rounded-sm border border-green-500/40 bg-green-500/10 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-green-300 transition-colors hover:border-green-400/60 hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {{ saving ? 'Saving…' : 'Save tune name' }}
-        </button>
-        <button
-          type="button"
+          class="flex-1 font-mono text-[11px] uppercase tracking-[0.2em]"
+        />
+        <UButton
+          label="Skip"
+          color="neutral"
+          variant="outline"
           :disabled="saving"
-          class="rounded-sm border border-zinc-700 bg-zinc-900 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+          class="font-mono text-[11px] uppercase tracking-[0.2em]"
           @click="skip"
-        >
-          Skip
-        </button>
+        />
       </div>
     </form>
   </UiModal>

@@ -113,6 +113,14 @@ async function startAndClose() {
   await navigateTo('/live')
 }
 
+const eventItems = computed(() => eventsForType.value.map(ev => ({ label: ev.name, value: ev.id })))
+
+// USelect's model rejects null — bridge null <-> undefined.
+const selectedEventModel = computed({
+  get: () => selectedEventId.value ?? undefined,
+  set: (v: number | undefined) => { selectedEventId.value = v ?? null }
+})
+
 function back() {
   step.value = 'type'
   selectedEventId.value = null
@@ -124,6 +132,7 @@ function back() {
 <template>
   <UiModal
     :open="open"
+    :title="step === 'type' ? 'Quick record' : EVENT_TYPE_LABELS[selectedType!]"
     size="lg"
     @close="close"
   >
@@ -136,13 +145,14 @@ function back() {
           {{ step === 'type' ? 'Pick a type' : EVENT_TYPE_LABELS[selectedType!] }}
         </h2>
       </div>
-      <button
-        type="button"
-        class="rounded-sm border border-zinc-700 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="outline"
+        size="xs"
+        class="font-mono text-[10px] uppercase tracking-[0.2em]"
         @click="close"
-      >
-        Close
-      </button>
+      />
     </header>
 
     <!-- Step 1: type tiles -->
@@ -150,15 +160,16 @@ function back() {
       v-if="step === 'type'"
       class="grid grid-cols-2 gap-2 sm:grid-cols-3"
     >
-      <button
+      <UButton
         v-for="t in EVENT_TYPE_ORDER"
         :key="t"
-        type="button"
-        class="rounded-md border border-zinc-800 bg-zinc-900/40 px-3 py-4 text-left text-sm text-zinc-100 transition-colors hover:border-zinc-600 hover:bg-zinc-900/80"
+        :label="EVENT_TYPE_LABELS[t]"
+        color="neutral"
+        variant="outline"
+        block
+        class="justify-start px-3 py-4 text-sm"
         @click="pickType(t)"
-      >
-        {{ EVENT_TYPE_LABELS[t] }}
-      </button>
+      />
     </div>
 
     <!-- Step 2: event picker + tune label + start -->
@@ -166,13 +177,15 @@ function back() {
       v-else
       class="space-y-3"
     >
-      <button
-        type="button"
-        class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-300"
+      <UButton
+        label="← back to types"
+        color="neutral"
+        variant="link"
+        size="xs"
+        :padded="false"
+        class="font-mono text-[10px] uppercase tracking-[0.2em]"
         @click="back"
-      >
-        ← back to types
-      </button>
+      />
 
       <div
         v-if="loadingEvents"
@@ -187,21 +200,12 @@ function back() {
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           Pick existing
         </div>
-        <select
-          v-model.number="selectedEventId"
-          class="w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
-        >
-          <option :value="null">
-            — select an event —
-          </option>
-          <option
-            v-for="ev in eventsForType"
-            :key="ev.id"
-            :value="ev.id"
-          >
-            {{ ev.name }}
-          </option>
-        </select>
+        <USelect
+          v-model="selectedEventModel"
+          :items="eventItems"
+          placeholder="— select an event —"
+          class="w-full text-sm"
+        />
       </div>
 
       <div class="space-y-1">
@@ -212,20 +216,21 @@ function back() {
           class="flex gap-2"
           @submit.prevent="createAndStart"
         >
-          <input
+          <UInput
             v-model="newEventName"
-            type="text"
             :placeholder="`new ${EVENT_TYPE_LABELS[selectedType!].toLowerCase()} event`"
-            class="flex-1 rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none"
             :disabled="creating || submitting"
-          >
-          <button
+            class="flex-1"
+            :ui="{ base: 'text-sm' }"
+          />
+          <UButton
             type="submit"
+            :label="creating ? '…' : 'Create & start'"
+            color="neutral"
+            variant="outline"
             :disabled="creating || submitting || !newEventName.trim()"
-            class="rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-zinc-200 transition-colors hover:border-green-500/60 hover:text-green-300 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {{ creating ? '…' : 'Create & start' }}
-          </button>
+            class="font-mono text-[10px] uppercase tracking-[0.2em]"
+          />
         </form>
       </div>
 
@@ -233,13 +238,13 @@ function back() {
         <div class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           Tune label (optional)
         </div>
-        <input
+        <UInput
           v-model="tuneLabel"
-          type="text"
           placeholder="e.g. race build v2"
-          class="w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none"
           :disabled="creating || submitting"
-        >
+          class="w-full"
+          :ui="{ base: 'text-sm' }"
+        />
       </div>
 
       <div
@@ -250,15 +255,19 @@ function back() {
       </div>
 
       <div class="flex justify-end">
-        <button
-          type="button"
-          class="rounded-sm border border-green-500/40 bg-green-500/10 px-5 py-2 text-[11px] uppercase tracking-[0.2em] text-green-300 transition-colors hover:border-green-400/60 hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        <UButton
+          :label="submitting ? 'Starting…' : 'Start recording'"
+          color="primary"
+          variant="subtle"
+          :loading="submitting"
           :disabled="!selectedEventId || submitting || creating"
+          class="font-mono text-[11px] uppercase tracking-[0.2em]"
           @click="startAndClose"
         >
-          <span class="mr-2 inline-block h-2 w-2 align-middle rounded-full bg-green-400" />
-          {{ submitting ? 'Starting…' : 'Start recording' }}
-        </button>
+          <template #leading>
+            <span class="inline-block h-2 w-2 rounded-full bg-green-400" />
+          </template>
+        </UButton>
       </div>
     </div>
   </UiModal>

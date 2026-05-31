@@ -3,45 +3,48 @@ const props = withDefaults(defineProps<{
   open: boolean
   size?: 'sm' | 'md' | 'lg'
   dismissible?: boolean
+  /** Accessible label for the dialog (visually hidden; consumers render their own heading). */
+  title?: string
 }>(), {
   size: 'md',
-  dismissible: true
+  dismissible: true,
+  title: 'Dialog'
 })
 
 const emit = defineEmits<{
   close: []
 }>()
 
-const SIZE_CLASS: Record<NonNullable<typeof props.size>, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg'
+const SIZE_WIDTH: Record<NonNullable<typeof props.size>, string> = {
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-md',
+  lg: 'sm:max-w-lg'
 }
 
-function onBackdrop() {
-  if (props.dismissible) emit('close')
-}
-
-function onEsc() {
-  if (props.dismissible) emit('close')
-}
+// Bridge UModal's controlled `open`/`update:open` onto the existing `open` + `@close` API.
+const open = computed({
+  get: () => props.open,
+  set: (value) => {
+    if (!value) emit('close')
+  }
+})
 </script>
 
 <template>
-  <div
-    v-if="open"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 px-4 backdrop-blur-sm"
-    @click.self="onBackdrop"
-    @keydown.esc.stop="onEsc"
+  <UModal
+    v-model:open="open"
+    :dismissible="dismissible"
+    :title="title"
+    :close="false"
+    :ui="{
+      overlay: 'bg-zinc-950/80 backdrop-blur-sm',
+      content: `w-full ${SIZE_WIDTH[size]} rounded-md border border-zinc-700 bg-zinc-900 font-mono ring-0 shadow-xl divide-y-0`,
+      header: 'hidden',
+      body: 'p-6'
+    }"
   >
-    <div
-      class="w-full rounded-md border border-zinc-700 bg-zinc-900 p-6 font-mono"
-      :class="SIZE_CLASS[size]"
-      role="dialog"
-      aria-modal="true"
-      @click.stop
-    >
+    <template #body>
       <slot />
-    </div>
-  </div>
+    </template>
+  </UModal>
 </template>
