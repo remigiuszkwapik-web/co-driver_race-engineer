@@ -17,6 +17,7 @@ co-driver listens for every supported game **at once** — launch any of them an
 | Forza Motorsport (FM7 / 2023) | ✅ | — | `5300` |
 | F1 25 / F1 26 | ✅ | — | `20777` |
 | Project CARS 2 | ✅ | — | `5606` |
+| Automobilista 2 | ✅ | — | `5606` |
 
 ## What you get
 
@@ -77,6 +78,7 @@ co-driver listens for every supported game at once — there's no server-side "a
 | Forza Motorsport (FM7 / 2023) | Settings → Gameplay & HUD → Data Out | `5300` |
 | F1 25 / F1 26 | Settings → Telemetry Settings → UDP | `20777` |
 | Project CARS 2 | Options → System → UDP | `5606` |
+| Automobilista 2 | Options → System → UDP *(Project CARS 2 mode)* | `5606` |
 
 ### Forza Horizon (FH5 / FH6)
 
@@ -127,6 +129,20 @@ F1 is telemetry-only: the live dashboards work, while the Forza-specific tuning,
 | UDP Protocol Version | **Project CARS 2** |
 
 Project CARS 2 broadcasts on the whole subnet, so no target IP is needed — just open UDP `5606` to the server. Telemetry-only (no tuning stack), and note SMS telemetry carries no wheel-slip channels, so slip-based views stay empty.
+
+### Automobilista 2
+
+> Options → System
+
+AMS2 uses the same SMS UDP feed as Project CARS 2 — set the same options, with **UDP Protocol Version = Project CARS 2**:
+
+| Setting | Value |
+|---|---|
+| Shared Memory | **Project CARS 2** |
+| UDP Frequency | `1`–`9` (higher = more frequent) |
+| UDP Protocol Version | **Project CARS 2** |
+
+Shares Project CARS 2's port `5606` (co-driver runs one listener for both). Telemetry-only, and the same no-slip-channels caveat applies.
 
 ### Finding your server's LAN IP
 
