@@ -1,5 +1,4 @@
 import type { GameId } from '#shared/games'
-import { DEFAULT_GAME_ID, isGameId } from '#shared/games'
 import { f1Adapter } from './f1'
 import { fh5Adapter } from './fh5'
 import { fh6Adapter } from './fh6'
@@ -19,13 +18,17 @@ const ADAPTERS: Partial<Record<GameId, TelemetryAdapter>> = {
 }
 
 /**
- * The adapter the UDP host decodes with. The selected game lives in the
- * browser today, so the server defaults to FH6 (the only wired decoder) and
- * accepts a FORZA_GAME env override. When a second decoder lands, this is the
- * one spot to make adapter selection track the chosen game.
+ * Telemetry is ingested for *every* wired game at once: the listener binds each
+ * adapter's UDP port and decodes packets on that port with that adapter (see
+ * server/plugins/forza-listener.ts). Whichever game you launch simply streams
+ * to its port — there's no server-side "active game" to select. The in-app game
+ * switcher only changes what the frontend shows/gates, never what's decoded.
  */
-export function getActiveAdapter(): TelemetryAdapter {
-  const envGame = process.env.FORZA_GAME
-  const id: GameId = isGameId(envGame) ? envGame : DEFAULT_GAME_ID
-  return ADAPTERS[id] ?? fh6Adapter
+export function getAdapter(id: GameId): TelemetryAdapter | undefined {
+  return ADAPTERS[id]
+}
+
+/** Every wired adapter, for the listener to bind a socket per port. */
+export function listAdapters(): TelemetryAdapter[] {
+  return Object.values(ADAPTERS).filter(Boolean) as TelemetryAdapter[]
 }

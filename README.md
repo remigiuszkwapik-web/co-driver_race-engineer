@@ -36,12 +36,13 @@ Pull the prebuilt image. No clone, no toolchain.
 docker run -d --name co-driver \
   -p 3000:3000 \
   -p 5300:5300/udp \
+  -p 20777:20777/udp \
   -v co-driver:/app/data \
   --restart unless-stopped \
   obedbj/co-driver:latest
 ```
 
-Open <http://localhost:3000>. You'll see "WAITING FOR TELEMETRY" until Forza starts sending. Migrations run automatically on first start; session/lap data lives in the named volume (`co-driver`) and survives container rebuilds.
+Open <http://localhost:3000>. You'll see "WAITING FOR TELEMETRY" until a game starts sending — the container listens for Forza Horizon on `5300` and F1 on `20777` (drop a port mapping if you only play one). Migrations run automatically on first start; session/lap data lives in the named volume (`co-driver`) and survives container rebuilds.
 
 Multi-arch — `linux/amd64` and `linux/arm64` both supported. Docker Hub serves the right manifest automatically.
 
@@ -66,9 +67,16 @@ bun run dev          # HMR
 bun run build:node && node .output/server/index.mjs
 ```
 
-## Configure Forza Horizon 6
+## Connect your game
 
-In the game:
+co-driver listens for **every supported game at once** — it binds a UDP port per game, so whichever one you launch just shows up; there's no server-side "active game" to set. Pick your game in the app (**Settings → Game**) to control what the UI shows and gates (tuning is Forza-Horizon-specific) — that's a frontend choice and doesn't affect what's captured. So: expose the game's port, point its telemetry output at the server, and select it in Settings.
+
+| Game | Enable in-game | Default port |
+|---|---|---|
+| Forza Horizon 6 / 5 | Settings → HUD and Gameplay → Data Out | `5300` |
+| F1 25 / F1 26 | Settings → Telemetry Settings → UDP | `20777` |
+
+### Forza Horizon (FH5 / FH6)
 
 > Settings → HUD and Gameplay → Data Out
 
@@ -77,6 +85,21 @@ In the game:
 | Data Out | **On** |
 | Data Out IP | LAN IP of the machine running co-driver (or `127.0.0.1` if same PC) |
 | Data Out Port | `5300` (or whatever you set `FORZA_PORT` to) |
+
+### F1 25 / F1 26
+
+> Game Options → Settings → Telemetry Settings
+
+| Setting | Value |
+|---|---|
+| UDP Telemetry | **On** |
+| UDP Broadcast Mode | Off *(set On to send to the whole subnet instead of one IP)* |
+| UDP IP Address | LAN IP of the machine running co-driver *(ignored in broadcast mode)* |
+| UDP Port | `20777` |
+| UDP Send Rate | `60` |
+| UDP Format | `2025` *(or `2026`)* |
+
+F1 is telemetry-only: the live dashboards work, while the Forza-specific tuning, dyno and garage features stay hidden.
 
 ### Finding your server's LAN IP
 
@@ -91,7 +114,7 @@ ipconfig
 
 ### Firewall
 
-The listener binds UDP `5300` on `0.0.0.0` by default. If your OS firewall blocks it, allow inbound UDP `5300` from your LAN.
+The listener binds each game's UDP port on `0.0.0.0` (Forza Horizon `5300`, F1 `20777`). If your OS firewall blocks them, allow inbound UDP on the port(s) you use from your LAN.
 
 ### Start order: server before game (or apply the ICMP fix)
 
@@ -116,7 +139,7 @@ Two ways to avoid it:
 
 | Var | Default | Purpose |
 |---|---|---|
-| `FORZA_PORT` | `5300` | UDP port the server listens on |
+| `FORZA_PORT` | `5300` | UDP port for the Forza Horizon listener (relocates it; F1 stays on `20777`). |
 | `FORZA_BIND` | `0.0.0.0` | Bind address (`127.0.0.1` for same-machine only) |
 | `NITRO_PORT` | `3000` | Web UI port |
 | `NITRO_HOST` | `0.0.0.0` | Web UI bind |

@@ -177,8 +177,10 @@ Consumers guarded for the torque/boost flip (`?? 0`): `app/utils/tune-signals.ts
 4. **Gear encoding** for `Telemetry.gear` (keep F1's `-1=R/0=N`, or remap to Forza's `0=R`).
 5. **Unit verifications:** `m_suspensionPosition` units, `m_wheelSpeed` units, whether to store
    `acceleration` as m/s² (×9.81 from g) or as raw g.
-6. **Port + selection.** `transport.defaultPort = 20777`; F1 supports broadcast mode. Adapter
-   selection still flows through `getActiveAdapter()` / `FORZA_GAME` until per-game selection lands.
+6. **Port.** `transport.defaultPort = 20777`; F1 supports broadcast mode. The listener binds every
+   wired adapter's port at once (server/plugins/forza-listener.ts), so F1 ingests on 20777 with no
+   selection step — whichever game streams is decoded by that port's adapter. The in-app game
+   switcher only gates the frontend.
 
 ---
 
