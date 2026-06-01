@@ -166,6 +166,7 @@ useHead({
                away. Active state is matched from `to` automatically. -->
           <UNavigationMenu
             :items="navItems"
+            content-orientation="vertical"
             class="hidden sm:flex"
           />
         </div>

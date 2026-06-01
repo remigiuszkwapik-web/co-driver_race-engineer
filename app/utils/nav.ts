@@ -36,26 +36,28 @@ export interface NavItem extends NavigationMenuItem {
 export const NAV_ITEMS: NavItem[] = [
   {
     label: 'Telemetry',
+    icon: 'i-lucide-activity',
     to: '/live',
     children: [
-      { label: 'Live', to: '/live', exact: true },
-      { label: 'Dyno', to: '/dyno', requires: 'tuning' },
-      { label: 'Hotlap', to: '/hotlap' }
+      { label: 'Live', to: '/live', exact: true, icon: 'i-lucide-radio' },
+      { label: 'Dyno', to: '/dyno', requires: 'tuning', icon: 'i-lucide-gauge' },
+      { label: 'Hotlap', to: '/hotlap', icon: 'i-lucide-timer' }
     ]
   },
-  { label: 'Garage', to: '/cars', requires: 'tuning' },
-  { label: 'Events', to: '/events', requires: 'tuning' },
+  { label: 'Garage', to: '/cars', requires: 'tuning', icon: 'i-lucide-car' },
+  { label: 'Events', to: '/events', requires: 'tuning', icon: 'i-lucide-flag' },
   {
     label: 'Reference',
+    icon: 'i-lucide-book-open',
     to: '/tune',
     requires: 'tuning',
     children: [
-      { label: 'Tune', to: '/tune', requires: 'tuning' },
-      { label: 'Upgrade', to: '/upgrade', requires: 'tuning' },
-      { label: 'Manual', to: '/manual', requires: 'tuning' }
+      { label: 'Tune', to: '/tune', requires: 'tuning', icon: 'i-lucide-sliders-horizontal' },
+      { label: 'Upgrade', to: '/upgrade', requires: 'tuning', icon: 'i-lucide-arrow-up-circle' },
+      { label: 'Manual', to: '/manual', requires: 'tuning', icon: 'i-lucide-book-open-text' }
     ]
   },
-  { label: 'Settings', to: '/settings' }
+  { label: 'Settings', to: '/settings', icon: 'i-lucide-settings' }
 ]
 
 /** Nav items visible for a game's capability set: an item shows when it
