@@ -1,7 +1,7 @@
 /**
  * Gearing derivation — turns a torque/power dyno curve plus measured gear
- * ratios into an Automation-style tractive-effort chart (force/power at the
- * wheels vs vehicle speed, one curve per gear).
+ * ratios into an Automation-style tractive-effort model (force / power / rpm
+ * at the wheels vs vehicle speed, one series per gear).
  *
  * Forza's Data Out packet does NOT expose gear ratios. We derive them live:
  *
@@ -16,25 +16,25 @@
  * from the *non-driven* wheels (which don't slip under power) so wheelspin
  * doesn't inflate it.
  *
- * From those two measured quantities and the dyno torque curve:
+ * From those two measured quantities and the dyno torque curve, at a given
+ * vehicle speed in gear i:
  *
- *   speed   v = ω_engine · r / R          (per gear)
- *   force   F = torque · R / r            (tractive effort at the contact patch)
- *   power   P = torque · ω_engine = engine power   (radius/ratio cancel — wheel
- *                                                   power equals engine power in
- *                                                   every gear; the dips in the
- *                                                   envelope ARE the upshift loss)
+ *   rpm     = (v / r) · R · 30/π
+ *   force   = torque(rpm) · R / r     (tractive effort at the contact patch)
+ *   power   = engine power(rpm)       (radius/ratio cancel — wheel power equals
+ *                                      engine power in every gear; the dips in
+ *                                      the envelope ARE the upshift loss)
  *
  * Radius scales force by 1/r and speed by r uniformly across gears, so the
- * *shape* of the sawtooth — gear spacing, crossovers, where you fall off the
- * power — is independent of any radius error.
+ * *shape* of the sawtooth — gear spacing, where you fall off the power — is
+ * independent of any radius error.
  *
  * Pure module — no Vue, no Nuxt — so it's trivially unit-testable, mirroring
  * dyno.ts which it consumes.
  */
 
 import type { Quad, Telemetry } from '../../server/utils/decode'
-import type { DynoCurve } from './dyno'
+import type { DynoBucket, DynoCurve } from './dyno'
 
 /** Forward gears in Forza's raw encoding: 0=R, 1..10=forward, 11=N (mid-shift). */
 const FORWARD_MIN = 1
@@ -58,6 +58,9 @@ const RATIO_MIN = 1
 const RATIO_MAX = 60
 const RADIUS_MIN_M = 0.2
 const RADIUS_MAX_M = 0.6
+/** Fallback rolling radius (m) used only until a real one is measured — sets
+ *  the absolute axes; the sawtooth shape is radius-invariant. */
+const FALLBACK_RADIUS_M = 0.32
 
 export interface GearEstimate {
   /** Forward gear number (1..10). */
@@ -173,147 +176,124 @@ export function snapshotGearing(state: GearingState): GearingModel {
   }
 }
 
-// --- chart model ----------------------------------------------------------
+// --- chart model (shared-speed grid for the linked uPlot multiple) ---------
+//
+// All panels share one x-axis (vehicle speed) so uPlot's cursor.sync lines them
+// up by x-value: hovering a speed marks the same speed on force, power and rpm.
+// Each gear is one series, sampled onto the shared speed grid with `null`
+// outside its rpm range (uPlot draws those as gaps).
 
-export interface GearTracePoint {
-  rpm: number
-  speedKmh: number
-  /** Tractive force at the contact patch (N). */
-  forceN: number
-  /** Wheel power (kW) — equals engine power. */
-  powerKw: number
-}
-
-export interface GearTrace {
+export interface GearGridSeries {
   gear: number
   ratio: number
-  /** Points ascending by speed (= ascending by rpm). */
-  points: GearTracePoint[]
+  /** Tractive force (N) at each grid speed; null outside this gear's rpm range. */
+  force: (number | null)[]
+  /** Wheel power (kW) — equals engine power. Null outside range. */
+  power: (number | null)[]
+  /** Engine rpm at each grid speed; null outside range. */
+  rpm: (number | null)[]
 }
 
-export interface ShiftPoint {
-  /** Upshift out of this gear into the next. */
-  fromGear: number
-  toGear: number
-  /** Speed where the two gears make equal force — the optimal upshift point. */
-  speedKmh: number
-  /** Engine rpm in `fromGear` at that speed. */
-  rpm: number
-}
-
-export interface GearingChart {
-  traces: GearTrace[]
-  shifts: ShiftPoint[]
-  maxSpeedKmh: number
+export interface GearingGrid {
+  /** Shared x-axis: vehicle speed (km/h), ascending. */
+  speedsKmh: number[]
+  series: GearGridSeries[]
   maxForceN: number
   maxPowerKw: number
-  /** False when torque is unavailable — force mode can't be drawn, only power. */
+  maxRpm: number
+  /** False when torque is unavailable — only power/rpm can be drawn. */
   hasForce: boolean
 }
 
-/** Linear-interpolated force at a given speed within a trace, or null if out of range. */
-function forceAtSpeed(trace: GearTrace, speedKmh: number): number | null {
-  const pts = trace.points
-  if (pts.length === 0) return null
-  if (speedKmh < pts[0]!.speedKmh || speedKmh > pts[pts.length - 1]!.speedKmh) return null
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1]!
-    const b = pts[i]!
-    if (speedKmh <= b.speedKmh) {
-      const span = b.speedKmh - a.speedKmh
-      const t = span > 0 ? (speedKmh - a.speedKmh) / span : 0
-      return a.forceN + t * (b.forceN - a.forceN)
+export interface GearingGridOptions {
+  /** Grid resolution in km/h. Default 2. */
+  stepKmh?: number
+}
+
+function speedKmhToRpm(speedKmh: number, ratio: number, radiusM: number): number {
+  const wEngine = ((speedKmh / 3.6) * ratio) / radiusM
+  return wEngine / RPM_TO_RADS
+}
+
+function rpmToSpeedKmh(rpm: number, ratio: number, radiusM: number): number {
+  const speedMps = ((rpm * RPM_TO_RADS) / ratio) * radiusM
+  return speedMps * 3.6
+}
+
+/** Linear-interpolate a dyno channel at an arbitrary rpm. Returns null outside
+ *  the measured bucket range — no extrapolation. */
+function interpDyno(dyno: DynoCurve, rpm: number, pick: (b: DynoBucket) => number): number | null {
+  const b = dyno.buckets
+  if (b.length === 0) return null
+  if (rpm < b[0]!.rpm || rpm > b[b.length - 1]!.rpm) return null
+  for (let i = 1; i < b.length; i++) {
+    const lo = b[i - 1]!
+    const hi = b[i]!
+    if (rpm <= hi.rpm) {
+      const span = hi.rpm - lo.rpm
+      const t = span > 0 ? (rpm - lo.rpm) / span : 0
+      return pick(lo) + t * (pick(hi) - pick(lo))
     }
   }
-  return pts[pts.length - 1]!.forceN
+  return pick(b[b.length - 1]!)
 }
 
 /**
- * Optimal upshift speed for an adjacent gear pair: the speed where the shorter
- * gear's force drops to meet the taller gear's. Below it the short gear pulls
- * harder; above it you're better off already shifted. Returns null if the gears
- * never make equal force inside their shared speed window.
+ * Resample the dyno curve onto a shared speed grid for every measured gear.
+ * `model.tireRadiusM` sets the absolute axes; null falls back to a nominal
+ * radius (only the labels shift — the sawtooth shape is radius-invariant).
  */
-function findCrossover(lower: GearTrace, upper: GearTrace): ShiftPoint | null {
-  const loStart = Math.max(lower.points[0]!.speedKmh, upper.points[0]!.speedKmh)
-  const loEnd = Math.min(
-    lower.points[lower.points.length - 1]!.speedKmh,
-    upper.points[upper.points.length - 1]!.speedKmh
-  )
-  if (loEnd <= loStart) return null
-  // Walk the lower gear's sample points across the shared window; the crossover
-  // is where (lower − upper) changes from positive to non-positive.
-  let prevSpeed: number | null = null
-  let prevDiff = 0
-  for (const p of lower.points) {
-    if (p.speedKmh < loStart || p.speedKmh > loEnd) continue
-    const upperForce = forceAtSpeed(upper, p.speedKmh)
-    if (upperForce === null) continue
-    const diff = p.forceN - upperForce
-    if (prevSpeed !== null && prevDiff > 0 && diff <= 0) {
-      const span = diff - prevDiff
-      const t = span !== 0 ? prevDiff / (prevDiff - diff) : 0
-      const speedKmh = prevSpeed + t * (p.speedKmh - prevSpeed)
-      // rpm in the lower gear at that speed: rpm = v(m/s)·R / r, and r = v/ω so
-      // rpm = ω·R / (π/30); but simplest is to interpolate rpm along the trace.
-      const rpm = interpRpmAtSpeed(lower, speedKmh)
-      return { fromGear: lower.gear, toGear: upper.gear, speedKmh, rpm }
-    }
-    prevSpeed = p.speedKmh
-    prevDiff = diff
-  }
-  return null
-}
-
-function interpRpmAtSpeed(trace: GearTrace, speedKmh: number): number {
-  const pts = trace.points
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1]!
-    const b = pts[i]!
-    if (speedKmh <= b.speedKmh) {
-      const span = b.speedKmh - a.speedKmh
-      const t = span > 0 ? (speedKmh - a.speedKmh) / span : 0
-      return a.rpm + t * (b.rpm - a.rpm)
-    }
-  }
-  return pts[pts.length - 1]?.rpm ?? 0
-}
-
-/**
- * Combine a dyno curve with measured gear ratios into the renderable chart
- * model. `model.tireRadiusM` sets the absolute axes; if it's null we fall back
- * to a nominal 0.32 m (only the axis labels shift — the sawtooth shape is
- * radius-invariant).
- */
-export function buildGearingChart(dyno: DynoCurve, model: GearingModel): GearingChart {
-  const radius = model.tireRadiusM ?? 0.32
+export function buildGearingGrid(dyno: DynoCurve, model: GearingModel, opts?: GearingGridOptions): GearingGrid {
+  const step = opts?.stepKmh ?? 2
+  const radius = model.tireRadiusM ?? FALLBACK_RADIUS_M
   const hasForce = dyno.peakTorque !== null
-  const traces: GearTrace[] = []
+
+  if (dyno.buckets.length === 0 || model.gears.length === 0) {
+    return { speedsKmh: [], series: [], maxForceN: 0, maxPowerKw: 0, maxRpm: 0, hasForce }
+  }
+
+  const minRpm = dyno.buckets[0]!.rpm
+  const maxRpm = dyno.buckets[dyno.buckets.length - 1]!.rpm
+
+  // Top of the speed axis = fastest gear at its top measured rpm.
   let maxSpeedKmh = 0
+  for (const g of model.gears) {
+    const s = rpmToSpeedKmh(maxRpm, g.ratio, radius)
+    if (s > maxSpeedKmh) maxSpeedKmh = s
+  }
+  const topSpeed = Math.ceil(maxSpeedKmh / step) * step
+
+  const speedsKmh: number[] = []
+  for (let s = 0; s <= topSpeed + 1e-9; s += step) speedsKmh.push(Number(s.toFixed(3)))
+
   let maxForceN = 0
   let maxPowerKw = 0
+  let maxRpmSeen = 0
 
-  for (const g of model.gears) {
-    const points: GearTracePoint[] = []
-    for (const b of dyno.buckets) {
-      const wEngine = b.rpm * RPM_TO_RADS
-      const wWheel = wEngine / g.ratio
-      const speedKmh = wWheel * radius * 3.6
-      const forceN = (b.maxTorqueNm * g.ratio) / radius
-      const powerKw = b.maxPowerKw
-      points.push({ rpm: b.rpm, speedKmh, forceN, powerKw })
-      if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh
-      if (forceN > maxForceN) maxForceN = forceN
-      if (powerKw > maxPowerKw) maxPowerKw = powerKw
+  const series: GearGridSeries[] = model.gears.map((g) => {
+    const force: (number | null)[] = []
+    const power: (number | null)[] = []
+    const rpm: (number | null)[] = []
+    for (const s of speedsKmh) {
+      const r = speedKmhToRpm(s, g.ratio, radius)
+      if (r < minRpm || r > maxRpm) {
+        force.push(null)
+        power.push(null)
+        rpm.push(null)
+        continue
+      }
+      const tq = interpDyno(dyno, r, b => b.maxTorqueNm)
+      const pw = interpDyno(dyno, r, b => b.maxPowerKw)
+      const f = tq === null ? null : (tq * g.ratio) / radius
+      force.push(f)
+      power.push(pw)
+      rpm.push(r)
+      if (f !== null && f > maxForceN) maxForceN = f
+      if (pw !== null && pw > maxPowerKw) maxPowerKw = pw
+      if (r > maxRpmSeen) maxRpmSeen = r
     }
-    if (points.length > 0) traces.push({ gear: g.gear, ratio: g.ratio, points })
-  }
+    return { gear: g.gear, ratio: g.ratio, force, power, rpm }
+  })
 
-  const shifts: ShiftPoint[] = []
-  for (let i = 1; i < traces.length; i++) {
-    const cross = findCrossover(traces[i - 1]!, traces[i]!)
-    if (cross) shifts.push(cross)
-  }
-
-  return { traces, shifts, maxSpeedKmh, maxForceN, maxPowerKw, hasForce }
+  return { speedsKmh, series, maxForceN, maxPowerKw, maxRpm: maxRpmSeen, hasForce }
 }

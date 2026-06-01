@@ -30,8 +30,6 @@ const gearingModel = computed(() => {
 const hasWheelRotation = computed(() => telemetry.value?.wheelRotation != null)
 
 const currentRpm = computed(() => telemetry.value?.rpm ?? 0)
-const currentGear = computed(() => telemetry.value?.gear ?? 0)
-const currentSpeedKmh = computed(() => telemetry.value?.speedKmh ?? 0)
 const carDisplay = computed(() => {
   const t = telemetry.value
   if (!t) return 'no telemetry'
@@ -110,16 +108,13 @@ function resetCurve() {
       :current-rpm="currentRpm"
     />
 
-    <GearingChart
+    <GearingPlot
       v-if="hasReceivedFrame && hasWheelRotation"
       class="mt-6"
       :dyno="curve"
       :model="gearingModel"
       title="gearing · force × speed"
       :subtitle="carDisplay"
-      :current-rpm="currentRpm"
-      :current-gear="currentGear"
-      :current-speed-kmh="currentSpeedKmh"
     />
     <p
       v-else-if="hasReceivedFrame"

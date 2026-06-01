@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildGearingChart,
+  buildGearingGrid,
   emptyGearingState,
   ingestGearingFrame,
   snapshotGearing
@@ -100,7 +100,7 @@ describe('ingestGearingFrame / snapshotGearing', () => {
   })
 })
 
-describe('buildGearingChart', () => {
+describe('buildGearingGrid', () => {
   const dyno: DynoCurve = {
     buckets: [
       { rpm: 2000, maxTorqueNm: 300, maxPowerKw: 63, maxBoostAtm: 0, samples: 5 },
@@ -123,34 +123,66 @@ describe('buildGearingChart', () => {
     drivetrain: 1
   }
 
-  it('maps force and speed per gear with radius cancelling out of the force ratio', () => {
-    const chart = buildGearingChart(dyno, model)
-    expect(chart.hasForce).toBe(true)
-    expect(chart.traces).toHaveLength(2)
+  /** Find the grid index whose speed is closest to `kmh`. */
+  function idxAt(grid: ReturnType<typeof buildGearingGrid>, kmh: number): number {
+    let best = 0
+    for (let i = 1; i < grid.speedsKmh.length; i++) {
+      if (Math.abs(grid.speedsKmh[i]! - kmh) < Math.abs(grid.speedsKmh[best]! - kmh)) best = i
+    }
+    return best
+  }
 
-    // Force at the contact patch = torque · ratio / radius.
-    const g1 = chart.traces[0]!
-    const peak = g1.points.find(p => p.rpm === 4000)!
-    expect(peak.forceN).toBeCloseTo((400 * 12) / 0.3, 3)
-
-    // Shorter gear (1) always makes more force at the same rpm than gear 2.
-    const g2 = chart.traces[1]!
-    expect(g1.points[1]!.forceN).toBeGreaterThan(g2.points[1]!.forceN)
-
-    // Wheel power equals engine power regardless of gear.
-    expect(g1.points[2]!.powerKw).toBe(220)
-    expect(g2.points[2]!.powerKw).toBe(220)
+  it('shares one ascending speed axis across all gear series', () => {
+    const grid = buildGearingGrid(dyno, model, { stepKmh: 1 })
+    expect(grid.hasForce).toBe(true)
+    expect(grid.series).toHaveLength(2)
+    expect(grid.speedsKmh[0]).toBe(0)
+    // Every series is sampled on the same grid.
+    for (const s of grid.series) {
+      expect(s.force).toHaveLength(grid.speedsKmh.length)
+      expect(s.power).toHaveLength(grid.speedsKmh.length)
+      expect(s.rpm).toHaveLength(grid.speedsKmh.length)
+    }
   })
 
-  it('places a higher gear at a higher speed for the same rpm', () => {
-    const chart = buildGearingChart(dyno, model)
-    const g1at6000 = chart.traces[0]!.points.find(p => p.rpm === 6000)!
-    const g2at6000 = chart.traces[1]!.points.find(p => p.rpm === 6000)!
-    expect(g2at6000.speedKmh).toBeGreaterThan(g1at6000.speedKmh)
+  it('nulls out speeds outside a gear\'s rpm range, fills inside it', () => {
+    const grid = buildGearingGrid(dyno, model, { stepKmh: 1 })
+    const g1 = grid.series[0]!
+    // At very low speed gear 1 is below its lowest measured rpm → gap.
+    expect(g1.force[0]).toBeNull()
+    // Somewhere it must be populated.
+    expect(g1.force.some(v => v !== null)).toBe(true)
+  })
+
+  it('force = torque(rpm) · ratio / radius at every populated grid point', () => {
+    const grid = buildGearingGrid(dyno, model, { stepKmh: 0.5 })
+    const radius = 0.3
+    // Near gear 1 @ ~4000 rpm — between the 2000 (300 Nm) and 4000 (400 Nm) buckets.
+    const wEngine = 4000 * (Math.PI / 30)
+    const speedKmh = ((wEngine / 12) * radius) * 3.6
+    const i = idxAt(grid, speedKmh)
+    const r = grid.series[0]!.rpm[i]!
+    const expTorque = 300 + ((r - 2000) / (4000 - 2000)) * (400 - 300)
+    expect(grid.series[0]!.force[i]).toBeCloseTo((expTorque * 12) / radius, 2)
+  })
+
+  it('puts a higher gear at a higher speed for equal rpm (≈4000)', () => {
+    const grid = buildGearingGrid(dyno, model, { stepKmh: 1 })
+    const rpmNear = (s: number[], rpm: (number | null)[], target: number) => {
+      let best = -1
+      for (let i = 0; i < rpm.length; i++) {
+        if (rpm[i] === null) continue
+        if (best < 0 || Math.abs(rpm[i]! - target) < Math.abs(rpm[best]! - target)) best = i
+      }
+      return s[best]!
+    }
+    const g1Speed = rpmNear(grid.speedsKmh, grid.series[0]!.rpm, 4000)
+    const g2Speed = rpmNear(grid.speedsKmh, grid.series[1]!.rpm, 4000)
+    expect(g2Speed).toBeGreaterThan(g1Speed)
   })
 
   it('falls back to power-only when torque is unavailable', () => {
-    const chart = buildGearingChart({ ...dyno, peakTorque: null }, model)
-    expect(chart.hasForce).toBe(false)
+    const grid = buildGearingGrid({ ...dyno, peakTorque: null }, model)
+    expect(grid.hasForce).toBe(false)
   })
 })
