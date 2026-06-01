@@ -143,12 +143,6 @@ useHead({
     >
       <div class="container mx-auto flex max-w-6xl items-center justify-between px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400">
         <div class="flex items-center gap-3 sm:gap-6">
-          <NuxtLink
-            to="/live"
-            class="text-zinc-100 transition-colors hover:text-zinc-50"
-          >
-            co-driver
-          </NuxtLink>
           <!-- Hamburger — portrait phone only; opens the slide-in drawer.
                Inline UNavigationMenu below handles sm+ viewports. -->
           <AppMobileNav :items="navItems">

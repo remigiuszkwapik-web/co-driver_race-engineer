@@ -57,7 +57,15 @@ export const NAV_ITEMS: NavItem[] = [
       { label: 'Manual', to: '/manual', requires: 'tuning', icon: 'i-lucide-book-open-text' }
     ]
   },
-  { label: 'Settings', to: '/settings', icon: 'i-lucide-settings' }
+  {
+    label: 'System',
+    icon: 'i-lucide-settings',
+    to: '/settings',
+    children: [
+      { label: 'Settings', to: '/settings', exact: true, icon: 'i-lucide-settings' },
+      { label: 'Transfer', to: '/transfer', requires: 'tuning', icon: 'i-lucide-arrow-left-right' }
+    ]
+  }
 ]
 
 /** Nav items visible for a game's capability set: an item shows when it
