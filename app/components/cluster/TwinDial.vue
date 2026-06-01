@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { gearLabel } from '~/utils/tuning'
 
-// Analog twin-dial cluster: tachometer (left) + speedometer (right) with a
-// centered gear number and a small auxiliary boost dial beneath it.
+// Analog cluster, dials sitting beside each other: boost · tach · gear ·
+// speedo, left to right. Boost dial is hidden on NA cars (then tach leads).
 const props = defineProps<{
   rpm: number
   rpmMax: number
@@ -67,11 +67,26 @@ const boostTicks: { frac: number, label: string }[] = [
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-1">
+  <div class="flex items-center justify-center gap-4 sm:gap-6">
+    <div
+      v-if="hasBoost"
+      class="shrink-0"
+      style="width: clamp(4.5rem, 13vw, 7rem);"
+    >
+      <ClusterDial
+        :frac="boostFrac"
+        :ticks="boostTicks"
+        :accent="boostAccent"
+        :value="boostValue"
+        :unit="unitLabel.boost"
+        label="BOOST"
+      />
+    </div>
+
     <NuxtLink
       to="/tune/gearing"
       class="block shrink-0 transition-opacity hover:opacity-90"
-      style="width: clamp(6rem, 17vw, 9.5rem);"
+      style="width: clamp(7rem, 20vw, 12rem);"
     >
       <ClusterDial
         :frac="rpmFrac"
@@ -84,32 +99,17 @@ const boostTicks: { frac: number, label: string }[] = [
       />
     </NuxtLink>
 
-    <div class="flex shrink-0 flex-col items-center gap-1">
-      <NuxtLink
-        to="/tune/gearing"
-        class="group flex flex-col items-center"
-      >
-        <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors group-hover:text-green-300">GEAR</span>
-        <span class="text-5xl leading-none font-light tabular-nums text-zinc-100 sm:text-6xl">{{ gearLabel(gear) }}</span>
-      </NuxtLink>
-      <div
-        v-if="hasBoost"
-        style="width: clamp(3.5rem, 10vw, 5rem);"
-      >
-        <ClusterDial
-          :frac="boostFrac"
-          :ticks="boostTicks"
-          :accent="boostAccent"
-          :value="boostValue"
-          :unit="unitLabel.boost"
-          label="BOOST"
-        />
-      </div>
-    </div>
+    <NuxtLink
+      to="/tune/gearing"
+      class="group flex shrink-0 flex-col items-center"
+    >
+      <span class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 transition-colors group-hover:text-green-300">GEAR</span>
+      <span class="text-6xl leading-none font-light tabular-nums text-zinc-100 sm:text-7xl">{{ gearLabel(gear) }}</span>
+    </NuxtLink>
 
     <div
       class="shrink-0"
-      style="width: clamp(6rem, 17vw, 9.5rem);"
+      style="width: clamp(7rem, 20vw, 12rem);"
     >
       <ClusterDial
         :frac="speedFrac"
