@@ -14,6 +14,7 @@ co-driver listens for every supported game **at once** — launch any of them an
 |---|---|---|---|
 | Forza Horizon 6 | ✅ | ✅ | `5300` |
 | Forza Horizon 5 | ✅ | — | `5300` |
+| Forza Motorsport (FM7 / 2023) | ✅ | — | `5300` |
 | F1 25 / F1 26 | ✅ | — | `20777` |
 
 ## What you get
@@ -71,6 +72,7 @@ co-driver listens for every supported game at once — there's no server-side "a
 | Game | Enable in-game | Default port |
 |---|---|---|
 | Forza Horizon 6 / 5 | Settings → HUD and Gameplay → Data Out | `5300` |
+| Forza Motorsport (FM7 / 2023) | Settings → Gameplay & HUD → Data Out | `5300` |
 | F1 25 / F1 26 | Settings → Telemetry Settings → UDP | `20777` |
 
 ### Forza Horizon (FH5 / FH6)
@@ -82,6 +84,19 @@ co-driver listens for every supported game at once — there's no server-side "a
 | Data Out | **On** |
 | Data Out IP | LAN IP of the machine running co-driver (or `127.0.0.1` if same PC) |
 | Data Out Port | `5300` (or whatever you set `FORZA_PORT` to) |
+
+### Forza Motorsport (FM7 / FM 2023)
+
+> Settings → Gameplay & HUD → Data Out *(FM7: HUD and Gameplay)*
+
+| Setting | Value |
+|---|---|
+| Data Out | **On** |
+| Data Out IP | LAN IP of the machine running co-driver (or `127.0.0.1` if same PC) |
+| Data Out Port | `5300` *(shared with Forza Horizon)* |
+| Data Out Packet Format | **Dash** *(the "Sled" format omits the dashboard fields and won't decode)* |
+
+Motorsport reuses Horizon's port `5300` — co-driver tells the two apart by packet length, so no extra configuration. Like the other non-FH6 titles it's telemetry-only (no tuning stack).
 
 ### F1 25 / F1 26
 
