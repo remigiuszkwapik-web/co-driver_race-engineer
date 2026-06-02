@@ -128,6 +128,12 @@ watch(() => props.frame, (f) => {
           :power="frame?.power ?? 0"
         />
       </div>
+      <div class="panel flex items-center justify-center p-3 backdrop-blur sm:p-4">
+        <ClusterSteeringWheel
+          class="w-full max-w-[220px]"
+          :steer="frame?.steer ?? 0"
+        />
+      </div>
       <div class="panel p-3 backdrop-blur sm:p-4">
         <GgDot
           :accel-long="frame?.acceleration.z ?? 0"
