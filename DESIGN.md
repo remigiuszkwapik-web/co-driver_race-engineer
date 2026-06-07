@@ -611,18 +611,18 @@ New outbound:
 /workspace            → per-game home: cars used → track sessions, with Compare/Open into the analysis pages.
 /live                 → the v1+v2 corner view + trace strip (the "second screen")
                         Shows a small "● REC" badge when state=recording, plus a Stop button.
-/events               → six type tiles (rally / race / street race / cross country / drag / freeroam)
-                        with event counts.
-/events/:type         → list of events of that type with inline "New event" entry.
-                        Each row shows best-lap-of-event and a relative last-driven timestamp.
-/events/:type/:id     → event detail:
-                          • leaderboard (best lap per session, joined with car + tune + PI)
-                          • "Start Recording" button (event pre-selected; navigates to /live)
-/events/:type/:id/:sessionId
-                      → session detail: metadata header (with inline tune-label editor) +
-                        lap table with per-lap "▶ Replay".
-                        Replay mounts ReplayPlayer driven by the lap's frames_blob.
+/events               → flat per-game event (track/race) list with inline "New event";
+                        each row shows best-lap-of-event + relative last-driven. FH6 gets
+                        an optional discipline filter. [was type tiles pre-generalisation]
+/events/:id           → event detail: leaderboard (best lap per session, car + tune + PI),
+                        inline rename, delete, "Start Recording" button. [was /events/:type/:id]
+/events/:id/:sessionId → session detail: metadata header (with inline tune-label editor) +
+                        lap table with per-lap "▶ Replay" (ReplayPlayer from the frames blob).
+/events/:id/compare   → multi-lap overlay: delta-t + channel traces + track-map overlay.
 ```
+> The `/events/:type/...` hierarchy was flattened when events generalised across
+> sims: an event is now `{game, name}` (a track/race) and the Forza discipline
+> `type` is optional metadata, not a URL segment. Browse leads with `/workspace`.
 
 > Spec divergence: the original navigation block had `/` redirecting to `/events`. During slice-2 review the user pushed back — "the home screen redirects to /events so there is no active dash anymore" — so `/` landed the user on the dashboard. **Phase 2 update:** the app is now multi-game; `/` is the game-grid **workspace picker** and selecting a game opens `/workspace` (that game's cars → track sessions). `/live` and the `/events` browser remain, reachable via the navbar + the header workspace switcher.
 
@@ -655,7 +655,7 @@ When `LapNumber` advances, the new packet's `LastLap` field holds the just-compl
 1. At session start, snapshot `pi_at_start`. — **[done]** in `server/utils/recorder.ts`.
 2. On session end, compare to the most recent prior session for the same `car_id`. If different, emit `tune_prompt`. — **[done]** server-side; client receives and stores the prompt in `useRecording().tunePrompt`.
 3. UI shows a non-blocking modal: "PI went 745 → 758 — did you re-tune? Name this tune:" with a text input + autocomplete from prior tune labels for this car. — **[done]** in `TunePromptModal.vue`, mounted in the default layout; autocomplete is sourced from `GET /api/cars/:ordinal/tunes`.
-4. `tune_label` is editable from any session detail page at any time. — **[done]** via the inline click-to-edit cell in `pages/events/[type]/[id]/[sessionId].vue`, which calls `PATCH /api/sessions/:id`.
+4. `tune_label` is editable from any session detail page at any time. — **[done]** via the inline click-to-edit cell in `pages/events/[id]/[sessionId].vue`, which calls `PATCH /api/sessions/:id`.
 
 PI shift is a *signal*, not a guarantee — the user might tune without changing PI (within the same class) or change PI without considering it a new tune. Manual override is always available.
 

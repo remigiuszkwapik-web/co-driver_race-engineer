@@ -13,41 +13,42 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<CreateBody>(event)
 
   const name = typeof body?.name === 'string' ? body.name.trim() : ''
-  const type = body?.type
-  // The game this event belongs to. Omitted → FH6 (back-compat with the
-  // pre-multi-game record flow). Non-Forza games send their id + type 'race'.
+  // The game this event belongs to. Omitted → FH6 (back-compat).
   const gameId = isGameId(body?.gameId) ? body.gameId : DEFAULT_GAME_ID
 
   if (!name) {
     throw createError({ statusCode: 400, statusMessage: 'name required' })
   }
-  if (typeof type !== 'string' || !(eventType as readonly string[]).includes(type)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: `type must be one of: ${eventType.join(', ')}`
-    })
-  }
-  const typedType = type as EventType
 
+  // `type` is an OPTIONAL discipline tag (Forza-Horizon taxonomy). Validate it
+  // only when given; other sims omit it entirely (→ null).
+  let type: EventType | null = null
+  if (body?.type != null) {
+    if (typeof body.type !== 'string' || !(eventType as readonly string[]).includes(body.type)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `type, if given, must be one of: ${eventType.join(', ')}`
+      })
+    }
+    type = body.type as EventType
+  }
+
+  // Identity is (gameId, name) — one event per track/race per game.
   const existing = await db
     .select({ id: schema.events.id })
     .from(schema.events)
-    .where(and(
-      eq(schema.events.gameId, gameId),
-      eq(schema.events.name, name),
-      eq(schema.events.type, typedType)
-    ))
+    .where(and(eq(schema.events.gameId, gameId), eq(schema.events.name, name)))
     .limit(1)
   if (existing.length > 0) {
     throw createError({
       statusCode: 409,
-      statusMessage: `an event named "${name}" already exists for type "${type}"`
+      statusMessage: `an event named "${name}" already exists`
     })
   }
 
   const created = await db
     .insert(schema.events)
-    .values({ gameId, name, type: typedType })
+    .values({ gameId, name, type })
     .returning()
   return created[0]!
 })

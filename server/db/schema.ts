@@ -10,17 +10,18 @@ export type EventType = typeof eventType[number]
 export const events = sqliteTable('events', {
   id: integer().primaryKey({ autoIncrement: true }),
   // The game this event belongs to. Existing rows backfill to 'fh6' (all data
-  // pre-multi-game was Forza Horizon). An "event" is now {game, name}: circuit
-  // sims record one per race/track name; FH6 keeps its richer `type` taxonomy.
+  // pre-multi-game was Forza Horizon).
   gameId: text({ enum: GAME_IDS }).notNull().default('fh6'),
   name: text().notNull(),
-  type: text({ enum: eventType }).notNull(),
+  // An event is {game, name} — a track/race. `type` is an OPTIONAL discipline
+  // tag (the Forza-Horizon taxonomy: rally/touge/cross_country/…); it doesn't
+  // generalise to other sims, so it's nullable and only Horizon tends to set it.
+  type: text({ enum: eventType }),
   createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 }, t => [
-  // Scoped by game so two sims can have same-named events; type stays in the
-  // key to preserve FH6's "same name across types" behaviour. Non-Forza games
-  // record under a single 'race' type, so this is effectively (game, name).
-  uniqueIndex('events_game_name_type_unq').on(t.gameId, t.name, t.type)
+  // One event per (game, name): the track/race is the identity. Discipline is
+  // metadata, not part of the key.
+  uniqueIndex('events_game_name_unq').on(t.gameId, t.name)
 ])
 
 export const cars = sqliteTable('cars', {

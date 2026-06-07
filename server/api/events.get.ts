@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     .leftJoin(schema.laps, eq(schema.laps.sessionId, schema.sessions.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .groupBy(schema.events.id)
-    .orderBy(asc(schema.events.type), asc(schema.events.name))
+    .orderBy(asc(schema.events.name))
 
   return rows
 })

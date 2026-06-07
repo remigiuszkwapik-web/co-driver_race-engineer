@@ -20,7 +20,7 @@ export interface LapMeta {
   // and import as FH6. Additive, so BUNDLE_VERSION stays 1 — old bundles still
   // import and old readers ignore the field.
   gameId: string
-  event: { name: string, type: string }
+  event: { name: string, type: string | null }
   car: { ordinal: number, class: number, displayName: string | null }
   build: { name: string, settings: unknown } | null
   tune: { name: string, settings: unknown } | null

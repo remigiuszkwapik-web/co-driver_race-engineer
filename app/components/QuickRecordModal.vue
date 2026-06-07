@@ -6,7 +6,7 @@ const open = defineModel<boolean>('open', { required: true })
 interface EventRow {
   id: number
   name: string
-  type: EventType
+  type: EventType | null
   createdAt: number | string
   bestLapMs: number | null
   lastDrivenAt: number | string | null
@@ -14,13 +14,10 @@ interface EventRow {
 
 const { startRecording, lastError, clearError } = useRecording()
 // The active game (workspace) the recording is tagged with. Forza Horizon has
-// the full event taxonomy (rally/touge/…); every other sim is "simple mode":
-// an event is just a race/session name, recorded under a single 'race' type.
+// the discipline taxonomy (rally/touge/…); every other sim is "simple mode":
+// an event is just a track/race name, recorded with no discipline tag.
 const { gameId, capabilities } = useGame()
 const simpleMode = computed(() => !capabilities.value.tuning)
-// The type non-Forza sessions record under — keeps them in the existing
-// type-routed browser (/events/race/…) until the Phase 2 IA rework.
-const SIMPLE_TYPE: EventType = 'race'
 
 const step = ref<'type' | 'event'>('type')
 const selectedType = ref<EventType | null>(null)
@@ -57,20 +54,20 @@ watch(open, (v) => {
   if (!v) return
   reset()
   clearError()
-  // Simple mode skips the type step: land straight on the name picker for the
-  // single 'race' bucket, scoped to the active game.
+  // Simple mode skips the discipline step: list all the game's events and let
+  // the user pick or create one by name (no discipline tag).
   if (simpleMode.value) {
-    selectedType.value = SIMPLE_TYPE
     step.value = 'event'
-    void loadEvents(SIMPLE_TYPE)
+    void loadEvents(null)
   }
 })
 
-async function loadEvents(t: EventType) {
+async function loadEvents(t: EventType | null) {
   loadingEvents.value = true
   localError.value = null
   try {
-    eventsForType.value = await $fetch<EventRow[]>('/api/events', { query: { type: t, gameId: gameId.value } })
+    const query = t ? { type: t, gameId: gameId.value } : { gameId: gameId.value }
+    eventsForType.value = await $fetch<EventRow[]>('/api/events', { query })
   } catch (err) {
     const e = err as { data?: { statusMessage?: string }, statusMessage?: string, message?: string }
     localError.value = e.data?.statusMessage ?? e.statusMessage ?? e.message ?? 'failed to load events'
@@ -88,16 +85,15 @@ async function pickType(t: EventType) {
 }
 
 async function createAndStart() {
-  if (!selectedType.value) return
   const name = newEventName.value.trim()
   if (!name) return
   creating.value = true
   localError.value = null
   try {
-    const created = await $fetch<EventRow>('/api/events', {
-      method: 'POST',
-      body: { name, type: selectedType.value, gameId: gameId.value }
-    })
+    // Forza tags a discipline (selectedType from the tile step); other sims omit it.
+    const body: Record<string, unknown> = { name, gameId: gameId.value }
+    if (selectedType.value) body.type = selectedType.value
+    const created = await $fetch<EventRow>('/api/events', { method: 'POST', body })
     selectedEventId.value = created.id
     eventsForType.value = [...eventsForType.value, created]
     newEventName.value = ''

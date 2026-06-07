@@ -60,7 +60,7 @@ interface RecordingContext {
   sessionId: number
   gameId: GameId
   eventId: number
-  eventType: EventType
+  eventType: EventType | null
   carId: number
   carOrdinal: number
   carDisplayName: string | null
@@ -147,7 +147,7 @@ export class Recorder {
     if (event.gameId !== gameId) {
       throw new Error(`Event ${eventId} belongs to ${event.gameId}, not the active game ${gameId}`)
     }
-    const eventType = event.type as EventType
+    const eventType = event.type
 
     // Cars are namespaced per game — an ordinal is only unique within a game.
     const ordinal = frame.car.ordinal

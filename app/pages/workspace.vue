@@ -20,7 +20,7 @@ interface SessionRow {
   carDisplayName: string | null
   eventId: number
   eventName: string
-  eventType: EventType
+  eventType: EventType | null
   startedAt: string | number
   laps: LapRow[]
 }
@@ -37,7 +37,7 @@ const MAX_COMPARE_LAPS = 6
 interface TrackAgg {
   eventId: number
   eventName: string
-  eventType: EventType
+  eventType: EventType | null
   sessionCount: number
   laps: LapRow[]
   lastAt: string | null
@@ -78,14 +78,14 @@ const cars = computed(() => {
       // Reference-lap comparison: link to the existing overlay page preloaded
       // with the fastest laps, best lap as the Δ baseline. Needs ≥2 laps.
       const compareHref = best && top.length >= 2
-        ? `/events/${tr.eventType}/${tr.eventId}/compare?laps=${top.map(l => l.id).join(',')}&ref=${best.id}`
+        ? `/events/${tr.eventId}/compare?laps=${top.map(l => l.id).join(',')}&ref=${best.id}`
         : null
       return {
         ...tr,
         lapCount: tr.laps.length,
         best,
         compareHref,
-        openHref: `/events/${tr.eventType}/${tr.eventId}`
+        openHref: `/events/${tr.eventId}`
       }
     }).sort((a, b) => (a.best?.timeMs ?? Infinity) - (b.best?.timeMs ?? Infinity))
   }))
@@ -167,7 +167,10 @@ const cars = computed(() => {
           <div class="min-w-0 flex-1">
             <div class="truncate font-mono text-sm text-zinc-200">
               {{ tr.eventName }}
-              <span class="ml-1 text-[10px] uppercase tracking-[0.2em] text-zinc-600">{{ EVENT_TYPE_LABELS[tr.eventType] }}</span>
+              <span
+                v-if="tr.eventType"
+                class="ml-1 text-[10px] uppercase tracking-[0.2em] text-zinc-600"
+              >{{ EVENT_TYPE_LABELS[tr.eventType] }}</span>
             </div>
             <div class="font-mono text-[11px] text-zinc-500">
               {{ tr.sessionCount }} session{{ tr.sessionCount === 1 ? '' : 's' }}

@@ -6,9 +6,11 @@ import { BUNDLE_FORMAT, BUNDLE_VERSION } from '~~/server/utils/lap-export'
 
 /**
  * Import a single-lap co-driver bundle (the `bundle` format from
- * /api/laps/[id]/export). Merges by identity: cars dedupe on ordinal, events on
- * (name,type), builds on (carId,name), tunes on (buildId,name), sessions on
- * (eventId,carId,startedAt), and the lap on (sessionId,lapNumber). Anything
+ * /api/laps/[id]/export). Merges by identity: cars dedupe on (gameId,ordinal),
+ * events on (gameId,name) — the bundle's optional `type` is only applied when
+ * creating a new event, not when reusing an existing one — builds on
+ * (carId,name), tunes on (buildId,name), sessions on (eventId,carId,startedAt),
+ * and the lap on (sessionId,lapNumber). Anything
  * already present is reused, not duplicated, so re-importing the same bundle is
  * idempotent. The frames blob is written back verbatim — it was carried base64
  * and never re-encoded.
@@ -51,11 +53,15 @@ export default defineEventHandler(async (event) => {
 
   const ev = b.event
   if (!ev || typeof ev.name !== 'string' || !ev.name.trim()) bad('event.name required')
-  if (typeof ev.type !== 'string' || !(eventType as readonly string[]).includes(ev.type)) {
-    bad(`event.type must be one of: ${eventType.join(', ')}`)
+  // `type` is an optional discipline tag; validate only when present.
+  let evType: EventType | null = null
+  if (ev.type != null) {
+    if (typeof ev.type !== 'string' || !(eventType as readonly string[]).includes(ev.type)) {
+      bad(`event.type, if given, must be one of: ${eventType.join(', ')}`)
+    }
+    evType = ev.type as EventType
   }
   const eventName = ev.name.trim()
-  const evType = ev.type as EventType
   // Legacy bundles (exported before multi-game) carry no gameId → FH6.
   const gameId = isGameId(b.gameId) ? b.gameId : DEFAULT_GAME_ID
 
@@ -94,9 +100,9 @@ export default defineEventHandler(async (event) => {
       created.car = true
     }
 
-    // event — by (gameId, name, type)
+    // event — by (gameId, name); type is optional discipline metadata
     let eventRow = (await tx.select().from(schema.events)
-      .where(and(eq(schema.events.gameId, gameId), eq(schema.events.name, eventName), eq(schema.events.type, evType))).limit(1))[0]
+      .where(and(eq(schema.events.gameId, gameId), eq(schema.events.name, eventName))).limit(1))[0]
     if (!eventRow) {
       eventRow = (await tx.insert(schema.events).values({ gameId, name: eventName, type: evType }).returning())[0]!
       created.event = true
