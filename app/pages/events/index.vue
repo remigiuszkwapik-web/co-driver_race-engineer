@@ -8,7 +8,12 @@ interface EventRow {
   createdAt: number | string
 }
 
-const { data: events } = await useFetch<EventRow[]>('/api/events', { default: () => [] })
+// Scope event counts to the active game (workspace).
+const { gameId } = useGame()
+const { data: events } = await useFetch<EventRow[]>('/api/events', {
+  query: { gameId },
+  default: () => []
+})
 
 const counts = computed<Record<EventType, number>>(() => {
   const c: Record<EventType, number> = {

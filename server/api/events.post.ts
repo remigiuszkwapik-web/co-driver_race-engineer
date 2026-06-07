@@ -1,10 +1,12 @@
 import { and, eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
+import { DEFAULT_GAME_ID, isGameId } from '#shared/games'
 import { eventType, type EventType } from '../db/schema'
 
 interface CreateBody {
   name?: unknown
   type?: unknown
+  gameId?: unknown
 }
 
 export default defineEventHandler(async (event) => {
@@ -12,6 +14,9 @@ export default defineEventHandler(async (event) => {
 
   const name = typeof body?.name === 'string' ? body.name.trim() : ''
   const type = body?.type
+  // The game this event belongs to. Omitted → FH6 (back-compat with the
+  // pre-multi-game record flow). Non-Forza games send their id + type 'race'.
+  const gameId = isGameId(body?.gameId) ? body.gameId : DEFAULT_GAME_ID
 
   if (!name) {
     throw createError({ statusCode: 400, statusMessage: 'name required' })
@@ -27,7 +32,11 @@ export default defineEventHandler(async (event) => {
   const existing = await db
     .select({ id: schema.events.id })
     .from(schema.events)
-    .where(and(eq(schema.events.name, name), eq(schema.events.type, typedType)))
+    .where(and(
+      eq(schema.events.gameId, gameId),
+      eq(schema.events.name, name),
+      eq(schema.events.type, typedType)
+    ))
     .limit(1)
   if (existing.length > 0) {
     throw createError({
@@ -38,7 +47,7 @@ export default defineEventHandler(async (event) => {
 
   const created = await db
     .insert(schema.events)
-    .values({ name, type: typedType })
+    .values({ gameId, name, type: typedType })
     .returning()
   return created[0]!
 })

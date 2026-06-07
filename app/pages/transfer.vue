@@ -31,7 +31,12 @@ interface ImportResult {
   alreadyPresent: boolean
 }
 
-const { data: sessions, refresh } = await useFetch<SessionRow[]>('/api/sessions', { default: () => [] })
+// Scope to the active game (workspace): only that sim's recordings show here.
+const { gameId } = useGame()
+const { data: sessions, refresh } = await useFetch<SessionRow[]>('/api/sessions', {
+  query: { gameId },
+  default: () => []
+})
 
 const grouped = computed(() => {
   const map = new Map<number, { carId: number, label: string, klass: string, sessions: SessionRow[] }>()

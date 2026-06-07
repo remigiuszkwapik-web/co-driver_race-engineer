@@ -146,7 +146,7 @@ The packet is a contiguous binary struct, little-endian. The Horizon variant has
 - **`server/plugins/forza-listener.ts`** — binds the UDP socket, decodes every valid packet, emits at the native ~60 Hz Forza rate.
 - **`server/routes/_ws.ts`** — `defineWebSocketHandler`. Subscribes peers to the bus; also parses `start` / `stop` inbound commands for the recorder.
 - **`server/utils/recorder.ts`** — v3 state machine. See §8.3.
-- **`pages/live.vue`** — the corner view dashboard (canonical URL). `pages/index.vue` redirects `/` → `/live`.
+- **`pages/live.vue`** — the corner view dashboard (canonical URL). `pages/index.vue` is the game-grid **workspace picker** (Phase 2; previously redirected `/` → `/live`).
 - **`composables/useTelemetry.ts`** — opens the WebSocket; exposes `telemetry`, `connected`, plus a `useRecording()` peer for the start/stop UI.
 
 ### Render cadence
@@ -607,7 +607,8 @@ New outbound:
 ### 8.5 Navigation — **[done]**
 
 ```
-/                     → 302 redirect to /live   (implementation diverges from the original spec, see note)
+/                     → game-grid workspace picker (Phase 2; pick a game → /workspace). Was a /live redirect.
+/workspace            → per-game home: cars used → track sessions, with Compare/Open into the analysis pages.
 /live                 → the v1+v2 corner view + trace strip (the "second screen")
                         Shows a small "● REC" badge when state=recording, plus a Stop button.
 /events               → six type tiles (rally / race / street race / cross country / drag / freeroam)
@@ -623,7 +624,7 @@ New outbound:
                         Replay mounts ReplayPlayer driven by the lap's frames_blob.
 ```
 
-> Spec divergence: the original navigation block had `/` redirecting to `/events`. During slice-2 review the user pushed back — "the home screen redirects to /events so there is no active dash anymore" — so `/` now lands the user on the dashboard. The events browser remains at `/events`, reachable via the navbar.
+> Spec divergence: the original navigation block had `/` redirecting to `/events`. During slice-2 review the user pushed back — "the home screen redirects to /events so there is no active dash anymore" — so `/` landed the user on the dashboard. **Phase 2 update:** the app is now multi-game; `/` is the game-grid **workspace picker** and selecting a game opens `/workspace` (that game's cars → track sessions). `/live` and the `/events` browser remain, reachable via the navbar + the header workspace switcher.
 
 "Quick record" is a modal version of the event picker, available from any page via a pill in the navbar — for when the user is already on `/live` and doesn't want to navigate back. The pill is hidden while a recording is active (the REC badge with Stop button is shown in its place).
 

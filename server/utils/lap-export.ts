@@ -16,6 +16,10 @@ export const BUNDLE_FORMAT = 'co-driver-lap'
 export const BUNDLE_VERSION = 1
 
 export interface LapMeta {
+  // The game this lap was recorded in. Legacy bundles (pre-multi-game) omit it
+  // and import as FH6. Additive, so BUNDLE_VERSION stays 1 — old bundles still
+  // import and old readers ignore the field.
+  gameId: string
   event: { name: string, type: string }
   car: { ordinal: number, class: number, displayName: string | null }
   build: { name: string, settings: unknown } | null
@@ -52,6 +56,7 @@ export function toBundle(meta: LapMeta, framesB64: string): Record<string, unkno
   return {
     format: BUNDLE_FORMAT,
     version: BUNDLE_VERSION,
+    gameId: meta.gameId,
     event: meta.event,
     car: meta.car,
     build: meta.build,

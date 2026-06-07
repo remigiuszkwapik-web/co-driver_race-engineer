@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
+import { DEFAULT_GAME_ID, isGameId } from '#shared/games'
 import { eventType, type EventType } from '../../db/schema'
 import { BUNDLE_FORMAT, BUNDLE_VERSION } from '~~/server/utils/lap-export'
 
@@ -15,6 +16,7 @@ import { BUNDLE_FORMAT, BUNDLE_VERSION } from '~~/server/utils/lap-export'
 interface Bundle {
   format?: unknown
   version?: unknown
+  gameId?: unknown
   event?: { name?: unknown, type?: unknown }
   car?: { ordinal?: unknown, class?: unknown, displayName?: unknown }
   build?: { name?: unknown, settings?: unknown } | null
@@ -54,6 +56,8 @@ export default defineEventHandler(async (event) => {
   }
   const eventName = ev.name.trim()
   const evType = ev.type as EventType
+  // Legacy bundles (exported before multi-game) carry no gameId → FH6.
+  const gameId = isGameId(b.gameId) ? b.gameId : DEFAULT_GAME_ID
 
   const car = b.car
   if (!car || !Number.isInteger(car.ordinal) || !Number.isInteger(car.class)) {
@@ -82,18 +86,19 @@ export default defineEventHandler(async (event) => {
   return await db.transaction(async (tx) => {
     const created = { car: false, event: false, build: false, tune: false, session: false }
 
-    // car — by ordinal
-    let carRow = (await tx.select().from(schema.cars).where(eq(schema.cars.ordinal, carOrdinal)).limit(1))[0]
+    // car — by (gameId, ordinal); per-game catalog
+    let carRow = (await tx.select().from(schema.cars)
+      .where(and(eq(schema.cars.gameId, gameId), eq(schema.cars.ordinal, carOrdinal))).limit(1))[0]
     if (!carRow) {
-      carRow = (await tx.insert(schema.cars).values({ ordinal: carOrdinal, class: carClass, displayName: carDisplayName }).returning())[0]!
+      carRow = (await tx.insert(schema.cars).values({ gameId, ordinal: carOrdinal, class: carClass, displayName: carDisplayName }).returning())[0]!
       created.car = true
     }
 
-    // event — by (name, type)
+    // event — by (gameId, name, type)
     let eventRow = (await tx.select().from(schema.events)
-      .where(and(eq(schema.events.name, eventName), eq(schema.events.type, evType))).limit(1))[0]
+      .where(and(eq(schema.events.gameId, gameId), eq(schema.events.name, eventName), eq(schema.events.type, evType))).limit(1))[0]
     if (!eventRow) {
-      eventRow = (await tx.insert(schema.events).values({ name: eventName, type: evType }).returning())[0]!
+      eventRow = (await tx.insert(schema.events).values({ gameId, name: eventName, type: evType }).returning())[0]!
       created.event = true
     }
 
@@ -131,6 +136,7 @@ export default defineEventHandler(async (event) => {
     let sessionRow = sameEventCar.find(s => s.startedAt.getTime() === startedAt.getTime())
     if (!sessionRow) {
       sessionRow = (await tx.insert(schema.sessions).values({
+        gameId,
         eventId: eventRow.id,
         carId: carRow.id,
         tuneLabel: typeof sess.tuneLabel === 'string' ? sess.tuneLabel : null,

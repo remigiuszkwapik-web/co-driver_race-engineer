@@ -54,6 +54,12 @@ const { data, error } = await useFetch<SessionDetail>(`/api/sessions/${sessionId
 if (error.value || !data.value) {
   throw createError({ statusCode: 404, statusMessage: 'session not found' })
 }
+// Guard the URL ↔ data binding: a session reached under the wrong event id
+// (hand-edited URL, or an event from another game) must not render under this
+// event's breadcrumb. Mirrors the per-lap check in compare.vue.
+if (data.value.session.eventId !== eventId) {
+  throw createError({ statusCode: 404, statusMessage: 'session not found in this event' })
+}
 
 interface TrailBrakingLap {
   lapNumber: number

@@ -19,8 +19,9 @@ interface EventRow {
   lastDrivenAt: string | number | null
 }
 
+const { gameId } = useGame()
 const { data: events, refresh } = await useFetch<EventRow[]>('/api/events', {
-  query: { type: eventTypeKey },
+  query: { type: eventTypeKey, gameId },
   default: () => []
 })
 
@@ -39,7 +40,7 @@ const placeholder = computed(() => PLACEHOLDERS[eventTypeKey])
 async function createEvent(name: string) {
   const created = await $fetch<EventRow>('/api/events', {
     method: 'POST',
-    body: { name, type: eventTypeKey }
+    body: { name, type: eventTypeKey, gameId: gameId.value }
   })
   await refresh()
   await router.push(`/events/${eventTypeKey}/${created.id}`)

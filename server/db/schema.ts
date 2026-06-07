@@ -1,24 +1,39 @@
 import { sql } from 'drizzle-orm'
 import { blob, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+// Relative (not the `#shared` alias) so drizzle-kit's migration generator can
+// resolve it outside the Nuxt/Nitro runtime. games.ts is pure TS, no Nuxt deps.
+import { GAME_IDS } from '../../shared/games'
 
 export const eventType = ['rally', 'race', 'street_race', 'touge', 'cross_country', 'drag', 'custom', 'freeroam'] as const
 export type EventType = typeof eventType[number]
 
 export const events = sqliteTable('events', {
   id: integer().primaryKey({ autoIncrement: true }),
+  // The game this event belongs to. Existing rows backfill to 'fh6' (all data
+  // pre-multi-game was Forza Horizon). An "event" is now {game, name}: circuit
+  // sims record one per race/track name; FH6 keeps its richer `type` taxonomy.
+  gameId: text({ enum: GAME_IDS }).notNull().default('fh6'),
   name: text().notNull(),
   type: text({ enum: eventType }).notNull(),
   createdAt: integer({ mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 }, t => [
-  uniqueIndex('events_name_type_unq').on(t.name, t.type)
+  // Scoped by game so two sims can have same-named events; type stays in the
+  // key to preserve FH6's "same name across types" behaviour. Non-Forza games
+  // record under a single 'race' type, so this is effectively (game, name).
+  uniqueIndex('events_game_name_type_unq').on(t.gameId, t.name, t.type)
 ])
 
 export const cars = sqliteTable('cars', {
   id: integer().primaryKey({ autoIncrement: true }),
-  ordinal: integer().notNull().unique(),
+  // Car catalogs are per-game: an ordinal is only unique within a game (an F1
+  // car id can collide with a Forza ordinal). Existing rows backfill to 'fh6'.
+  gameId: text({ enum: GAME_IDS }).notNull().default('fh6'),
+  ordinal: integer().notNull(),
   class: integer().notNull(),
   displayName: text()
-})
+}, t => [
+  uniqueIndex('cars_game_ordinal_unq').on(t.gameId, t.ordinal)
+])
 
 /**
  * builds = the upgrade-side configuration of a car (post-homologation specs).
@@ -54,6 +69,9 @@ export const tunes = sqliteTable('tunes', {
 
 export const sessions = sqliteTable('sessions', {
   id: integer().primaryKey({ autoIncrement: true }),
+  // Which game produced this recording. Mirrors the event/car gameId (a session
+  // can only reference an event + car of its own game). Existing rows → 'fh6'.
+  gameId: text({ enum: GAME_IDS }).notNull().default('fh6'),
   eventId: integer().notNull().references(() => events.id),
   carId: integer().notNull().references(() => cars.id),
   tuneLabel: text(),
