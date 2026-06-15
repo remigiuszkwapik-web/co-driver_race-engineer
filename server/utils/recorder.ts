@@ -55,6 +55,14 @@ const RUN_STARTED_MIN_FRAMES = 120
  *  lap reads well under this; a genuine mid-lap join is always many s in. */
 const LAP_START_EPSILON_S = 2
 
+/** Game-clock gap (ms) between two consecutive buffered frames above which we
+ *  treat the jump as a pause/resume boundary and exclude it from the
+ *  point-to-point active time. A live 60 Hz feed ticks ~16 ms; a real pause is
+ *  seconds. Anything over this is the resume gap, not driving time (issue #21).
+ *  Paused frames never buffer (isRaceOn=false), so the pause shows up as a
+ *  single large delta across the gap. */
+const PAUSE_GAP_MS = 250
+
 interface RecordingContext {
   sessionId: number
   eventId: number
@@ -83,6 +91,12 @@ interface RecordingContext {
   // frame so the point-to-point fallback doesn't have to decode to time itself.
   firstTimestampMs: number | null
   lastTimestampMs: number
+  // Sum of per-frame game-clock deltas within the current buffer window,
+  // EXCLUDING pause/resume gaps (see PAUSE_GAP_MS). This is the point-to-point
+  // lap time — wall-clock first→last would otherwise count paused time (#21).
+  activeMs: number
+  // Timestamp of the previous buffered frame, for the active-time delta.
+  lastBufferedTimestampMs: number | null
   lapsCompleted: number
 }
 
@@ -186,6 +200,8 @@ export class Recorder {
       buffer: [],
       firstTimestampMs: null,
       lastTimestampMs: 0,
+      activeMs: 0,
+      lastBufferedTimestampMs: null,
       lapsCompleted: 0
     }
 
@@ -206,7 +222,10 @@ export class Recorder {
     // whether a given session was multi-lap or point-to-point. Runtime
     // detection (did LapNumber ever tick?) is the only reliable signal.
     if (ctx.lapsCompleted === 0 && ctx.buffer.length >= 2) {
-      const timeMs = Math.max(1, ctx.lastTimestampMs - (ctx.firstTimestampMs ?? ctx.lastTimestampMs))
+      // Active driving time across the window, with pause/resume gaps removed
+      // (#21) — not wall-clock first→last, which would include time on the
+      // pause menu.
+      const timeMs = Math.max(1, ctx.activeMs)
       // `this.ctx` is already null (set at the top of stop), so handing the
       // buffer straight to the async flush is safe — nothing else touches it.
       this.queueFlush(ctx.sessionId, 1, timeMs, ctx.buffer)
@@ -292,11 +311,23 @@ export class Recorder {
 
     if (ctx.firstTimestampMs === null) {
       ctx.firstTimestampMs = t.timestampMs
+      // Fresh buffer window — reset the active-time accumulator alongside it.
+      ctx.activeMs = 0
+      ctx.lastBufferedTimestampMs = null
       // First frame of a fresh lap buffer: a near-zero CurrentLap means the
       // lap clock just reset, so this lap is fully captured. A large value
       // means we joined mid-lap → the buffer is dropped at the next tick.
       ctx.caughtLapStart = t.lap.current < LAP_START_EPSILON_S
     }
+    // Accumulate active time, skipping the resume gap after a pause: between
+    // two consecutive buffered frames a normal step is ~16 ms, a pause is
+    // seconds (paused frames never buffer), so a delta over PAUSE_GAP_MS is the
+    // gap and is dropped.
+    if (ctx.lastBufferedTimestampMs !== null) {
+      const dt = t.timestampMs - ctx.lastBufferedTimestampMs
+      if (dt > 0 && dt <= PAUSE_GAP_MS) ctx.activeMs += dt
+    }
+    ctx.lastBufferedTimestampMs = t.timestampMs
     ctx.lastTimestampMs = t.timestampMs
     // Store a flat per-frame record, not the deep Telemetry object — one byte
     // block per frame keeps the live-set small over a long run.

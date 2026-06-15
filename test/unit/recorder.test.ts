@@ -204,6 +204,25 @@ describe('recorder — uniform fallback across all event types (issue #5)', () =
       expect(replayed).toHaveLength(600)
     })
 
+    it('point-to-point time excludes a mid-run pause (issue #21)', async () => {
+      // 300 active frames, then a ~3 s pause (isRaceOn=false frames advancing the
+      // game clock but never buffered), then 300 more active frames. The active
+      // time is 2×299×16 = 9568 ms — the pause gap must NOT be counted. (Plain
+      // last−first would include the ~3 s pause and read far higher.)
+      const frames: Telemetry[] = []
+      let t = 1000
+      for (let i = 0; i < 300; i++) frames.push(makeFrame({ lapNumber: 0, isRaceOn: true, timestampMs: t += 16 }))
+      // Pause menu: 30 frames at isRaceOn=false, clock keeps running (~3 s).
+      for (let i = 0; i < 30; i++) frames.push(makeFrame({ lapNumber: 0, isRaceOn: false, timestampMs: t += 100 }))
+      for (let i = 0; i < 300; i++) frames.push(makeFrame({ lapNumber: 0, isRaceOn: true, timestampMs: t += 16 }))
+
+      const laps = await runScenario(eventType, frames)
+      expect(laps).toHaveLength(1)
+      expect(laps[0]!.timeMs).toBe(9568)
+      // Paused frames are never buffered — only the 600 active frames persist.
+      expect(decodeFrames(laps[0]!.framesBlob)).toHaveLength(600)
+    })
+
     it('mid-lap join (recording started partway through lap 0) → opening lap discarded, 2 lap rows', async () => {
       // lap.number sequence: 0 (×50) → 1 (×100) → 2 (×100) → 3 (×100). The
       // opening lap-0 frames carry a large CurrentLap (we joined ~40 s in),

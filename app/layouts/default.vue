@@ -43,22 +43,28 @@ const recTuneLabel = computed<string | null>(() => {
   return r.state === 'recording' ? (r.tuneLabel ?? null) : null
 })
 
-// Recording duration — once-per-second tick, only while recording. Keeps
-// the banner timer alive even when telemetry frames don't arrive (e.g.
-// between events).
-const recStartedAt = ref<number | null>(null)
-const nowMs = ref(Date.now())
+// Recording duration — counts only while the game is feeding live data, so a
+// mid-session pause (isRaceOn=false: pause menu, loading screen, post-finish
+// UI) doesn't inflate the timer (issue #21). Accumulates elapsed time on a
+// once-per-second tick rather than wall-clock now−start, so paused stretches
+// are simply skipped and the displayed time matches active driving time.
+const recElapsedMs = ref(0)
 let tick: ReturnType<typeof setInterval> | null = null
+let lastTickMs = 0
 
 watch(isRecording, (rec) => {
   if (rec) {
-    recStartedAt.value = Date.now()
-    nowMs.value = Date.now()
+    recElapsedMs.value = 0
+    lastTickMs = Date.now()
     tick ??= setInterval(() => {
-      nowMs.value = Date.now()
+      const now = Date.now()
+      const dt = now - lastTickMs
+      lastTickMs = now
+      // Only advance while the game is live; freeze on pause / between events.
+      if (telemetry.value?.isRaceOn) recElapsedMs.value += dt
     }, 1000)
   } else {
-    recStartedAt.value = null
+    recElapsedMs.value = 0
     if (tick) {
       clearInterval(tick)
       tick = null
@@ -70,9 +76,7 @@ onBeforeUnmount(() => {
 })
 
 const recDuration = computed<string>(() => {
-  const start = recStartedAt.value
-  if (!start) return '0:00'
-  const s = Math.max(0, Math.floor((nowMs.value - start) / 1000))
+  const s = Math.max(0, Math.floor(recElapsedMs.value / 1000))
   const mm = Math.floor(s / 60)
   const ss = (s % 60).toString().padStart(2, '0')
   return `${mm}:${ss}`
