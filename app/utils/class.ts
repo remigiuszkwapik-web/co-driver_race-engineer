@@ -3,11 +3,17 @@
 // Two distinct representations exist:
 //   1. The game's CarClass integer (0-7), decoded straight off the telemetry
 //      packet — mapped to a letter via CLASS_LETTERS.
-//   2. A raw PI number — mapped to a letter via the FH6 class caps. R is a
-//      race-car designation, not a PI band, so it is never derived from PI.
+//   2. A raw PI number — mapped to a letter via the FH6 class caps. R and X are
+//      race-car / extreme designations the game decides, not PI bands, so they
+//      are never derived from PI (R can't be; X is a PI-only fallback at >998).
 
-/** Game CarClass integer (0-7) → letter. Index is the value Forza reports. */
-export const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'R'] as const
+/**
+ * Game CarClass integer (0-7) → letter. Index is the value Forza reports.
+ * FH6 introduced R as the seventh tier and shifted the order so 6=R, 7=X
+ * (older Forza titles topped out at 6=X). The tool targets FH6, so this is the
+ * canonical mapping; see issue #22.
+ */
+export const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'R', 'X'] as const
 
 export type ClassLetter = typeof CLASS_LETTERS[number]
 
@@ -43,12 +49,14 @@ export function classFromPi(pi: number): string {
 
 /**
  * Class letter for any display that has a PI and (optionally) the game-reported
- * CarClass integer. PI is the source of truth; the game class is the fallback
- * when PI is missing/invalid, and always wins for R (index 7) — a race-car
- * designation with no PI band that classFromPi can never produce.
+ * CarClass integer. The game class always wins for the top two tiers — R
+ * (index 6) is a race-car designation with no PI band that classFromPi can
+ * never produce, and X (index 7) is the game's call too. Below those, PI is the
+ * source of truth, with the game class as the fallback when PI is missing.
  */
 export function classForDisplay(pi: number | null | undefined, gameClass?: number | null): string {
-  if (gameClass === 7) return 'R'
+  if (gameClass === 6) return 'R'
+  if (gameClass === 7) return 'X'
   const fromPi = pi == null ? '?' : classFromPi(pi)
   if (fromPi !== '?') return fromPi
   return gameClass == null ? '?' : carClassLetter(gameClass)

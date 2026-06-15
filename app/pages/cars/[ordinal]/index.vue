@@ -46,10 +46,7 @@ async function createBuild(name: string) {
   await router.push(`/cars/${ordinal}/builds/${created.id}`)
 }
 
-const CLASS_LETTERS = ['D', 'C', 'B', 'A', 'S1', 'S2', 'X', 'R']
-function carClassLetter(c: number): string {
-  return CLASS_LETTERS[c] ?? '?'
-}
+// carClassLetter is auto-imported from ~/utils/class (single FH6 source of truth).
 </script>
 
 <template>
