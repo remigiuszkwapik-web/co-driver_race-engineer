@@ -39,14 +39,18 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 // Acceleration → 0..100 plot coordinates (matches the SVG viewBox).
+// Lateral is negated: in FH6 a left turn reads positive accel.x, but the driver
+// turning left expects the dot to swing left, matching the car/steering. So a
+// left turn plots LEFT (issue #25). Longitudinal keeps its felt-force sign.
 function ggDot(): GPoint {
-  const xs = 50 + clamp(props.accelLat / G_RANGE_MPS2, -1, 1) * 48
+  const xs = 50 - clamp(props.accelLat / G_RANGE_MPS2, -1, 1) * 48
   const ys = 50 + clamp(props.accelLong / G_RANGE_MPS2, -1, 1) * 48
   return { x: xs, y: ys }
 }
 
 const dotPos = computed<GPoint>(() => ggDot())
-const lateralG = computed(() => props.accelLat / 9.81)
+// Negated to match the dot's flipped lateral axis (see ggDot / issue #25).
+const lateralG = computed(() => -props.accelLat / 9.81)
 const longG = computed(() => props.accelLong / 9.81)
 
 function signedFixed(v: number, digits: number): string {

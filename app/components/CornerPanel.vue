@@ -58,14 +58,16 @@ const trail = ref<FrPoint[]>([])
 // the dashed ring at 70% of grip, crosses the solid LIMIT_R ring exactly when
 // combinedSlip > 1.0 (i.e. when the "Past grip" chip fires).
 // Convention matches the chassis G-G dot: forward drive force (positive
-// slipRatio = wheelspin) plots DOWN, lockup (negative slipRatio) plots UP;
-// slipAngle on X with positive to the right.
+// slipRatio = wheelspin) plots DOWN, lockup (negative slipRatio) plots UP. The
+// slipAngle X axis is negated so the dot swings toward the turn — FH6 reports a
+// left turn as positive slipAngle, but the driver expects the load to read left
+// (matches the G-G dot + steering, issue #25).
 function project(slipAngle: number, slipRatio: number, combinedSlip: number): FrPoint {
   const mag = Math.hypot(slipAngle, slipRatio)
   if (mag < 1e-6) return { x: 50, y: 50 }
   const r = combinedSlip * LIMIT_R
   return {
-    x: 50 + (slipAngle / mag) * r,
+    x: 50 - (slipAngle / mag) * r,
     y: 50 + (slipRatio / mag) * r
   }
 }

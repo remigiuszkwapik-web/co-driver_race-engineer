@@ -110,7 +110,10 @@ const longHeadRot = computed(() => longSign.value > 0 ? LONG_HEAD_FWD : LONG_HEA
 const longBodyPos = computed<[number, number, number]>(() => [0, 0, longSign.value * longLen.value * 0.5])
 const longHeadPos = computed<[number, number, number]>(() => [0, 0, longSign.value * (longLen.value + ARROW_HEAD_HALF)])
 
-const latAccX = computed(() => props.frame?.acceleration.x ?? 0)
+// Negated so the lateral force arrow points toward the turn: FH6 reports a left
+// turn as positive accel.x, but +X is screen-right, so the raw value drew the
+// arrow opposite the turn. Flipping aligns it with the steering + lean (#25).
+const latAccX = computed(() => -(props.frame?.acceleration.x ?? 0))
 const latSign = computed(() => latAccX.value >= 0 ? 1 : -1)
 const latLen = computed(() => Math.max(Math.abs(latAccX.value) * ACCEL_SCALE, ARROW_MIN))
 const latHeadRot = computed(() => latSign.value > 0 ? LAT_HEAD_RIGHT : LAT_HEAD_LEFT)
