@@ -212,8 +212,7 @@ function ensureInstalled(): void {
             speed: t.speedKmh,
             throttle: t.throttle,
             brake: t.brake,
-            distance: lapRelDistance,
-            drivingLine: typeof t.drivingLine === 'number' ? t.drivingLine : null
+            distance: lapRelDistance
           })
         }
         pointStride++

@@ -23,9 +23,6 @@ export interface TrackPoint {
   brake: number
   /** lap.distance for this frame — monotonic over a lap, used as elevation X-axis */
   distance: number
-  /** NormalizedDrivingLine deviation, raw s8 (-128..127); null for blobs
-   *  recorded before the decoder started reading it. */
-  drivingLine: number | null
 }
 
 export interface TrackBounds {
@@ -72,8 +69,7 @@ export function pointsFromFrames(frames: Telemetry[], opts?: PointsOptions): Tra
       speed: f.speedKmh,
       throttle: f.throttle,
       brake: f.brake,
-      distance: f.lap?.distance ?? 0,
-      drivingLine: typeof f.drivingLine === 'number' ? f.drivingLine : null
+      distance: f.lap?.distance ?? 0
     })
     kept++
   }

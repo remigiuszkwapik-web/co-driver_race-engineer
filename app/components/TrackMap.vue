@@ -70,7 +70,7 @@ function onMapClick(e: MouseEvent) {
   emit('seekToPosition', { x: local.x, z: worldZFromSvgY(local.y) })
 }
 
-type ColorMode = 'speed' | 'throttle' | 'brake' | 'drivingLine'
+type ColorMode = 'speed' | 'throttle' | 'brake'
 const colorMode = ref<ColorMode>('speed')
 
 // Normalise into a single shape for rendering
@@ -93,15 +93,6 @@ const bestTrace = computed<TrackTrace | null>(() => {
 })
 
 const bounds = computed<TrackBounds>(() => boundsFromTraces(allTraces.value))
-
-const hasDrivingLine = computed(() => {
-  for (const t of allTraces.value) {
-    for (const p of t.points) {
-      if (p.drivingLine !== null) return true
-    }
-  }
-  return false
-})
 
 // --- Map geometry ---------------------------------------------------------
 
@@ -158,22 +149,10 @@ function brakeColor(v: number): string {
   return ZINC
 }
 
-function lineColor(devRaw: number | null): string {
-  // raw s8 -128..127; closer to 0 = closer to the AI's optimal line
-  if (devRaw === null) return ZINC
-  const abs = Math.abs(devRaw)
-  if (abs < 10) return GREEN
-  if (abs < 25) return TEAL
-  if (abs < 50) return AMBER
-  if (abs < 80) return ORANGE
-  return RED
-}
-
 function colorFor(p: TrackPoint): string {
   switch (colorMode.value) {
     case 'throttle': return throttleColor(p.throttle)
     case 'brake': return brakeColor(p.brake)
-    case 'drivingLine': return lineColor(p.drivingLine)
     case 'speed':
     default: return speedColor(p.speed)
   }
@@ -282,13 +261,8 @@ const currentElevY = computed(() => cursor.value ? elevY(cursor.value.y) : null)
 const modes: { value: ColorMode, label: string }[] = [
   { value: 'speed', label: 'speed' },
   { value: 'throttle', label: 'throttle' },
-  { value: 'brake', label: 'brake' },
-  { value: 'drivingLine', label: 'line' }
+  { value: 'brake', label: 'brake' }
 ]
-
-function modeDisabled(m: ColorMode): boolean {
-  return m === 'drivingLine' && !hasDrivingLine.value
-}
 </script>
 
 <template>
@@ -309,9 +283,7 @@ function modeDisabled(m: ColorMode): boolean {
           v-for="m in modes"
           :key="m.value"
           type="button"
-          :disabled="modeDisabled(m.value)"
-          :title="modeDisabled(m.value) ? 'Needs a recording made after the driving-line decoder change' : undefined"
-          class="rounded-sm border px-2 py-0.5 text-[10px] tracking-[0.2em] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+          class="rounded-sm border px-2 py-0.5 text-[10px] tracking-[0.2em] transition-colors"
           :class="colorMode === m.value
             ? 'border-green-500/60 bg-green-500/10 text-green-300'
             : 'border-zinc-700 bg-zinc-900/60 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'"

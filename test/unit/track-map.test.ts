@@ -17,7 +17,6 @@ function frame(overrides: Partial<Telemetry> & { x?: number, y?: number, z?: num
     throttle: 0,
     brake: 0,
     lap: { number: 0, racePosition: 0, current: 0, last: 0, best: 0, raceTime: 0, distance },
-    drivingLine: 0,
     ...rest
   } as Telemetry
 }
@@ -55,7 +54,7 @@ describe('pointsFromFrames', () => {
 
   it('preserves all readable fields per point', () => {
     const p = pointsFromFrames([
-      frame({ x: 10, y: 12, z: 20, distance: 250, speedKmh: 88, throttle: 0.9, brake: 0.1, drivingLine: -42 })
+      frame({ x: 10, y: 12, z: 20, distance: 250, speedKmh: 88, throttle: 0.9, brake: 0.1 })
     ], { stride: 1 })[0]!
     expect(p.x).toBe(10)
     expect(p.y).toBe(12)
@@ -64,15 +63,6 @@ describe('pointsFromFrames', () => {
     expect(p.speed).toBe(88)
     expect(p.throttle).toBe(0.9)
     expect(p.brake).toBe(0.1)
-    expect(p.drivingLine).toBe(-42)
-  })
-
-  it('drivingLine falls through as null when absent on the frame (old blobs)', () => {
-    // Simulate an old blob by stripping drivingLine after construction
-    const f = frame({ x: 1, z: 1 })
-    delete (f as Partial<Telemetry>).drivingLine
-    const p = pointsFromFrames([f], { stride: 1 })[0]!
-    expect(p.drivingLine).toBeNull()
   })
 })
 

@@ -457,8 +457,7 @@ useHead({ title: 'Manual · Replay' })
             (top right) — recolor the line by
             <span class="font-mono">speed</span> /
             <span class="font-mono">throttle</span> /
-            <span class="font-mono">brake</span> /
-            <span class="font-mono">line</span> (driving-line deviation).
+            <span class="font-mono">brake</span>.
           </li>
           <li>
             <span class="font-mono text-zinc-100">Start marker</span> —
@@ -496,15 +495,6 @@ useHead({ title: 'Manual · Replay' })
               </td>
               <td class="py-2 text-zinc-400">
                 Mid-corner braking — often a setup or confidence issue.
-              </td>
-            </tr>
-            <tr>
-              <td class="py-2 pr-4 font-mono text-zinc-100">
-                Line-mode bands away from neutral
-              </td>
-              <td class="py-2 text-zinc-400">
-                Sustained off-line driving compared to the in-game
-                reference line.
               </td>
             </tr>
           </tbody>
