@@ -8,6 +8,7 @@ import { ams2Adapter } from './ams2'
 import { dirt2Adapter } from './dirt2'
 import { wrcAdapter } from './wrc'
 import { beamngAdapter, lfsAdapter } from './outgauge'
+import { gt7Adapter } from './gt7'
 import type { TelemetryAdapter } from './types'
 
 export type { TelemetryAdapter } from './types'
@@ -27,7 +28,8 @@ const ADAPTERS: Partial<Record<GameId, TelemetryAdapter>> = {
   dirt2: dirt2Adapter,
   wrc: wrcAdapter,
   beamng: beamngAdapter,
-  lfs: lfsAdapter
+  lfs: lfsAdapter,
+  gt7: gt7Adapter
 }
 
 /**

@@ -62,7 +62,29 @@ function bindSource(port: number, adapter: TelemetryAdapter, bind: string): void
   sock.bind(port, bind, () => {
     const addr = sock.address()
     console.log(`[telemetry] listening udp://${addr.address}:${addr.port} as ${adapter.id} (~60 Hz)`)
+    startHeartbeat(sock, adapter)
   })
+}
+
+// Some feeds (GT7) only stream after the receiver pings the console, re-sent
+// periodically. Drive that keep-alive from the receive socket; without a
+// configured host we can't send (the console IP isn't discoverable), so warn.
+function startHeartbeat(sock: dgram.Socket, adapter: TelemetryAdapter): void {
+  const hb = adapter.heartbeat
+  if (!hb) return
+  if (!hb.host) {
+    console.warn(`[telemetry] ${adapter.id} needs a heartbeat target to start streaming — set its host env (e.g. GT7_HOST=<console-ip>)`)
+    return
+  }
+  const send = (): void => {
+    sock.send(hb.payload, hb.port, hb.host, (err) => {
+      if (err) console.error(`[telemetry] ${adapter.id} heartbeat to ${hb.host}:${hb.port} failed`, err)
+    })
+  }
+  send() // prime immediately so the stream starts
+  const timer = setInterval(send, hb.intervalMs)
+  timer.unref()
+  sock.on('close', () => clearInterval(timer))
 }
 
 export default defineNitroPlugin(() => {
