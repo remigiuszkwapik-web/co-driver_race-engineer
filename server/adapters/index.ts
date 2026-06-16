@@ -7,6 +7,7 @@ import { smsUdpAdapter } from './sms-udp'
 import { ams2Adapter } from './ams2'
 import { dirt2Adapter } from './dirt2'
 import { wrcAdapter } from './wrc'
+import { beamngAdapter } from './outgauge'
 import type { TelemetryAdapter } from './types'
 
 export type { TelemetryAdapter } from './types'
@@ -24,7 +25,8 @@ const ADAPTERS: Partial<Record<GameId, TelemetryAdapter>> = {
   pcars2: smsUdpAdapter,
   ams2: ams2Adapter,
   dirt2: dirt2Adapter,
-  wrc: wrcAdapter
+  wrc: wrcAdapter,
+  beamng: beamngAdapter
 }
 
 /**
