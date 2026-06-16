@@ -10,14 +10,35 @@ function fullPacket(): Buffer {
   b.writeUInt8(0, 39) // gear_index_reverse  -> gear = 3 - 1 = 2
   b.writeUInt8(6, 40) // gear_maximum
   b.writeFloatLE(40, 41) // speed m/s -> 144 km/h
-  b.writeFloatLE(10, 49); b.writeFloatLE(20, 53); b.writeFloatLE(30, 57) // position
-  b.writeFloatLE(40, 61); b.writeFloatLE(0, 65); b.writeFloatLE(0, 69) // velocity
-  b.writeFloatLE(0, 73); b.writeFloatLE(0, 77); b.writeFloatLE(5, 81) // accel world (0,0,5)
-  b.writeFloatLE(1, 85); b.writeFloatLE(0, 89); b.writeFloatLE(0, 93) // left = +x
-  b.writeFloatLE(0, 97); b.writeFloatLE(0, 101); b.writeFloatLE(1, 105) // forward = +z
-  b.writeFloatLE(0, 109); b.writeFloatLE(1, 113); b.writeFloatLE(0, 117) // up = +y
-  // hub_position BL,BR,FL,FR
-  b.writeFloatLE(0.21, 121); b.writeFloatLE(0.22, 125); b.writeFloatLE(0.23, 129); b.writeFloatLE(0.24, 133)
+  // position x/y/z
+  b.writeFloatLE(10, 49)
+  b.writeFloatLE(20, 53)
+  b.writeFloatLE(30, 57)
+  // velocity x/y/z
+  b.writeFloatLE(40, 61)
+  b.writeFloatLE(0, 65)
+  b.writeFloatLE(0, 69)
+  // accel world (0,0,5)
+  b.writeFloatLE(0, 73)
+  b.writeFloatLE(0, 77)
+  b.writeFloatLE(5, 81)
+  // left_direction = +x
+  b.writeFloatLE(1, 85)
+  b.writeFloatLE(0, 89)
+  b.writeFloatLE(0, 93)
+  // forward_direction = +z
+  b.writeFloatLE(0, 97)
+  b.writeFloatLE(0, 101)
+  b.writeFloatLE(1, 105)
+  // up_direction = +y
+  b.writeFloatLE(0, 109)
+  b.writeFloatLE(1, 113)
+  b.writeFloatLE(0, 117)
+  // hub_position BL/BR/FL/FR
+  b.writeFloatLE(0.21, 121)
+  b.writeFloatLE(0.22, 125)
+  b.writeFloatLE(0.23, 129)
+  b.writeFloatLE(0.24, 133)
   b.writeFloatLE(8000, 185) // rpm_max
   b.writeFloatLE(900, 189) // rpm_idle
   b.writeFloatLE(6500, 193) // rpm_current
