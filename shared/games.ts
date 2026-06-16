@@ -14,7 +14,7 @@
 /** Every supported game id, as a runtime tuple. Single source of truth for the
  *  `GameId` union *and* the DB column enum (server/db/schema.ts imports this so
  *  cars/events/sessions are typed to the same set). Order is display order. */
-export const GAME_IDS = ['fh6', 'fh5', 'fm', 'f1', 'pcars2', 'ams2'] as const
+export const GAME_IDS = ['fh6', 'fh5', 'fm', 'f1', 'pcars2', 'ams2', 'dirt2'] as const
 
 export type GameId = typeof GAME_IDS[number]
 
@@ -84,6 +84,15 @@ export const GAMES: readonly GameDef[] = [
     label: 'Automobilista 2',
     // Same Madness "SMS UDP" feed as Project CARS 2 (set UDP mode = Project CARS 2
     // in-game); reuses the shared decoder on port 5606. Telemetry-only.
+    telemetry: true,
+    capabilities: { tuning: false }
+  },
+  {
+    id: 'dirt2',
+    label: 'DiRT Rally 2.0',
+    // Codemasters native "extradata" UDP feed (no agent). Enable extradata="3"
+    // on port 20778 in hardware_settings_config.xml. Telemetry-only: the tune
+    // stack is Forza-Horizon numerics and doesn't apply to rally.
     telemetry: true,
     capabilities: { tuning: false }
   }
