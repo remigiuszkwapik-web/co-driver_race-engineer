@@ -82,3 +82,6 @@ export function createOutGaugeAdapter(id: GameId, defaultPort: number): Telemetr
 }
 
 export const beamngAdapter = createOutGaugeAdapter('beamng', 4444)
+// Live for Speed — OutGauge's originator. Distinct default port so its socket
+// binds alongside BeamNG's (resolveSources collapses shared ports).
+export const lfsAdapter = createOutGaugeAdapter('lfs', 30000)

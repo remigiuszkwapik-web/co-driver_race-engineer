@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { beamngAdapter, createOutGaugeAdapter } from '../../server/adapters/outgauge'
+import { beamngAdapter, lfsAdapter, createOutGaugeAdapter } from '../../server/adapters/outgauge'
 
 // Build an OutGauge packet (92 bytes, little-endian).
 function packet(): Buffer {
@@ -67,9 +67,17 @@ describe('outgauge adapter (BeamNG / LFS)', () => {
     expect(t.lap.current).toBe(0)
   })
 
-  it('factory binds the given id/port (enables LFS reuse on a distinct port)', () => {
-    const a = createOutGaugeAdapter('beamng', 30000)
+  it('factory binds the given id/port', () => {
+    const a = createOutGaugeAdapter('beamng', 12345)
     expect(a.id).toBe('beamng')
-    expect(a.transport.defaultPort).toBe(30000)
+    expect(a.transport.defaultPort).toBe(12345)
+  })
+
+  it('binds lfs to id lfs and a distinct port, decoding the same struct', () => {
+    expect(lfsAdapter.id).toBe('lfs')
+    expect(lfsAdapter.transport).toEqual({ protocol: 'udp', defaultPort: 30000 })
+    const t = lfsAdapter.decode(packet())!
+    expect(t.speedKmh).toBeCloseTo(108, 1)
+    expect(t.gear).toBe(2)
   })
 })

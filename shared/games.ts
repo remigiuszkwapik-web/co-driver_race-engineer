@@ -14,7 +14,7 @@
 /** Every supported game id, as a runtime tuple. Single source of truth for the
  *  `GameId` union *and* the DB column enum (server/db/schema.ts imports this so
  *  cars/events/sessions are typed to the same set). Order is display order. */
-export const GAME_IDS = ['fh6', 'fh5', 'fm', 'f1', 'pcars2', 'ams2', 'dirt2', 'wrc', 'beamng'] as const
+export const GAME_IDS = ['fh6', 'fh5', 'fm', 'f1', 'pcars2', 'ams2', 'dirt2', 'wrc', 'beamng', 'lfs'] as const
 
 export type GameId = typeof GAME_IDS[number]
 
@@ -111,6 +111,14 @@ export const GAMES: readonly GameDef[] = [
     // Native OutGauge UDP (Options → Other → Protocols), port 4444. A dashboard
     // feed only — speed/rpm/gear/pedals/fuel/boost, no motion/lap/per-wheel.
     // Telemetry-only: the tune stack is Forza-Horizon-specific.
+    telemetry: true,
+    capabilities: { tuning: false }
+  },
+  {
+    id: 'lfs',
+    label: 'Live for Speed',
+    // Native OutGauge UDP (cfg.txt: OutGauge Mode 1), port 30000. Shares the
+    // OutGauge decoder with BeamNG — dashboard feed only. Telemetry-only.
     telemetry: true,
     capabilities: { tuning: false }
   }
