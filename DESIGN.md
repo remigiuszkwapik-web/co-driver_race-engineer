@@ -260,7 +260,7 @@ Sliced. Slice 1 (two-lap overlay) shipped; track map, sector deltas, and per-lap
 ## 6. Decisions (resolved 2026-05-19)
 
 1. **Units**: **metric** — km/h + °C. Decoder converts speed from m/s and tire temp from °F internally; UI only ever shows the metric values.
-2. **Forza port**: **5300 default**, overridable via `FORZA_PORT` env var. Lets the tool coexist with other telemetry consumers on the same LAN.
+2. **Forza port**: **5300 default**, overridable via `FORZA_PORT` env var. Lets the tool coexist with other telemetry consumers on the same LAN. *(Superseded 2026-06-17: `FORZA_PORT`/`FORZA_BIND` removed — the listen port is fixed at 5300 on `0.0.0.0`; relocate a clashing port via Docker `-p host:container/udp` instead.)*
 3. **Network setup**: **LAN** — Forza on PC/Xbox, Nuxt on a separate home server (`mainframe.bass-salak`). Server binds `0.0.0.0`; in-game Data Out IP = server's LAN IP; UDP 5300 must be open in the server's firewall. README documents how to find the LAN IP and add the firewall rule.
 4. **Theme**: **dark only**. No toggle, no system auto-detect. Background `#09090b` (zinc-950), panels `#18181b/80` (zinc-900 with 80% alpha), text `#fafafa`, accents per the heatmap palette.
 5. **Tire-temp band**: cold <80 °C, optimal 80–95 °C, hot >95 °C. Hardcoded as constants in `~/utils/tuning-constants.ts` for v1; settings panel arrives in v2 alongside the trace strip.

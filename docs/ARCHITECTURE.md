@@ -66,9 +66,10 @@ formats, and the **`forzaBus`** isolates ingest from every consumer.
 ## Path A — Live (the hot path), ~60 Hz
 
 ### Ingest — `server/plugins/forza-listener.ts`
-A Nitro plugin opens a UDP socket on boot (port from `FORZA_PORT` or the
-adapter's default). Each datagram → `getActiveAdapter().decode(buf)` →
-`Telemetry`. A 500 ms watchdog flips the "connected" status when packets stop.
+A Nitro plugin opens one UDP socket per game on boot, each bound to its
+adapter's fixed default port on `0.0.0.0` (relocate a clash via Docker `-p`).
+Each datagram → that port's `adapter.decode(buf)` → `Telemetry` (or `null`,
+ignored). A 500 ms watchdog flips the "connected" status when packets stop.
 Each decoded frame is published with a single `forzaBus.emit('telemetry', t)`.
 
 ### The bus — `server/utils/forza-bus.ts`

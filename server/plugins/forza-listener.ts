@@ -1,6 +1,5 @@
 import dgram from 'node:dgram'
-import { DEFAULT_GAME_ID } from '#shared/games'
-import { getAdapter, listAdapters } from '../adapters'
+import { listAdapters } from '../adapters'
 import type { TelemetryAdapter } from '../adapters'
 import { resolveSources } from '../utils/telemetry-sources'
 import { forzaBus, getForzaStatus, setForzaStatus, bumpForzaLastPacket } from '../utils/forza-bus'
@@ -30,7 +29,7 @@ function installRejectionGuard() {
 // idle. In practice only one game streams at a time, so the bus carries a single
 // stream and every downstream consumer (recorder, rolling aggregators, WS) is
 // unchanged.
-function bindSource(port: number, adapter: TelemetryAdapter, bind: string): void {
+function bindSource(port: number, adapter: TelemetryAdapter): void {
   const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true })
   let warnedReject = false
   let firstPacketLogged = false
@@ -59,7 +58,8 @@ function bindSource(port: number, adapter: TelemetryAdapter, bind: string): void
   })
 
   sock.on('error', err => console.error(`[telemetry] socket error on :${port}`, err))
-  sock.bind(port, bind, () => {
+  // Bind on all interfaces; remap externally (Docker `-p`) to relocate a port.
+  sock.bind(port, '0.0.0.0', () => {
     const addr = sock.address()
     console.log(`[telemetry] listening udp://${addr.address}:${addr.port} as ${adapter.id} (~60 Hz)`)
     startHeartbeat(sock, adapter)
@@ -90,13 +90,10 @@ function startHeartbeat(sock: dgram.Socket, adapter: TelemetryAdapter): void {
 export default defineNitroPlugin(() => {
   installRejectionGuard()
 
-  const fixedPort = process.env.FORZA_PORT ? Number(process.env.FORZA_PORT) : null
-  const bind = process.env.FORZA_BIND ?? '0.0.0.0'
-  // FORZA_PORT (if set) relocates the default game's (Horizon) port.
-  const horizonPort = getAdapter(DEFAULT_GAME_ID)?.transport.defaultPort ?? 5300
-
-  for (const { port, adapter } of resolveSources(listAdapters(), fixedPort, horizonPort)) {
-    bindSource(port, adapter, bind)
+  // Each adapter listens on its fixed default port (see resolveSources); relocate
+  // a clashing port via Docker port-mapping, not config.
+  for (const { port, adapter } of resolveSources(listAdapters())) {
+    bindSource(port, adapter)
   }
 
   const watchdog = setInterval(() => {

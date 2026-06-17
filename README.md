@@ -111,7 +111,7 @@ co-driver listens for every supported game at once — there's no server-side "a
 |---|---|
 | Data Out | **On** |
 | Data Out IP | LAN IP of the machine running co-driver (or `127.0.0.1` if same PC) |
-| Data Out Port | `5300` (or whatever you set `FORZA_PORT` to) |
+| Data Out Port | `5300` |
 
 ### Forza Motorsport (FM7 / FM 2023)
 
@@ -272,11 +272,11 @@ Set via environment variables (Docker `-e`, or the compose file):
 
 | Var | Default | Purpose |
 |---|---|---|
-| `FORZA_PORT` | `5300` | UDP port for the Forza Horizon listener (relocates it; other games keep their own ports). |
-| `FORZA_BIND` | `0.0.0.0` | Bind address (`127.0.0.1` for same-machine only) |
 | `GT7_HOST` | — | Gran Turismo console IP. **Required for GT7** — the server sends a heartbeat there to start the stream; without it, GT7 never streams. |
 | `NITRO_PORT` | `3000` | Web UI port |
 | `NITRO_HOST` | `0.0.0.0` | Web UI bind |
+
+Each game's UDP port is fixed inside the container (the game's documented default) and bound on `0.0.0.0`. To relocate a port that clashes on your host, remap it with Docker rather than configuration — `-p 5301:5300/udp` (or change the host side in `docker-compose.yml`). For localhost-only binding, scope the mapping: `-p 127.0.0.1:5300:5300/udp`.
 
 ## Status
 
