@@ -32,8 +32,14 @@ Prop a phone or tablet next to the TV. Each corner of the car becomes its own in
 **A hotlap delta you'd recognise from real motorsport.**
 Live delta to your session best, per‑sector PBs in green/purple, predicted and theoretical lap, and a track map that shows you exactly where the time is going.
 
+**Record every session to a garage that remembers.**
+Hit record, pick the track or race, and co‑driver captures the whole session at the full game rate, auto‑splitting it into laps as you cross the line — paused time kept out of the clock. Every session is tagged to the car, build and tune you were running, so months later you can still find *that* lap. (Forza Horizon adds the discipline taxonomy — rally, touge, cross‑country…; every other game records by track or race name.)
+
+**Replay any lap, frame by frame.**
+Scrub a finished lap like video. The same corner instruments from the live dashboard play back off the scrubbed frame, next to whole‑lap analysis you can't get live: damper‑velocity histograms and position×velocity scatter, a ride‑height distribution, an understeer/oversteer balance read, a per‑lap dyno curve with the powerband marked, an RPM histogram, and a clickable track map you can recolor by speed, throttle or brake — click anywhere to jump there.
+
 **Laps you can compare.**
-Compare any two laps side by side — overlay routes, scrub through synchronised traces, read the apex‑speed table and the sector splits that explain the gap.
+Compare any two laps side by side — overlay routes, scrub through synchronised traces, read the apex‑speed table and the sector splits that explain the gap, and put the damper, ride‑height and balance panels A vs B.
 
 **A dyno you actually understand.** *(Forza Horizon)*
 Plot your engine's power, torque and boost across the rev range. Pick units that match how you think — bar, psi or atm — and tune gear ratios against the powerband you actually have.
