@@ -8,21 +8,23 @@ Your own telemetry workspace for **Forza**, **F1**, **Gran Turismo 7**, the **ra
 
 ## Supported games
 
-co-driver listens for every supported game **at once** — launch any of them and it streams, no setup beyond pointing the game at the server. Live telemetry works for all of them; the tuning stack (dyno, builds, tune workbench) is Forza-Horizon-specific. Pick your game in **Settings → Game** to set what the UI shows.
+co-driver listens for every supported game **at once** — launch any of them and it streams, no setup beyond pointing the game at the server. Live telemetry, recording, replay and lap comparison work for all of them; the tuning stack (dyno, builds, tune workbench) is Forza-Horizon-specific. Pick your game in **Settings → Game** to set what the UI shows.
 
-| Game | Live telemetry | Tuning stack | UDP port |
-|---|---|---|---|
-| Forza Horizon 6 | ✅ | ✅ | `5300` |
-| Forza Horizon 5 | ✅ | — | `5300` |
-| Forza Motorsport (FM7 / 2023) | ✅ | — | `5300` |
-| F1 25 / F1 26 | ✅ | — | `20777` |
-| Project CARS 2 | ✅ | — | `5606` |
-| Automobilista 2 | ✅ | — | `5606` |
-| DiRT Rally 2.0 (also DiRT Rally / DiRT 4) | ✅ | — | `20778` |
-| EA Sports WRC | ✅ | — | `20789` |
-| BeamNG.drive | ✅ | — | `4444` |
-| Live for Speed | ✅ | — | `30000` |
-| Gran Turismo 7 | ✅ | — | `33740` |
+| Game | Live telemetry | Record | Replay | Compare | Tuning stack | UDP port |
+|---|---|---|---|---|---|---|
+| Forza Horizon 6 | ✅ | ✅ | ✅ | ✅ | ✅ | `5300` |
+| Forza Horizon 5 | ✅ | ✅ | ✅ | ✅ | — | `5300` |
+| Forza Motorsport (FM7 / 2023) | ✅ | ✅ | ✅ | ✅ | — | `5300` |
+| F1 25 / F1 26 | ✅ | ✅ | ✅ | ✅ | — | `20777` |
+| Project CARS 2 | ✅ | ✅ | ✅ | ✅ | — | `5606` |
+| Automobilista 2 | ✅ | ✅ | ✅ | ✅ | — | `5606` |
+| DiRT Rally 2.0 (also DiRT Rally / DiRT 4) | ✅ | ✅ | ✅ | ✅ | — | `20778` |
+| EA Sports WRC | ✅ | ✅ | ✅ | ✅ | — | `20789` |
+| BeamNG.drive | ✅ | ✅ | ✅ | ✅ | — | `4444` |
+| Live for Speed | ✅ | ✅ | ✅ | ✅ | — | `30000` |
+| Gran Turismo 7 | ✅ | ✅ | ✅ | ✅ | — | `33740` |
+
+Record, replay and compare are **lap-based**: circuit games split into laps automatically, while rally stages and free-roam sessions (no lap signal — e.g. EA WRC, BeamNG, Live for Speed) are captured as a single point-to-point run. Within a recording, each analysis panel populates only for the channels that game actually sends (see the per-game notes under [Connect your game](#connect-your-game)).
 
 ## What you get
 
