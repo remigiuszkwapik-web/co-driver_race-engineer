@@ -22,6 +22,30 @@ const topSmells = BUILD_SMELLS.slice(0, 5)
       </template>
     </PageHeader>
 
+    <NuxtLink
+      to="/upgrade/advisor"
+      class="group mb-12 flex items-center justify-between gap-4 card border-l-2 border-l-green-500/60 p-5 transition-colors hover:border-zinc-600 hover:bg-zinc-900/60"
+    >
+      <div>
+        <div class="mb-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-green-400">
+          <UIcon
+            name="i-lucide-arrow-up-circle"
+            class="h-3.5 w-3.5"
+          />
+          <span>Upgrade Advisor</span>
+        </div>
+        <div class="font-mono text-lg text-zinc-100">What should I build?</div>
+        <p class="text-sm leading-relaxed text-zinc-400">
+          Reads your recorded laps, finds what's limiting the car, and tells you
+          where to spend PI to max the class.
+        </p>
+      </div>
+      <UIcon
+        name="i-lucide-arrow-right"
+        class="h-5 w-5 shrink-0 text-zinc-500 group-hover:text-green-300"
+      />
+    </NuxtLink>
+
     <section class="mb-12">
       <div class="mb-3 flex items-baseline justify-between">
         <h2 class="font-mono text-xs uppercase tracking-[0.3em] text-zinc-400">
