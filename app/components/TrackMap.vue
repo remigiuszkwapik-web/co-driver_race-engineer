@@ -70,7 +70,7 @@ function onMapClick(e: MouseEvent) {
   emit('seekToPosition', { x: local.x, z: worldZFromSvgY(local.y) })
 }
 
-type ColorMode = 'speed' | 'throttle' | 'brake'
+type ColorMode = 'speed' | 'throttle' | 'brake' | 'wheelspin'
 const colorMode = ref<ColorMode>('speed')
 
 // Normalise into a single shape for rendering
@@ -149,10 +149,19 @@ function brakeColor(v: number): string {
   return ZINC
 }
 
+function wheelspinColor(v: number): string {
+  if (v <= 0) return ZINC // coasting / braking
+  if (v > 0.3) return RED
+  if (v > 0.15) return ORANGE
+  if (v > 0.05) return AMBER
+  return GREEN // on throttle, hooked up
+}
+
 function colorFor(p: TrackPoint): string {
   switch (colorMode.value) {
     case 'throttle': return throttleColor(p.throttle)
     case 'brake': return brakeColor(p.brake)
+    case 'wheelspin': return wheelspinColor(p.wheelspin)
     case 'speed':
     default: return speedColor(p.speed)
   }
@@ -261,7 +270,8 @@ const currentElevY = computed(() => cursor.value ? elevY(cursor.value.y) : null)
 const modes: { value: ColorMode, label: string }[] = [
   { value: 'speed', label: 'speed' },
   { value: 'throttle', label: 'throttle' },
-  { value: 'brake', label: 'brake' }
+  { value: 'brake', label: 'brake' },
+  { value: 'wheelspin', label: 'wheelspin' }
 ]
 </script>
 

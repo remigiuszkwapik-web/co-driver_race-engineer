@@ -21,6 +21,9 @@ export interface TrackPoint {
   /** input snapshots for color-by-throttle / color-by-brake modes */
   throttle: number
   brake: number
+  /** max |slip ratio| across wheels while on throttle (0 when coasting/braking) —
+   *  powers the color-by-wheelspin mode that shows where the car breaks traction */
+  wheelspin: number
   /** lap.distance for this frame — monotonic over a lap, used as elevation X-axis */
   distance: number
 }
@@ -69,6 +72,12 @@ export function pointsFromFrames(frames: Telemetry[], opts?: PointsOptions): Tra
       speed: f.speedKmh,
       throttle: f.throttle,
       brake: f.brake,
+      wheelspin: f.throttle > 0.5
+        ? Math.max(
+            Math.abs(f.slipRatio.fl), Math.abs(f.slipRatio.fr),
+            Math.abs(f.slipRatio.rl), Math.abs(f.slipRatio.rr)
+          )
+        : 0,
       distance: f.lap?.distance ?? 0
     })
     kept++
