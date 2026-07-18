@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { analyzeCar, type Severity } from '~/utils/engineer'
+import { fh6CarName } from '~/utils/fh6-cars'
 
 useHead({ title: 'Race Engineer · tuning' })
 
@@ -10,7 +11,7 @@ const report = computed(() => analyzeCar(data.value ?? null))
 const carLabel = computed(() => {
   const c = data.value?.car
   if (!c) return null
-  return c.displayName ?? `Car #${c.ordinal}`
+  return c.displayName ?? fh6CarName(c.ordinal) ?? `Car #${c.ordinal}`
 })
 
 const SEVERITY_STYLE: Record<Severity, { chip: string, label: string }> = {
