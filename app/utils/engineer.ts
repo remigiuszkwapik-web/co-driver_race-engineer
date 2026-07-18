@@ -27,7 +27,7 @@ type Drivetrain = 'fwd' | 'rwd' | 'awd' | null
  * fixtures without building the whole aggregate.
  */
 export interface EngineerSignals {
-  suspensionTravel: { bottomingPct: number }
+  suspensionTravel: { bottomingPct: number, frontP95: number, rearP95: number, oscillation: number }
   slipAngle: { frontAvg: number, rearAvg: number }
   slipRatio: { fl: number, fr: number, rl: number, rr: number, throttleFrames: number }
   tireTempC: { fl: number, fr: number, rl: number, rr: number }
@@ -72,6 +72,12 @@ export interface EngineerReport {
 
 const SEVERITY_RANK: Record<Severity, number> = { high: 0, medium: 1, low: 2 }
 
+// Suspension thresholds — provisional, calibrated against a real well-sorted FH6
+// lap (P95 ~0.66, oscillation ~0.02, bottoming ~0.2%). Set conservatively so a
+// good setup stays quiet; recalibrate as more data lands.
+const SUSP_UNUSED_P95 = 0.55 // peak travel below this ⇒ barely using the springs
+const SUSP_OSCILLATION = 0.04 // frame-to-frame travel wobble above this ⇒ bouncing
+
 function pct(x: number): string {
   return `${Math.round(x * 100)}%`
 }
@@ -103,6 +109,33 @@ export function analyzeCar(input: EngineerInput | null | undefined): EngineerRep
       why: 'A car sitting on its stops loses grip and falsifies every balance reading — fix this before anything else.',
       lever: 'Raise ride height a little (or stiffen springs on the axle that bottoms)',
       slug: 'ride-height'
+    })
+  } else if (Math.max(sig.suspensionTravel.frontP95, sig.suspensionTravel.rearP95) < SUSP_UNUSED_P95) {
+    // 1b) Not bottoming, yet the springs barely compress → too stiff or too high,
+    //     leaving mechanical grip on the table. Softer read, low severity.
+    const p95 = Math.max(sig.suspensionTravel.frontP95, sig.suspensionTravel.rearP95)
+    findings.push({
+      id: 'unused-travel',
+      severity: 'low',
+      title: 'Suspension travel going unused',
+      evidence: `Peak travel only reaches ${p95.toFixed(2)} of the range — the car barely leans on its springs.`,
+      why: 'A car that hardly uses its travel is stiffer or higher than it needs to be, which can cost mechanical grip on this surface.',
+      lever: 'Drop ride height a step (or soften springs) and re-check — you have travel to spare',
+      slug: 'ride-height'
+    })
+  }
+
+  // 1c) Suspension oscillation — the bar keeps bouncing after bumps. Points at
+  //     dampers (rebound), independent of the ride-height check above.
+  if (sig.suspensionTravel.oscillation > SUSP_OSCILLATION) {
+    findings.push({
+      id: 'oscillation',
+      severity: sig.suspensionTravel.oscillation > SUSP_OSCILLATION * 1.6 ? 'medium' : 'low',
+      title: 'Suspension keeps bouncing',
+      evidence: `Frame-to-frame travel wobble is ${sig.suspensionTravel.oscillation.toFixed(3)} (calm is ~0.02) — the car oscillates after bumps.`,
+      why: 'When the spring overshoots and the damper does not catch it, the car floats and the tyres skip — usually rebound that is too soft.',
+      lever: 'Raise rebound (extension) a step; if it then crashes over kerbs, back off slightly',
+      slug: 'dampers'
     })
   }
 

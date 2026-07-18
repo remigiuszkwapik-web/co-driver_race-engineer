@@ -19,9 +19,17 @@ function sig(o: Partial<{
   rearInner: number
   rearOuter: number
   diffSamples: number
+  p95f: number
+  p95r: number
+  oscillation: number
 }> = {}): EngineerSignals {
   return {
-    suspensionTravel: { bottomingPct: o.bottomingPct ?? 0 },
+    suspensionTravel: {
+      bottomingPct: o.bottomingPct ?? 0,
+      frontP95: o.p95f ?? 0.66,
+      rearP95: o.p95r ?? 0.66,
+      oscillation: o.oscillation ?? 0.02
+    },
     slipAngle: { frontAvg: o.faf ?? 0.05, rearAvg: o.raf ?? 0.05 },
     slipRatio: {
       fl: o.fl ?? 0.02, fr: o.fr ?? 0.02, rl: o.rl ?? 0.02, rr: o.rr ?? 0.02,
@@ -110,5 +118,31 @@ describe('analyzeCar', () => {
     const cold = r.findings.find(f => f.id === 'tyre-cold')
     expect(cold?.severity).toBe('low')
     expect(cold?.slug).toBe('tire-pressure')
+  })
+
+  it('flags unused suspension travel (too stiff/high) → ride-height', () => {
+    const r = analyzeCar(input(sig({ p95f: 0.5, p95r: 0.5 })))
+    const f = r.findings.find(x => x.id === 'unused-travel')
+    expect(f?.slug).toBe('ride-height')
+    expect(f?.severity).toBe('low')
+  })
+
+  it('does not flag unused travel while the car is bottoming', () => {
+    const r = analyzeCar(input(sig({ bottomingPct: 0.1, p95f: 0.5, p95r: 0.5 })))
+    expect(r.findings.some(x => x.id === 'unused-travel')).toBe(false)
+    expect(r.findings.some(x => x.id === 'bottoming')).toBe(true)
+  })
+
+  it('flags suspension oscillation → dampers', () => {
+    const r = analyzeCar(input(sig({ oscillation: 0.06 })))
+    const f = r.findings.find(x => x.id === 'oscillation')
+    expect(f?.slug).toBe('dampers')
+  })
+
+  it('stays quiet on a well-sorted suspension (no false positives)', () => {
+    // defaults mirror a real good lap: P95 ~0.66, oscillation ~0.02, no bottoming
+    const r = analyzeCar(input(sig()))
+    const suspensionIds = ['bottoming', 'unused-travel', 'oscillation']
+    expect(r.findings.some(x => suspensionIds.includes(x.id))).toBe(false)
   })
 })
