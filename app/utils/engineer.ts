@@ -32,6 +32,7 @@ export interface EngineerSignals {
   slipRatio: { fl: number, fr: number, rl: number, rr: number, throttleFrames: number }
   tireTempC: { fl: number, fr: number, rl: number, rr: number }
   gear: { atRevLimitPct: number }
+  diffBias: { rearInner: number, rearOuter: number, frontInner: number, frontOuter: number, samples: number }
 }
 
 /** Minimal structural input — a TuneDataResponse satisfies this. */
@@ -136,19 +137,48 @@ export function analyzeCar(input: EngineerInput | null | undefined): EngineerRep
     }
   }
 
-  // 3) Traction under power on the driven axle.
+  // 3) Traction under power. Split diff-openness from a plain grip limit using
+  //    the inner/outer wheelspin bias, so we never blame a diff that is fine.
   const slip = drivenSlip(sig.slipRatio, drivetrain)
   if (sig.slipRatio.throttleFrames > 0 && slip > SLIP_THRESHOLD * 1.5) {
     const axle = drivetrain === 'fwd' ? 'front' : 'rear'
-    findings.push({
-      id: 'traction',
-      severity: slip > SLIP_THRESHOLD * 3 ? 'high' : 'medium',
-      title: 'Wheelspin on power',
-      evidence: `Driven (${axle}) wheels average ${slip.toFixed(2)} slip ratio under throttle — that spinning is lost drive out of corners.`,
-      why: 'Torque is overwhelming the driven tyres, so grip that could push you forward is wasted as spin.',
-      lever: 'Tune the differential acceleration lock (and check driven-tyre grip/pressure); ease throttle until tyres are warm',
-      slug: 'differential'
-    })
+    const severity: Severity = slip > SLIP_THRESHOLD * 3 ? 'high' : 'medium'
+    const inner = drivetrain === 'fwd' ? sig.diffBias.frontInner : sig.diffBias.rearInner
+    const outer = drivetrain === 'fwd' ? sig.diffBias.frontOuter : sig.diffBias.rearOuter
+    const attributed = inner + outer
+    const lead = `Driven (${axle}) wheels average ${slip.toFixed(2)} slip ratio under throttle — that spinning is lost drive out of corners.`
+
+    if (attributed >= 8 && inner >= outer * 2) {
+      findings.push({
+        id: 'traction',
+        severity,
+        title: 'Wheelspin on power — open differential',
+        evidence: `${lead} In corners it is the INNER wheel spinning (${inner} vs ${outer} frames) — the classic too-open-diff signature.`,
+        why: 'A too-open acceleration diff sends torque to the unloaded inner wheel, which spins instead of driving you forward.',
+        lever: 'Raise the differential acceleration lock a step so torque reaches the loaded outer wheel',
+        slug: 'differential'
+      })
+    } else if (attributed >= 8) {
+      findings.push({
+        id: 'traction',
+        severity,
+        title: 'Wheelspin on power — grip limited (not the diff)',
+        evidence: `${lead} Both driven wheels spin together (${inner} inner vs ${outer} outer), so this is grip, not the differential.`,
+        why: 'The whole axle is out of grip under power — usually cold tyres or simply more torque than the tyres can hold; a diff change will not fix it.',
+        lever: 'Warm the tyres over a longer stint, drop rear pressure a little, or fit grippier tyres — leave the diff where it is',
+        slug: 'tire-pressure'
+      })
+    } else {
+      findings.push({
+        id: 'traction',
+        severity,
+        title: 'Wheelspin on power',
+        evidence: `${lead} Not enough cornering data yet to tell an open diff from a plain grip limit.`,
+        why: 'Torque is overwhelming the driven tyres, but there are too few cornering-on-throttle frames to attribute it.',
+        lever: 'Drive a few more laps so the tyres warm up, then re-check — if it persists it is grip (tyres), not the diff',
+        slug: 'tire-pressure'
+      })
+    }
   }
 
   // 4) Tyre temperature window (co-driver's optimal band is 85..100 °C).

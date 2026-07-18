@@ -16,6 +16,9 @@ function sig(o: Partial<{
   trl: number
   trr: number
   revPct: number
+  rearInner: number
+  rearOuter: number
+  diffSamples: number
 }> = {}): EngineerSignals {
   return {
     suspensionTravel: { bottomingPct: o.bottomingPct ?? 0 },
@@ -25,7 +28,14 @@ function sig(o: Partial<{
       throttleFrames: o.throttleFrames ?? 100
     },
     tireTempC: { fl: o.tfl ?? 90, fr: o.tfr ?? 90, rl: o.trl ?? 90, rr: o.trr ?? 90 },
-    gear: { atRevLimitPct: o.revPct ?? 0 }
+    gear: { atRevLimitPct: o.revPct ?? 0 },
+    diffBias: {
+      rearInner: o.rearInner ?? 0,
+      rearOuter: o.rearOuter ?? 0,
+      frontInner: 0,
+      frontOuter: 0,
+      samples: o.diffSamples ?? 0
+    }
   }
 }
 
@@ -73,9 +83,26 @@ describe('analyzeCar', () => {
     expect(r.findings.some(f => f.id === 'understeer')).toBe(true)
   })
 
-  it('flags driven-axle wheelspin as a traction finding', () => {
+  it('flags wheelspin but stays non-committal without cornering data', () => {
     const r = analyzeCar(input(sig({ rl: 0.4, rr: 0.4 })))
-    expect(r.findings.some(f => f.id === 'traction' && f.slug === 'differential')).toBe(true)
+    const traction = r.findings.find(f => f.id === 'traction')
+    expect(traction).toBeDefined()
+    // no diff-bias samples → do not blame the differential
+    expect(traction?.slug).toBe('tire-pressure')
+  })
+
+  it('blames the differential only when the INNER wheel dominates', () => {
+    const r = analyzeCar(input(sig({ rl: 0.4, rr: 0.4, rearInner: 20, rearOuter: 2, diffSamples: 22 })))
+    const traction = r.findings.find(f => f.id === 'traction')
+    expect(traction?.slug).toBe('differential')
+    expect(traction?.title).toContain('open differential')
+  })
+
+  it('calls it grip-limited (not diff) when both wheels spin together', () => {
+    const r = analyzeCar(input(sig({ rl: 0.4, rr: 0.4, rearInner: 11, rearOuter: 10, diffSamples: 21 })))
+    const traction = r.findings.find(f => f.id === 'traction')
+    expect(traction?.slug).toBe('tire-pressure')
+    expect(traction?.title).toContain('grip limited')
   })
 
   it('flags cold tyres as a low-severity finding', () => {
