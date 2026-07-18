@@ -361,6 +361,57 @@ export function rumbleContactPct(frames: Telemetry[]): number {
   return n / frames.length
 }
 
+// --- differential bias (inner vs outer driven-wheel spin) ------------------
+
+export interface DiffBiasSummary {
+  /** Cornering, on-throttle frames where the inner wheel of the axle spun harder. */
+  rearInner: number
+  rearOuter: number
+  frontInner: number
+  frontOuter: number
+  /** Frames that passed the gate (on throttle, cornering, some wheelspin). */
+  samples: number
+}
+
+const DIFF_STEER_MIN = 0.08 // |steer| (normalized -1..1) above this = cornering
+const DIFF_THROTTLE_MIN = 0.5 // throttle above this = on power
+const DIFF_SPIN_MIN = 0.15 // axle wheelspin above this = worth attributing
+
+/**
+ * Splits on-throttle cornering wheelspin into inner vs outer wheel per axle.
+ * Inner wheel dominating = the diff is too open (send it more lock); both/outer
+ * = the axle is simply grip-limited, which a diff change will not fix.
+ */
+export function summarizeDiffBias(frames: Telemetry[]): DiffBiasSummary {
+  let rearInner = 0
+  let rearOuter = 0
+  let frontInner = 0
+  let frontOuter = 0
+  let samples = 0
+  for (const f of frames) {
+    if (f.throttle < DIFF_THROTTLE_MIN) continue
+    if (Math.abs(f.steer) < DIFF_STEER_MIN) continue
+    const right = f.steer > 0 // steering right → inner wheels are the right ones
+    const rInner = Math.abs(right ? f.slipRatio.rr : f.slipRatio.rl)
+    const rOuter = Math.abs(right ? f.slipRatio.rl : f.slipRatio.rr)
+    const fInner = Math.abs(right ? f.slipRatio.fr : f.slipRatio.fl)
+    const fOuter = Math.abs(right ? f.slipRatio.fl : f.slipRatio.fr)
+    let counted = false
+    if (Math.max(rInner, rOuter) > DIFF_SPIN_MIN) {
+      if (rInner > rOuter) rearInner++
+      else rearOuter++
+      counted = true
+    }
+    if (Math.max(fInner, fOuter) > DIFF_SPIN_MIN) {
+      if (fInner > fOuter) frontInner++
+      else frontOuter++
+      counted = true
+    }
+    if (counted) samples++
+  }
+  return { rearInner, rearOuter, frontInner, frontOuter, samples }
+}
+
 // --- master roll-up (everything in one walk) -------------------------------
 
 export interface FrameAggregates {
@@ -374,6 +425,7 @@ export interface FrameAggregates {
   lateralG: LateralGSummary
   power: PowerSummary
   boost: BoostSummary
+  diffBias: DiffBiasSummary
   rumbleContactPct: number
 }
 
@@ -389,6 +441,7 @@ export function summarizeFrames(frames: Telemetry[]): FrameAggregates {
     lateralG: summarizeLateralG(frames),
     power: summarizePower(frames),
     boost: summarizeBoost(frames),
+    diffBias: summarizeDiffBias(frames),
     rumbleContactPct: rumbleContactPct(frames)
   }
 }

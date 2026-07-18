@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { TUNE_DATA_BINDINGS } from '~/utils/tune-data-bindings'
 import { UPGRADE_DATA_BINDINGS } from '~/utils/upgrade-data-bindings'
+import { fh6CarName } from '~/utils/fh6-cars'
 
 const props = withDefaults(defineProps<{ slug: string, side?: 'tune' | 'upgrade' }>(), {
   side: 'tune'
@@ -22,7 +23,7 @@ const rows = computed(() => {
 const carLabel = computed(() => {
   const c = data.value?.car
   if (!c) return null
-  return c.displayName ?? `Car #${c.ordinal}`
+  return c.displayName ?? fh6CarName(c.ordinal) ?? `Car #${c.ordinal}`
 })
 
 const buildLabel = computed(() => data.value?.build?.name ?? null)

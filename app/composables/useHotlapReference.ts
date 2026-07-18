@@ -217,6 +217,12 @@ function ensureInstalled(): void {
             speed: t.speedKmh,
             throttle: t.throttle,
             brake: t.brake,
+            wheelspin: t.throttle > 0.5
+              ? Math.max(
+                  Math.abs(t.slipRatio.fl), Math.abs(t.slipRatio.fr),
+                  Math.abs(t.slipRatio.rl), Math.abs(t.slipRatio.rr)
+                )
+              : 0,
             distance: lapRelDistance
           })
         }

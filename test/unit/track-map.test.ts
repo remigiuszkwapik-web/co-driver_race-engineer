@@ -16,6 +16,7 @@ function frame(overrides: Partial<Telemetry> & { x?: number, y?: number, z?: num
     speedKmh: 0,
     throttle: 0,
     brake: 0,
+    slipRatio: { fl: 0, fr: 0, rl: 0, rr: 0 },
     lap: { number: 0, racePosition: 0, current: 0, last: 0, best: 0, raceTime: 0, distance },
     ...rest
   } as Telemetry
@@ -54,7 +55,10 @@ describe('pointsFromFrames', () => {
 
   it('preserves all readable fields per point', () => {
     const p = pointsFromFrames([
-      frame({ x: 10, y: 12, z: 20, distance: 250, speedKmh: 88, throttle: 0.9, brake: 0.1 })
+      frame({
+        x: 10, y: 12, z: 20, distance: 250, speedKmh: 88, throttle: 0.9, brake: 0.1,
+        slipRatio: { fl: 0.02, fr: 0.03, rl: 0.4, rr: 0.35 }
+      })
     ], { stride: 1 })[0]!
     expect(p.x).toBe(10)
     expect(p.y).toBe(12)
@@ -63,6 +67,15 @@ describe('pointsFromFrames', () => {
     expect(p.speed).toBe(88)
     expect(p.throttle).toBe(0.9)
     expect(p.brake).toBe(0.1)
+    // wheelspin = max |slip ratio| under throttle
+    expect(p.wheelspin).toBeCloseTo(0.4)
+  })
+
+  it('reports zero wheelspin when off throttle', () => {
+    const p = pointsFromFrames([
+      frame({ x: 5, z: 5, throttle: 0.2, slipRatio: { fl: 0.5, fr: 0.5, rl: 0.5, rr: 0.5 } })
+    ], { stride: 1 })[0]!
+    expect(p.wheelspin).toBe(0)
   })
 })
 
