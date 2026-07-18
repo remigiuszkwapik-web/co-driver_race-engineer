@@ -5,7 +5,7 @@
 //      packet — mapped to a letter via CLASS_LETTERS.
 //   2. A raw PI number — mapped to a letter via the FH6 class caps. R and X are
 //      race-car / extreme designations the game decides, not PI bands, so they
-//      are never derived from PI (R can't be; X is a PI-only fallback at >998).
+//      are never derived from PI (R can't be; X is a PI-only fallback at >900).
 
 /**
  * Game CarClass integer (0-7) → letter. Index is the value Forza reports.
@@ -24,20 +24,22 @@ export function carClassLetter(c: number): string {
 
 /**
  * FH6 class PI caps (inclusive upper bound per class). X/R are uncapped.
- * Source: upgrade-reference.ts — D 500, C 600, B 700, A 800, S1 900, S2 998.
+ * FH6 shifted the bands down one step vs FH4/FH5 — verified in-game (e.g. a
+ * 687 PI car reads A, a 734 reads S1): D 400, C 500, B 600, A 700, S1 800,
+ * S2 900, X 901+.
  */
 export const CLASS_PI_CAPS: readonly { letter: ClassLetter, max: number }[] = [
-  { letter: 'D', max: 500 },
-  { letter: 'C', max: 600 },
-  { letter: 'B', max: 700 },
-  { letter: 'A', max: 800 },
-  { letter: 'S1', max: 900 },
-  { letter: 'S2', max: 998 }
+  { letter: 'D', max: 400 },
+  { letter: 'C', max: 500 },
+  { letter: 'B', max: 600 },
+  { letter: 'A', max: 700 },
+  { letter: 'S1', max: 800 },
+  { letter: 'S2', max: 900 }
 ] as const
 
 /**
  * Derive the class letter from a PI value using FH6 class caps.
- * Anything above S2's 998 cap is X. Non-finite or non-positive PI returns '?'.
+ * Anything above S2's 900 cap is X. Non-finite or non-positive PI returns '?'.
  */
 export function classFromPi(pi: number): string {
   if (!Number.isFinite(pi) || pi <= 0) return '?'

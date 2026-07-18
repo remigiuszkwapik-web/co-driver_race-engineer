@@ -22,14 +22,21 @@ describe('CLASS_LETTERS (FH6 game CarClass integer → letter)', () => {
 })
 
 describe('classFromPi (PI → letter, FH6 caps)', () => {
-  it('maps each band by its inclusive upper bound', () => {
-    expect(classFromPi(500)).toBe('D')
-    expect(classFromPi(501)).toBe('C')
-    expect(classFromPi(600)).toBe('C')
-    expect(classFromPi(700)).toBe('B')
-    expect(classFromPi(800)).toBe('A')
-    expect(classFromPi(900)).toBe('S1')
-    expect(classFromPi(998)).toBe('S2')
+  it('maps each band by its inclusive upper bound (FH6 shifted scale)', () => {
+    expect(classFromPi(400)).toBe('D')
+    expect(classFromPi(401)).toBe('C')
+    expect(classFromPi(500)).toBe('C')
+    expect(classFromPi(501)).toBe('B')
+    expect(classFromPi(589)).toBe('B') // Maserati Ghibli Cup
+    expect(classFromPi(600)).toBe('B')
+    expect(classFromPi(601)).toBe('A')
+    expect(classFromPi(687)).toBe('A') // Alfa 155 Q4, verified in-game
+    expect(classFromPi(700)).toBe('A')
+    expect(classFromPi(701)).toBe('S1')
+    expect(classFromPi(734)).toBe('S1') // NSX Type S, verified in-game
+    expect(classFromPi(800)).toBe('S1')
+    expect(classFromPi(801)).toBe('S2')
+    expect(classFromPi(900)).toBe('S2')
   })
 
   it('returns X above the S2 cap and never produces R', () => {
@@ -59,8 +66,8 @@ describe('classForDisplay (PI + game class)', () => {
   })
 
   it('uses PI as the source of truth for D..S2', () => {
-    expect(classForDisplay(992, 5)).toBe('S2')
-    expect(classForDisplay(750, 3)).toBe('A')
+    expect(classForDisplay(850, 5)).toBe('S2')
+    expect(classForDisplay(650, 3)).toBe('A')
   })
 
   it('falls back to the game class when PI is missing/invalid', () => {
