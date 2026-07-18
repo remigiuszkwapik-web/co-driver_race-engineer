@@ -421,8 +421,8 @@ export const HOMOLOGATION_STEPS: HomologationStep[] = [
   },
   {
     step: 'Set the target class',
-    do: 'Choose D/C/B/A/S1/S2/X/R. Class caps in FH6: D 500, C 600, B 700, A 800, S1 900, S2 998, X/R uncapped within slot.',
-    why: 'Class boundary determines the PI budget. A 800 PI A-class car will outperform a 701 PI A-class car despite both being "A". Build to within 0–3 PI of the cap.'
+    do: 'Choose D/C/B/A/S1/S2/X/R. Class caps in FH6: D 400, C 500, B 600, A 700, S1 800, S2 900, X/R uncapped within slot.',
+    why: 'Class boundary determines the PI budget. A 700 PI A-class car will outperform a 601 PI A-class car despite both being "A". Build to within 0–3 PI of the cap.'
   },
   {
     step: 'Decide drivetrain',
