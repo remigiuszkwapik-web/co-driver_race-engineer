@@ -1,12 +1,24 @@
 <script setup lang="ts">
 import { analyzeCar, type Severity } from '~/utils/engineer'
+import { progressHints, type HintDirection } from '~/utils/engineer-progress'
 import { fh6CarName } from '~/utils/fh6-cars'
 
 useHead({ title: 'Race Engineer · tuning' })
 
 const { data, pending } = useTuneData()
+const { data: progressData } = useEngineerProgress()
 
 const report = computed(() => analyzeCar(data.value ?? null))
+
+const progress = computed(() =>
+  progressHints(progressData.value?.current ?? null, progressData.value?.previous ?? null)
+)
+
+const HINT_DOT: Record<HintDirection, string> = {
+  better: 'bg-green-400',
+  worse: 'bg-rose-400',
+  flat: 'bg-zinc-500'
+}
 
 const carLabel = computed(() => {
   const c = data.value?.car
@@ -73,6 +85,35 @@ const SEVERITY_STYLE: Record<Severity, { chip: string, label: string }> = {
         <span class="text-zinc-700">·</span>
         <span>last {{ data?.lapCount }} {{ data?.lapCount === 1 ? 'lap' : 'laps' }}</span>
       </div>
+
+      <!-- Since your last session -->
+      <section
+        v-if="progress.hasComparison && progress.hints.length > 0"
+        class="card mb-6 p-4"
+      >
+        <div class="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+          Since your last session
+        </div>
+        <ul class="space-y-1.5">
+          <li
+            v-for="hint in progress.hints"
+            :key="hint.id"
+            class="flex items-baseline gap-x-2 text-sm text-zinc-300"
+          >
+            <span
+              class="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+              :class="HINT_DOT[hint.direction]"
+            />
+            <span>{{ hint.text }}</span>
+          </li>
+        </ul>
+      </section>
+      <p
+        v-else-if="progress.note"
+        class="mb-6 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-600"
+      >
+        {{ progress.note }}
+      </p>
 
       <!-- All clear -->
       <section
